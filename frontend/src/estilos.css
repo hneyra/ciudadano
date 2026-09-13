@@ -1,0 +1,33 @@
+/*
+ * La hoja de estilos de `ciudadano-web`. **No define ni un color.**
+ *
+ * Portada de `rentas/frontend/src/estilos.css`. La paleta es de `@kamayuk/ui`, y el tema de este
+ * portal llega por alli (identidad `clasico`, en `kamayuk-lib`), no escrito aqui: un valor puesto
+ * en este archivo seria una segunda fuente de verdad, y la que gana depende del orden en que el
+ * empaquetador resuelva los modulos.
+ *
+ * ────────────────────────────────────────────────────────────────────────────────────────────
+ * POR QUE ESTE ARCHIVO EXISTE, SI LA PALETA ES DE `@kamayuk/ui`
+ * ────────────────────────────────────────────────────────────────────────────────────────────
+ *
+ * Por `@source`, y por nada mas.
+ *
+ * Tailwind v4 descubre las clases leyendo los archivos del proyecto, y **omite `node_modules` por
+ * completo**. `@kamayuk/ui` llega por `link:`, o sea que vive ahi dentro: sus clases no las veria
+ * nadie. Y no falla del todo, que es lo que lo hizo invisible en `rentas` (rentas#107): el CSS salia
+ * con 157 reglas en vez de 419, la pantalla se dibujaba con su estructura correcta y la mitad de su
+ * aspecto, y ninguna prueba de `vitest` podia verlo porque comparan `className` como texto.
+ *
+ * Sin `@source` hacia `@kamayuk/shell`, a diferencia de `rentas`: este portal no usa el armazon de
+ * back-office.
+ */
+
+@import '@kamayuk/ui/estilos.css';
+
+/*
+ * Donde mirar, ademas de en `src/`.
+ *
+ * La ruta es relativa a ESTE archivo y apunta al clon hermano, que es donde `link:` resuelve.
+ * `verificaciones/tailwind-esta-conectado.test.ts` comprueba que siga apuntando a `@kamayuk/ui`.
+ */
+@source "../../../kamayuk-lib/paquetes/ui";
