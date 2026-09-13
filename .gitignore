@@ -1,0 +1,11 @@
+# Node: dependencias y bundle. Se instalan y se construyen; no se versionan.
+node_modules/
+dist/
+
+# La cache de Vite: es de una maquina y de una corrida.
+.vite/
+
+# El arnes de Playwright, cuando llegue (como en `rentas`#107): ni el informe ni las trazas se
+# versionan, son de una corrida y en CI viajan como artefacto del trabajo.
+playwright-report/
+test-results/

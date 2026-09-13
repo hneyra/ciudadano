@@ -1,0 +1,35 @@
+import { defineConfig } from 'i18next-cli';
+
+/**
+ * **La extraccion de claves**, portada de `rentas/frontend/i18next.config.ts` (rentas#103).
+ *
+ * <h2>Que extrae, y de donde</h2>
+ *
+ * Todo lo que pase por `t(...)` en `src/`. Con el castellano como clave, lo que sale es
+ * directamente **la lista que un traductor recibe**: frases en castellano, no identificadores que
+ * alguien tendria que descifrar.
+ *
+ * <h2>Por que `es.json` se llena, si i18next devolveria la clave igualmente</h2>
+ *
+ * Porque sin el no hay nada que sincronizar: un segundo idioma se hace **copiando `es.json` y
+ * traduciendo los valores**, y con el archivo vacio no habria de donde copiar.
+ *
+ * El riesgo de tener el castellano dos veces —en el codigo y en el locale— lo cierra
+ * `verificaciones/el-locale-esta-completo.test.ts`: **cada valor tiene que ser igual a su clave**.
+ * Asi el locale no puede divergir del artboard sin ponerse rojo.
+ */
+export default defineConfig({
+  locales: ['es'],
+  extract: {
+    input: ['src/**/*.{ts,tsx}'],
+    output: 'src/i18n/locales/{{language}}.json',
+    // La clave ES el castellano: lleva puntos, dos puntos y comas dentro. Con los separadores
+    // puestos, «Atención en ventanilla de lunes a viernes, de 8:00 a 16:00.» se partiria.
+    keySeparator: false,
+    nsSeparator: false,
+    // Sin entrada, el valor es la propia clave. Es lo que hace que `es.json` no pueda divergir.
+    defaultValue: (_locale: string, _ns: string, clave: string) => clave,
+    // Ordenadas: un diff de este archivo tiene que decir que cadena cambio, no que todo se movio.
+    sort: true,
+  },
+});

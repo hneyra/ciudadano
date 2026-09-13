@@ -1,0 +1,93 @@
+name: Frontend
+
+# La CI de `ciudadano-web`, portada del job `verificar` de `rentas/.github/workflows/frontend.yml`.
+# Corre `yarn verificar` —lint, tipos, i18n y pruebas— y construye el bundle. Nada mas: aqui no se
+# construye imagen ni se despliega (no hay Dockerfile), y el arnes de Chromium de `rentas` entra
+# en su propio issue.
+#
+# LLEVA FILTRO `paths`, y el workflow se incluye en su propio filtro: un cambio en este archivo
+# tiene que verificarse a si mismo. Sin eso, romper la CI del frontend es el unico cambio que la CI
+# del frontend no revisa.
+#
+# NECESITA UN CLON HERMANO. `frontend/package.json` declara `@kamayuk/{formato,ui,verificaciones}`
+# como `link:../../kamayuk-lib/paquetes/*`, que yarn resuelve contra el DISCO y ninguna variable de
+# entorno redirige. Por eso el anfitrion baja a `path: ciudadano` y `kamayuk-lib` se clona a su
+# lado: desde `ciudadano/frontend`, `../../kamayuk-lib` cae exactamente ahi.
+#
+# LO QUE EL FILTRO `paths` NO PUEDE VER, y hay que saberlo: un cambio en `kamayuk-lib` no dispara
+# ninguna corrida aqui. La CI se pondra roja en el siguiente PR que toque `frontend/**` por algo que
+# no cambio en este repositorio, y el `git log` de aqui no lo explicara.
+
+on:
+  push:
+    branches: [main]
+    paths: ["frontend/**", ".github/workflows/frontend.yml"]
+  pull_request:
+    paths: ["frontend/**", ".github/workflows/frontend.yml"]
+
+# Sin permisos de escritura: este trabajo lee y verifica, no publica nada.
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    name: La interfaz cumple sus reglas
+    runs-on: ubuntu-latest
+    # Un colgado no consume cuota sin limite.
+    timeout-minutes: 10
+    steps:
+      # El anfitrion BAJA UN NIVEL para que el hermano quepa a su lado. `actions/checkout` se
+      # niega a escribir fuera de `GITHUB_WORKSPACE`, asi que no se puede clonar hacia arriba:
+      # lo que se mueve es este repositorio, y el espacio de trabajo pasa a hacer de padre.
+      - name: Este repositorio
+        uses: actions/checkout@v4
+        with:
+          path: ciudadano
+
+      # El clon hermano del que cuelgan los tres `link:` de `frontend/package.json`.
+      #
+      # El repliegue `|| github.token` es el que llevan los workflows de los clones que ya clonan
+      # un hermano: `GH_CLONE_KEY` puede no estar definido en este repositorio. Si el checkout
+      # muere con «Repository not found», es el alcance del token.
+      - name: Las librerias comunes
+        uses: actions/checkout@v4
+        with:
+          repository: hneyra/kamayuk-lib
+          path: kamayuk-lib
+          token: ${{ secrets.GH_CLONE_KEY || github.token }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: yarn
+          # La ruta sigue al anfitrion. Si se olvida, `setup-node` NO se salta la cache: FALLA
+          # el paso, antes de instalar nada y con un mensaje que habla de cache y no de rutas
+          # —«Some specified paths were not resolved, unable to cache dependencies»— (medido en
+          # `rentas`).
+          cache-dependency-path: ciudadano/frontend/yarn.lock
+
+      # `--frozen-lockfile` y no `yarn install` a secas: sin el, una version nueva de cualquier
+      # dependencia entra en la CI sin pasar por ningun PR, y el dia que rompa algo el diff no lo
+      # explica.
+      #
+      # Y ojo con lo que este paso NO garantiza: con el clon hermano ausente, `yarn install
+      # --frozen-lockfile` sale con **codigo 0** y no enlaza nada (medido en `rentas`). Quien lo
+      # detecta es `verificaciones/enlace-con-kamayuk-lib.test.ts`, dentro de `yarn verificar`, y
+      # lo dice nombrando el `git clone`.
+      - name: Instalar
+        working-directory: ciudadano/frontend
+        run: yarn install --frozen-lockfile
+
+      # La MISMA orden que se ejecuta en local. Si aqui se escribieran los pasos por separado,
+      # «verde en CI» y «verde en mi maquina» dejarian de ser la misma afirmacion en cuanto una de
+      # las dos cambiara.
+      - name: Verificar
+        working-directory: ciudadano/frontend
+        run: yarn verificar
+
+      # El bundle no se publica, pero se construye: un `tsc` en verde no demuestra que Vite sepa
+      # empaquetar esto —ni que `@kamayuk/ui` siga publicando la hoja que `src/estilos.css` importa—,
+      # y descubrirlo el dia del despliegue es tarde.
+      - name: Construir el bundle
+        working-directory: ciudadano/frontend
+        run: yarn build
