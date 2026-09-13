@@ -142,7 +142,15 @@ describe('el frontend tiene su propia CI', () => {
   // Sin el archivo, `workflow` es la cadena vacia y NO una excepcion. Leerlo a secas
   // reventaba el modulo entero con un `ENOENT` durante la recoleccion: los doce casos de
   // este archivo desaparecian y el rojo hablaba de `readFileSync`, no de la CI que falta.
-  const workflow = encontrado === undefined ? '' : leer(encontrado);
+  //
+  // Y SIN COMENTARIOS, que es lo que esta copia anade a la de `rentas`. Medido al demostrar que
+  // mordia: con `yarn install --frozen-lockfile` cambiado por `yarn install` a secas, la prueba
+  // del candado seguia en VERDE, porque la cadena sale tambien en los comentarios que explican el
+  // paso. Un workflow que habla de lo que hace no puede contar como un workflow que lo hace.
+  const workflow = (encontrado === undefined ? '' : leer(encontrado))
+    .split('\n')
+    .filter((linea) => !linea.trim().startsWith('#'))
+    .join('\n');
 
   it('se dispara solo con lo suyo', () => {
     // Hoy todo el repositorio es `frontend/`, pero el filtro se pone desde el principio: el dia
@@ -152,25 +160,29 @@ describe('el frontend tiene su propia CI', () => {
   });
 
   it('el workflow es tambien lo suyo: un cambio en el se verifica a si mismo', () => {
-    expect(workflow).toContain('.github/workflows/frontend.yml');
+    expect(workflow).toMatch(/paths:\s*\[[^\]]*"\.github\/workflows\/frontend\.yml"/);
   });
 
   it('ejecuta la misma orden que se ejecuta en local', () => {
     // Si la CI corriera `yarn lint && yarn test` por su cuenta, «verde en CI» y «verde en
     // mi maquina» dejarian de ser la misma afirmacion en cuanto una de las dos cambie.
-    expect(workflow).toContain('yarn verificar');
+    expect(workflow).toMatch(/^\s*run:\s*yarn verificar\s*$/m);
   });
 
   it('instala con el candado, no con lo que haya hoy en el registro', () => {
-    expect(workflow).toContain('--frozen-lockfile');
+    expect(workflow).toMatch(/^\s*run:\s*yarn install --frozen-lockfile\s*$/m);
+  });
+
+  it('y construye el bundle, que `yarn verificar` no construye', () => {
+    expect(workflow).toMatch(/^\s*run:\s*yarn build\s*$/m);
   });
 
   it('y clona `kamayuk-lib` AL LADO, que es donde los `link:` lo buscan', () => {
     // Sin el hermano, `yarn install --frozen-lockfile` sale en verde igual (rentas#113) y el rojo
     // llega despues hablando de modulos. La ruta tiene que ser exactamente la del `link:`: con
     // `../../kamayuk-lib` desde `ciudadano/frontend`, el hermano cae en `kamayuk-lib`.
-    expect(workflow).toContain('repository: hneyra/kamayuk-lib');
-    expect(workflow).toMatch(/path:\s*kamayuk-lib\b/);
-    expect(workflow).toMatch(/path:\s*ciudadano\b/);
+    expect(workflow).toMatch(/^\s*repository:\s*hneyra\/kamayuk-lib\s*$/m);
+    expect(workflow).toMatch(/^\s*path:\s*kamayuk-lib\s*$/m);
+    expect(workflow).toMatch(/^\s*path:\s*ciudadano\s*$/m);
   });
 });
