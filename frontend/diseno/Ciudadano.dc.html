@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  html, body { margin: 0; background: #F4F6F8; color: #333; font-family: Arial, Helvetica, sans-serif; font-size: 15px; line-height: 1.5 }
+  * { box-sizing: border-box }
+  a { color: #1569B0; text-decoration: none }
+  a:hover { text-decoration: underline }
+  input, select, button, textarea { font-family: inherit; font-size: 15px; color: #333 }
+  :focus-visible { outline: 2px solid #1BA0D7; outline-offset: 2px }
+  input:focus, select:focus { border-color: #1BA0D7; box-shadow: inset 0 1px 1px rgba(0,0,0,.06), 0 0 6px rgba(27,160,215,.45); outline: none }
+  table { border-collapse: collapse; width: 100% }
+  fieldset { min-width: 0 }
+  legend { padding: 0 8px }
+  @media (max-width: 880px) { [data-sm-hide] { display: none !important } }
+  @media (max-width: 820px) {
+    [data-pagar] { grid-template-columns: minmax(0, 1fr) !important }
+    [data-resumen] { position: static !important; order: -1 }
+    [data-codigo] { font-size: 24px !important; letter-spacing: .04em !important }
+  }
+  @media (max-width: 700px) {
+    [data-recibo] table { min-width: 0 !important }
+    [data-recibo] th, [data-recibo] td { padding-left: 14px !important; padding-right: 14px !important; white-space: normal !important }
+    [data-meta] { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important }
+    [data-acciones] { flex-direction: column; align-items: stretch }
+    [data-acciones] > button { width: 100% }
+    [data-acciones] > span { display: none }
+  }
+  @media (max-width: 520px) {
+    [data-medios] { grid-template-columns: minmax(0, 1fr) !important }
+    [data-meta] { grid-template-columns: minmax(0, 1fr) !important }
+    [data-recibo] th, [data-recibo] td { padding-left: 12px !important; padding-right: 12px !important; font-size: 13px !important }
+    [data-bancos] { grid-template-columns: minmax(0, 1fr) !important }
+    [data-cifras] { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important }
+    [data-codigo] { font-size: 21px !important }
+  }
+  @media print {
+    [data-noprint] { display: none !important }
+    html, body { background: #fff }
+    [data-recibo] { border: 0 !important; box-shadow: none !important }
+  }
+</style>
+</helmet>
+
+<div style="min-height:100vh; display:flex; flex-direction:column; background:#F4F6F8">
+
+  <sc-if value="{{ menuSesion }}">
+    <div onClick="{{ cerrarMenu }}" style="position:fixed; inset:0; z-index:78"></div>
+  </sc-if>
+
+  <!-- Barra única: marca y sesión. Cuando el ciudadano entra, sus datos
+       aparecen aquí; mientras no, el botón de entrar. -->
+  <div data-noprint="1" style="position:relative; z-index:79; display:flex; align-items:stretch; flex-wrap:wrap; background:#0D5FA8; color:#fff">
+    <button onClick="{{ irInicio }}" style="display:flex; align-items:center; gap:12px; padding:10px 18px; flex:1 1 auto; min-width:0; border:0; background:transparent; cursor:pointer; text-align:left; color:#fff">
+      <img src="escudo-catacaos.png" alt="" width="30" height="36" style="display:block; width:auto; height:36px; flex:0 0 auto" />
+      <span style="line-height:1.2; min-width:0">
+        <span style="display:block; font-size:17px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">Pago de tributos en línea</span>
+        <span style="display:block; font-size:11.5px; color:#CFE3F4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ entidad }}</span>
+      </span>
+    </button>
+
+    <sc-if value="{{ anonimo }}">
+      <button onClick="{{ abrirEntrar }}" data-sm-hide="1" style="display:flex; align-items:center; gap:9px; margin:10px 18px 10px 0; padding:0 18px; border:1px solid rgba(255,255,255,.4); border-radius:3px; background:rgba(255,255,255,.1); color:#fff; font-size:14px; cursor:pointer" style-hover="background:rgba(255,255,255,.2)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17l5-5-5-5"></path><path d="M15 12H3"></path><path d="M15 4.5h4.5v15H15"></path></svg>
+        Iniciar sesión
+      </button>
+    </sc-if>
+
+    <sc-if value="{{ identificado }}">
+      <span style="position:relative; display:flex; align-items:stretch; flex:0 0 auto">
+        <button onClick="{{ abrirMenu }}" aria-expanded="{{ menuAria }}" style="{{ menuStyle }}" style-hover="background:rgba(255,255,255,.18)">
+          <span style="display:grid; place-items:center; width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.22); font-size:12px; font-weight:700; flex:0 0 auto">{{ usuario.iniciales }}</span>
+          <span data-sm-hide="1" style="line-height:1.2; text-align:left">
+            <span style="display:block; font-size:13.5px; font-weight:700; white-space:nowrap">{{ usuario.nombre }}</span>
+            <span style="display:block; font-size:11.5px; color:#CFE3F4; white-space:nowrap">{{ usuario.doc }}</span>
+          </span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto"><path d="M6 9l6 6 6-6"></path></svg>
+        </button>
+        <sc-if value="{{ menuSesion }}">
+          <div role="menu" style="position:absolute; z-index:79; top:100%; right:0; width:min(270px,calc(100vw - 24px)); background:#fff; border:1px solid #DDD; box-shadow:0 8px 24px rgba(0,0,0,.18); text-align:left">
+            <div style="padding:12px 16px; border-bottom:1px solid #EEE">
+              <p style="margin:0; font-size:14px; font-weight:700">{{ usuario.nombre }}</p>
+              <p style="margin:3px 0 0; font-size:12.5px; color:#777">{{ usuario.codigo }}</p>
+              <p style="margin:2px 0 0; font-size:12.5px; color:#777">{{ usuario.correo }}</p>
+            </div>
+            <sc-for list="{{ opcionesMenu }}" as="o" hint-placeholder-count="4">
+              <button onClick="{{ o.ir }}" style="{{ o.style }}" style-hover="background:#F6F9FC">{{ o.label }}</button>
+            </sc-for>
+          </div>
+        </sc-if>
+      </span>
+    </sc-if>
+  </div>
+
+  <!-- Franja de pasos. El ciudadano ve siempre en qué punto está y cuánto
+       le falta; los pasos ya hechos se pueden volver a abrir. -->
+  <sc-if value="{{ hayPasos }}">
+    <div data-noprint="1" style="background:#fff; border-bottom:1px solid #DDD">
+      <div style="max-width:1020px; margin:0 auto; display:flex; align-items:stretch; flex-wrap:wrap; padding:0 18px">
+        <sc-for list="{{ pasos }}" as="p" hint-placeholder-count="4">
+          <button onClick="{{ p.ir }}" aria-current="{{ p.actual }}" style="{{ p.style }}">
+            <span style="{{ p.numStyle }}">{{ p.num }}</span>
+            <span data-sm-hide="1" style="white-space:nowrap">{{ p.label }}</span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <div style="flex:1; padding:24px 18px 60px">
+    <div style="max-width:1020px; margin:0 auto">
+
+      <!-- ══════════════════ 1 · BUSCAR ══════════════════ -->
+      <sc-if value="{{ esBuscar }}">
+        <div>
+          <div style="background:#fff; border:1px solid #DDD; box-shadow:0 1px 2px rgba(0,0,0,.04)">
+            <div style="padding:26px 26px 22px">
+              <h1 style="margin:0; font-size:27px; font-weight:700; color:#0D5FA8; letter-spacing:-.01em; text-wrap:pretty">Consulte y pague sus tributos</h1>
+              <p style="margin:11px 0 0; font-size:16px; line-height:1.6; color:#555; max-width:64ch; text-wrap:pretty">Escriba su código de contribuyente o su documento de identidad. Verá lo que debe, con su vencimiento, y podrá pagar todo o solo lo que elija.</p>
+
+              <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:20px">
+                <label style="flex:0 0 210px">
+                  <span style="display:block; font-size:13.5px; font-weight:700; margin-bottom:6px">Buscar por</span>
+                  <select value="{{ tipoBusqueda }}" onChange="{{ onTipoBusqueda }}" style="{{ inputStyle }}">
+                    <sc-for list="{{ tiposBusqueda }}" as="o" hint-placeholder-count="3">
+                      <option value="{{ o }}">{{ o }}</option>
+                    </sc-for>
+                  </select>
+                </label>
+                <label style="flex:1 1 260px; min-width:0">
+                  <span style="display:block; font-size:13.5px; font-weight:700; margin-bottom:6px">{{ etiquetaBusqueda }}</span>
+                  <input value="{{ q }}" onChange="{{ onQ }}" placeholder="{{ placeholderBusqueda }}" style="{{ inputStyle }}" />
+                </label>
+                <span style="display:flex; align-items:flex-end; flex:0 0 auto">
+                  <button onClick="{{ buscar }}" style="min-height:44px; border:0; border-radius:3px; padding:0 30px; background:#0D5FA8; color:#fff; font-size:16px; font-weight:700; cursor:pointer" style-hover="background:#0A4C86">Buscar mi deuda</button>
+                </span>
+              </div>
+
+              <sc-if value="{{ errorBusqueda }}">
+                <div role="alert" style="margin-top:16px; border:1px solid #EBCCD1; border-left:4px solid #A94442; background:#F2DEDE; padding:13px 16px; font-size:14.5px; line-height:1.55; color:#A94442; text-wrap:pretty">{{ errorBusqueda }}</div>
+              </sc-if>
+
+              <p style="margin:16px 0 0; font-size:14px; color:#777; text-wrap:pretty">Su código de contribuyente figura en la cuponera del impuesto predial y en cualquier recibo anterior. Si no lo encuentra, busque por su DNI.</p>
+            </div>
+
+            <div style="border-top:1px solid #EEE; background:#F9FBFD; padding:18px 26px 20px">
+              <p style="margin:0 0 12px; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#777">Qué puede hacer aquí</p>
+              <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(232px,1fr)); gap:0">
+                <sc-for list="{{ capacidades }}" as="c" hint-placeholder-count="4">
+                  <div style="{{ c.style }}">
+                    <span style="display:flex; align-items:center; gap:9px; margin-bottom:6px">
+                      <span style="display:grid; place-items:center; width:28px; height:28px; border-radius:3px; background:#E8F1F9; color:#0D5FA8; flex:0 0 auto">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                          <sc-for list="{{ c.icon }}" as="p" hint-placeholder-count="3">
+                            <path d="{{ p.d }}"></path>
+                          </sc-for>
+                        </svg>
+                      </span>
+                      <span style="font-size:14.5px; font-weight:700">{{ c.titulo }}</span>
+                    </span>
+                    <span style="display:block; font-size:13.5px; line-height:1.55; color:#666; text-wrap:pretty">{{ c.detalle }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:18px; border:1px solid #FAEBCC; border-left:4px solid #8A6D3B; background:#FCF8E3; padding:15px 18px; font-size:14.5px; line-height:1.6; color:#8A6D3B; text-wrap:pretty">
+            <strong>Amnistía vigente hasta el 31 de diciembre.</strong> La Ordenanza 012-2026-MPS condona el 100 % del interés moratorio. Al pagar ahora, el descuento se aplica solo: no hay que solicitarlo.
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ══════════════════ 2 · DEUDAS ══════════════════ -->
+      <sc-if value="{{ esDeudas }}">
+        <div>
+          <!-- Quién es, para que no pague la deuda de otro -->
+          <div style="background:#fff; border:1px solid #DDD; padding:16px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap">
+            <span style="flex:1; min-width:200px">
+              <span style="display:block; font-size:12.5px; color:#777">Contribuyente</span>
+              <span style="display:block; font-size:17px; font-weight:700; margin-top:2px; text-wrap:pretty">{{ contribuyente.nombre }}</span>
+              <span style="display:block; font-size:13.5px; color:#666; margin-top:2px">{{ contribuyente.detalle }}</span>
+            </span>
+            <button onClick="{{ irInicio }}" data-noprint="1" style="min-height:40px; white-space:nowrap; border:1px solid #CCC; border-radius:3px; padding:0 16px; background:#fff; font-size:14px; cursor:pointer; flex:0 0 auto" style-hover="border-color:#999">No soy yo</button>
+          </div>
+
+          <sc-if value="{{ hayDeuda }}">
+          <!-- El total, arriba, porque es lo que se viene a saber -->
+          <div style="background:#0D5FA8; color:#fff; padding:22px 20px; display:flex; align-items:flex-end; gap:26px; flex-wrap:wrap">
+            <span style="flex:1; min-width:200px">
+              <span style="display:block; font-size:12.5px; text-transform:uppercase; letter-spacing:.09em; color:#CFE3F4">Deuda total al {{ hoy }}</span>
+              <span style="display:block; font-size:34px; font-weight:700; letter-spacing:-.02em; line-height:1.1; margin-top:5px">{{ resumen.total }}</span>
+              <span style="display:block; font-size:13.5px; color:#CFE3F4; margin-top:6px; text-wrap:pretty">{{ resumen.nota }}</span>
+            </span>
+            <span style="flex:0 0 auto">
+              <span style="display:block; font-size:12.5px; text-transform:uppercase; letter-spacing:.09em; color:#CFE3F4">Con la amnistía</span>
+              <span style="display:block; font-size:24px; font-weight:700; margin-top:4px">{{ resumen.conAmnistia }}</span>
+              <span style="display:block; font-size:12.5px; color:#CFE3F4; margin-top:3px">se descuenta {{ resumen.descuento }} de interés</span>
+            </span>
+          </div>
+
+          <div data-cifras="1" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(162px,1fr)); gap:0; background:#fff; border:1px solid #DDD; border-top:0; overflow:hidden">
+            <sc-for list="{{ resumen.cifras }}" as="c" hint-placeholder-count="4">
+              <div style="{{ c.style }}">
+                <p style="margin:0; font-size:12px; text-transform:uppercase; letter-spacing:.07em; color:#777">{{ c.k }}</p>
+                <p style="margin:6px 0 0; font-size:20px; font-weight:700; color:{{ c.color }}">{{ c.v }}</p>
+                <p style="margin:4px 0 0; font-size:12.5px; color:#888; text-wrap:pretty">{{ c.nota }}</p>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- Lo que debe, por concepto. Cada fila se abre para ver de dónde
+               sale la cifra: cuotas del predial, servicios del arbitrio. -->
+          <div style="background:#fff; border:1px solid #DDD; border-top:0; margin-bottom:18px">
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:14px 20px; border-bottom:1px solid #EEE">
+              <h2 style="margin:0; flex:1; min-width:180px; font-size:17px; font-weight:700">Lo que debe, por concepto</h2>
+              <button onClick="{{ todas }}" data-noprint="1" style="min-height:38px; flex:0 0 auto; white-space:nowrap; border:1px solid #CCC; border-radius:3px; padding:0 14px; background:#fff; font-size:13.5px; cursor:pointer" style-hover="border-color:#999">{{ etiquetaTodas }}</button>
+            </div>
+
+            <sc-for list="{{ deudas }}" as="d" hint-placeholder-count="4">
+              <div style="{{ d.marcoStyle }}">
+                <div style="display:flex; align-items:flex-start; gap:14px; flex-wrap:wrap; padding:15px 20px">
+                  <label style="display:flex; align-items:center; min-height:44px; flex:0 0 auto; cursor:pointer">
+                    <input type="checkbox" checked="{{ d.marcada }}" onChange="{{ d.alternar }}" aria-label="{{ d.aria }}" style="width:20px; height:20px; accent-color:#0D5FA8; cursor:pointer" />
+                  </label>
+                  <span style="flex:1 1 260px; min-width:0">
+                    <span style="display:block; font-size:16px; font-weight:700; text-wrap:pretty">{{ d.concepto }}</span>
+                    <span style="display:block; font-size:13.5px; color:#666; margin-top:3px; text-wrap:pretty">{{ d.unidad }}</span>
+                    <span style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:7px">
+                      <span style="{{ d.insignia }}">{{ d.estado }}</span>
+                      <span style="font-size:13.5px; color:{{ d.venceColor }}">{{ d.vence }}</span>
+                    </span>
+                  </span>
+                  <span style="flex:0 0 auto; text-align:right; min-width:132px">
+                    <span style="display:block; font-size:19px; font-weight:700; font-variant-numeric:tabular-nums">{{ d.total }}</span>
+                    <sc-if value="{{ d.recargo }}">
+                      <span style="display:block; font-size:12.5px; color:#A94442; margin-top:3px">{{ d.recargo }}</span>
+                    </sc-if>
+                    <button onClick="{{ d.verDetalle }}" data-noprint="1" aria-expanded="{{ d.abiertaAria }}" style="min-height:34px; margin-top:7px; border:0; background:transparent; padding:0; font-size:13.5px; color:#1569B0; cursor:pointer; text-decoration:underline">{{ d.etiquetaDetalle }}</button>
+                  </span>
+                </div>
+
+                <sc-if value="{{ d.abierta }}">
+                  <div style="border-top:1px solid #EEE; background:#F9FBFD; padding:4px 20px 16px">
+                    <p style="margin:14px 0 10px; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#777">{{ d.detalle.titulo }}</p>
+                    <div style="overflow-x:auto; background:#fff; border:1px solid #E4E4E4">
+                      <table style="min-width:{{ d.detalle.min }}">
+                        <thead>
+                          <tr>
+                            <sc-for list="{{ d.detalle.cols }}" as="c" hint-placeholder-count="5">
+                              <th style="{{ c.style }}">{{ c.label }}</th>
+                            </sc-for>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <sc-for list="{{ d.detalle.filas }}" as="r" hint-placeholder-count="4">
+                            <tr>
+                              <sc-for list="{{ r.celdas }}" as="cl" hint-placeholder-count="5">
+                                <td style="{{ cl.style }}">
+                                  <sc-if value="{{ cl.insignia }}"><span style="{{ cl.insignia }}">{{ cl.texto }}</span></sc-if>
+                                  <sc-if value="{{ cl.plano }}">{{ cl.texto }}</sc-if>
+                                </td>
+                              </sc-for>
+                            </tr>
+                          </sc-for>
+                        </tbody>
+                      </table>
+                    </div>
+                    <p style="margin:11px 0 0; font-size:13.5px; line-height:1.55; color:#666; text-wrap:pretty">{{ d.detalle.nota }}</p>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- La barra de pago: lo elegido y el botón, siempre a la vista -->
+          <div data-noprint="1" style="background:#fff; border:1px solid #DDD; border-top:3px solid #0D5FA8; padding:18px 20px; display:flex; align-items:center; gap:18px; flex-wrap:wrap">
+            <span style="flex:1; min-width:200px">
+              <span style="display:block; font-size:13.5px; color:#666">{{ seleccion.detalle }}</span>
+              <span style="display:block; font-size:27px; font-weight:700; margin-top:3px; color:#0D5FA8; font-variant-numeric:tabular-nums">{{ seleccion.total }}</span>
+              <sc-if value="{{ seleccion.ahorro }}">
+                <span style="display:block; font-size:13.5px; color:#3C763D; margin-top:3px">{{ seleccion.ahorro }}</span>
+              </sc-if>
+            </span>
+            <button onClick="{{ pagar }}" aria-disabled="{{ seleccion.vacioAria }}" style="{{ seleccion.botonStyle }}">{{ seleccion.boton }}</button>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ seleccion.vacio }}">
+            <p style="margin:12px 0 0; font-size:14px; color:#777; text-wrap:pretty">Marque al menos un concepto para continuar. Puede pagar todo de una vez o solo lo que le venza primero.</p>
+          </sc-if>
+
+          <sc-if value="{{ sinDeuda }}">
+            <div style="background:#DFF0D8; border:1px solid #D6E9C6; border-left:5px solid #3C763D; padding:20px 22px; margin-top:18px">
+              <p style="margin:0; font-size:18px; font-weight:700; color:#2D5A2E">No le queda nada por pagar</p>
+              <p style="margin:7px 0 14px; font-size:14.5px; line-height:1.6; color:#3C763D; max-width:66ch; text-wrap:pretty">Pagó todos sus conceptos pendientes. Puede pedir su constancia de no adeudo, que acredita que está al día.</p>
+              <button onClick="{{ pedirConstancia }}" style="min-height:44px; white-space:nowrap; border:1px solid #3C763D; border-radius:3px; padding:0 20px; background:#fff; color:#3C763D; font-size:14.5px; font-weight:700; cursor:pointer" style-hover="background:#EFF7EC">Pedir mi constancia de no adeudo</button>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- ══════════════════ 3 · IDENTIFICAR ══════════════════ -->
+      <sc-if value="{{ esIdentificar }}">
+        <div>
+          <h1 style="margin:0 0 6px; font-size:24px; font-weight:700; color:#0D5FA8; text-wrap:pretty">¿A dónde le enviamos el comprobante?</h1>
+          <p style="margin:0 0 20px; font-size:16px; line-height:1.6; color:#555; max-width:66ch; text-wrap:pretty">Va a pagar {{ seleccion.aCobrar }}. Necesitamos un correo para enviarle el comprobante. Si tiene cuenta, entre y le guardamos el pago en su historial.</p>
+
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(316px,1fr)); gap:18px">
+            <div style="background:#fff; border:1px solid #DDD; border-top:3px solid #3D7EB7; padding:22px 22px 24px">
+              <h2 style="margin:0; font-size:18px; font-weight:700">Solo con mi correo</h2>
+              <p style="margin:8px 0 18px; font-size:14.5px; line-height:1.6; color:#666; text-wrap:pretty">Lo más rápido. No hace falta crear una cuenta; el comprobante le llega al correo y lo podrá descargar al terminar.</p>
+              <label style="display:block">
+                <span style="display:block; font-size:13.5px; font-weight:700; margin-bottom:6px">Correo electrónico</span>
+                <input value="{{ correo }}" onChange="{{ onCorreo }}" placeholder="nombre@correo.com" style="{{ correoStyle }}" />
+              </label>
+              <sc-if value="{{ errorCorreo }}">
+                <p role="alert" style="margin:8px 0 0; font-size:13.5px; color:#A94442">{{ errorCorreo }}</p>
+              </sc-if>
+              <label style="display:flex; align-items:flex-start; gap:10px; margin-top:14px; cursor:pointer">
+                <input type="checkbox" checked="{{ copia }}" onChange="{{ onCopia }}" style="width:19px; height:19px; margin-top:2px; accent-color:#0D5FA8; flex:0 0 auto; cursor:pointer" />
+                <span style="font-size:13.5px; line-height:1.5; color:#666; text-wrap:pretty">Avisarme por correo cuando venza mi próxima cuota</span>
+              </label>
+              <button onClick="{{ seguirConCorreo }}" style="width:100%; min-height:48px; margin-top:18px; border:0; border-radius:3px; background:#0D5FA8; color:#fff; font-size:16px; font-weight:700; cursor:pointer" style-hover="background:#0A4C86">Continuar al pago</button>
+            </div>
+
+            <div style="background:#fff; border:1px solid #DDD; border-top:3px solid #A6093D; padding:22px 22px 24px">
+              <h2 style="margin:0; font-size:18px; font-weight:700">Con mi cuenta</h2>
+              <p style="margin:8px 0 18px; font-size:14.5px; line-height:1.6; color:#666; text-wrap:pretty">Guarda este pago y todos los anteriores en un historial, con sus comprobantes siempre a mano.</p>
+              <label style="display:block; margin-bottom:12px">
+                <span style="display:block; font-size:13.5px; font-weight:700; margin-bottom:6px">Documento de identidad</span>
+                <input value="{{ loginDoc }}" onChange="{{ onLoginDoc }}" placeholder="03593174" style="{{ inputStyle }}" />
+              </label>
+              <label style="display:block">
+                <span style="display:block; font-size:13.5px; font-weight:700; margin-bottom:6px">Clave</span>
+                <input type="password" value="{{ loginClave }}" onChange="{{ onLoginClave }}" placeholder="••••••••" style="{{ inputStyle }}" />
+              </label>
+              <sc-if value="{{ errorLogin }}">
+                <p role="alert" style="margin:8px 0 0; font-size:13.5px; color:#A94442">{{ errorLogin }}</p>
+              </sc-if>
+              <button onClick="{{ entrar }}" style="width:100%; min-height:48px; margin-top:18px; border:1px solid #0D5FA8; border-radius:3px; background:#fff; color:#0D5FA8; font-size:16px; font-weight:700; cursor:pointer" style-hover="background:#F0F6FB">Entrar y pagar</button>
+              <p style="margin:12px 0 0; font-size:13.5px; color:#777; text-wrap:pretty"><a href="#">Olvidé mi clave</a> · <a href="#">Crear una cuenta</a></p>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ══════════════════ 4 · PAGAR ══════════════════ -->
+      <sc-if value="{{ esPagar }}">
+        <div data-pagar="1" style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,320px); gap:18px; align-items:start">
+          <div>
+            <h1 style="margin:0 0 6px; font-size:24px; font-weight:700; color:#0D5FA8; text-wrap:pretty">¿Cómo quiere pagar?</h1>
+            <p style="margin:0 0 18px; font-size:15.5px; line-height:1.6; color:#555; max-width:62ch; text-wrap:pretty">Elija un medio de pago. Con tarjeta, Yape o pagalo.pe el pago se aplica al instante; con código de banco se aplica al día siguiente hábil.</p>
+
+            <div data-medios="1" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(218px,1fr)); gap:12px; margin-bottom:18px">
+              <sc-for list="{{ medios }}" as="m" hint-placeholder-count="4">
+                <button onClick="{{ m.ir }}" aria-pressed="{{ m.on }}" style="{{ m.style }}">
+                  <span style="display:flex; align-items:center; gap:10px">
+                    <span style="{{ m.iconStyle }}">
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                        <sc-for list="{{ m.icon }}" as="p" hint-placeholder-count="3">
+                          <path d="{{ p.d }}"></path>
+                        </sc-for>
+                      </svg>
+                    </span>
+                    <span style="flex:1; min-width:0; font-size:15px; font-weight:700; text-align:left">{{ m.label }}</span>
+                  </span>
+                  <span style="display:block; font-size:13px; line-height:1.5; color:#666; margin-top:7px; text-align:left; text-wrap:pretty">{{ m.nota }}</span>
+                </button>
+              </sc-for>
+            </div>
+
+            <div style="background:#fff; border:1px solid #DDD">
+              <div style="padding:14px 20px; border-bottom:1px solid #EEE">
+                <h2 style="margin:0; font-size:17px; font-weight:700">{{ medio.titulo }}</h2>
+                <p style="margin:5px 0 0; font-size:14px; line-height:1.55; color:#666; max-width:66ch; text-wrap:pretty">{{ medio.nota }}</p>
+              </div>
+
+              <sc-if value="{{ medio.hayCampos }}">
+                <div style="display:flex; flex-wrap:wrap; padding:8px 12px 16px">
+                  <sc-for list="{{ medio.campos }}" as="f" hint-placeholder-count="4">
+                    <label style="{{ f.marcoStyle }}">
+                      <span style="display:block; font-size:13.5px; font-weight:700; margin-bottom:6px">{{ f.label }}</span>
+                      <sc-if value="{{ f.esSel }}">
+                        <select value="{{ f.valor }}" onChange="{{ f.on }}" style="{{ f.style }}">
+                          <sc-for list="{{ f.opts }}" as="o" hint-placeholder-count="4">
+                            <option value="{{ o }}">{{ o }}</option>
+                          </sc-for>
+                        </select>
+                      </sc-if>
+                      <sc-if value="{{ f.esTexto }}">
+                        <input value="{{ f.valor }}" onChange="{{ f.on }}" placeholder="{{ f.ph }}" style="{{ f.style }}" />
+                      </sc-if>
+                      <sc-if value="{{ f.ayuda }}">
+                        <span style="display:block; font-size:12.5px; color:#888; margin-top:5px; text-wrap:pretty">{{ f.ayuda }}</span>
+                      </sc-if>
+                    </label>
+                  </sc-for>
+                </div>
+              </sc-if>
+
+              <!-- Código de pago: lo que el ciudadano lleva al banco o al agente -->
+              <sc-if value="{{ medio.hayCodigo }}">
+                <div style="padding:18px 20px 20px">
+                  <div style="border:1px dashed #0D5FA8; background:#F0F6FB; padding:18px; text-align:center">
+                    <p style="margin:0; font-size:13px; text-transform:uppercase; letter-spacing:.09em; color:#0D5FA8">{{ medio.codigoEtiqueta }}</p>
+                    <p data-codigo="1" style="margin:8px 0 0; font-size:31px; font-weight:700; letter-spacing:.1em; color:#0D5FA8; font-variant-numeric:tabular-nums; overflow-wrap:anywhere">{{ medio.codigo }}</p>
+                    <p style="margin:9px 0 0; font-size:13.5px; color:#555; text-wrap:pretty">{{ medio.codigoNota }}</p>
+                  </div>
+                  <sc-if value="{{ medio.hayPasos }}">
+                    <ol style="margin:16px 0 0; padding-left:22px; font-size:14.5px; line-height:1.7; color:#555">
+                      <sc-for list="{{ medio.pasos }}" as="p" hint-placeholder-count="3">
+                        <li style="margin-bottom:5px; text-wrap:pretty">{{ p.texto }}</li>
+                      </sc-for>
+                    </ol>
+                  </sc-if>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ medio.hayBancos }}">
+                <div style="padding:4px 20px 18px">
+                  <p style="margin:14px 0 10px; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#777">Dónde puede pagarlo</p>
+                  <div data-bancos="1" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(186px,1fr)); gap:0; border:1px solid #E4E4E4">
+                    <sc-for list="{{ medio.bancos }}" as="b" hint-placeholder-count="6">
+                      <div style="{{ b.style }}">
+                        <span style="display:block; font-size:14.5px; font-weight:700">{{ b.nombre }}</span>
+                        <span style="display:block; font-size:13px; color:#777; margin-top:3px">{{ b.canal }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+
+              <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:16px 20px; border-top:1px solid #EEE; background:#F9FBFD">
+                <p style="margin:0; flex:1; min-width:180px; font-size:13.5px; line-height:1.55; color:#666; text-wrap:pretty">{{ medio.aviso }}</p>
+                <button onClick="{{ confirmarPago }}" style="min-height:48px; border:0; border-radius:3px; padding:0 28px; background:#3C763D; color:#fff; font-size:16px; font-weight:700; cursor:pointer" style-hover="background:#326032">{{ medio.boton }}</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resumen del pago, pegado arriba -->
+          <div data-resumen="1" style="background:#fff; border:1px solid #DDD; position:sticky; top:14px">
+            <div style="padding:14px 18px; border-bottom:1px solid #EEE; background:#F2F6FA">
+              <h2 style="margin:0; font-size:15.5px; font-weight:700">Lo que va a pagar</h2>
+            </div>
+            <sc-for list="{{ carrito }}" as="c" hint-placeholder-count="3">
+              <div style="display:flex; align-items:baseline; gap:12px; padding:12px 18px; border-bottom:1px solid #F0F0F0">
+                <span style="flex:1; min-width:0">
+                  <span style="display:block; font-size:14px; text-wrap:pretty">{{ c.concepto }}</span>
+                  <span style="display:block; font-size:12.5px; color:#888; margin-top:2px">{{ c.nota }}</span>
+                </span>
+                <span style="font-size:14px; font-variant-numeric:tabular-nums; flex:0 0 auto">{{ c.monto }}</span>
+              </div>
+            </sc-for>
+            <sc-for list="{{ carritoTotales }}" as="t" hint-placeholder-count="3">
+              <div style="{{ t.filaStyle }}">
+                <span style="flex:1; min-width:0; font-size:{{ t.tam }}; font-weight:{{ t.peso }}">{{ t.k }}</span>
+                <span style="font-size:{{ t.tam }}; font-weight:{{ t.peso }}; font-variant-numeric:tabular-nums; color:{{ t.color }}">{{ t.v }}</span>
+              </div>
+            </sc-for>
+            <div style="padding:13px 18px; border-top:1px solid #EEE">
+              <p style="margin:0; font-size:12.5px; line-height:1.55; color:#888; text-wrap:pretty">El comprobante se enviará a {{ destinoComprobante }}.</p>
+              <button onClick="{{ volverDeudas }}" data-noprint="1" style="margin-top:10px; border:0; background:transparent; padding:0; font-size:13.5px; color:#1569B0; cursor:pointer; text-decoration:underline">Cambiar lo que voy a pagar</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ══════════════════ 5 · LISTO ══════════════════ -->
+      <sc-if value="{{ esListo }}">
+        <div>
+          <div data-noprint="1" style="background:#DFF0D8; border:1px solid #D6E9C6; border-left:5px solid #3C763D; padding:20px 22px; display:flex; align-items:flex-start; gap:15px; margin-bottom:18px">
+            <span style="display:grid; place-items:center; width:38px; height:38px; border-radius:50%; background:#3C763D; color:#fff; flex:0 0 auto">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"></path></svg>
+            </span>
+            <span style="flex:1; min-width:0">
+              <span style="display:block; font-size:21px; font-weight:700; color:#2D5A2E; text-wrap:pretty">{{ listo.titulo }}</span>
+              <span style="display:block; font-size:15px; line-height:1.6; color:#3C763D; margin-top:6px; text-wrap:pretty">{{ listo.detalle }}</span>
+            </span>
+          </div>
+
+          <!-- El comprobante. Se imprime solo esto. -->
+          <div data-recibo="1" style="background:#fff; border:1px solid #DDD; box-shadow:0 1px 2px rgba(0,0,0,.04)">
+            <div style="display:flex; align-items:flex-start; gap:16px; flex-wrap:wrap; padding:22px 24px 18px; border-bottom:2px solid #0D5FA8">
+              <img src="escudo-catacaos.png" alt="" width="38" height="46" style="display:block; width:auto; height:46px; flex:0 0 auto" />
+              <span style="flex:1; min-width:180px">
+                <span style="display:block; font-size:16px; font-weight:700">{{ entidad }}</span>
+                <span style="display:block; font-size:13px; color:#666; margin-top:2px">Gerencia de Administración Tributaria</span>
+              </span>
+              <span style="flex:1 0 auto; text-align:right; min-width:140px">
+                <span style="display:block; font-size:13px; color:#666">Constancia de pago</span>
+                <span style="display:block; font-size:17px; font-weight:700; color:#0D5FA8; margin-top:2px; font-variant-numeric:tabular-nums">{{ recibo.numero }}</span>
+              </span>
+            </div>
+
+            <div data-meta="1" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(206px,1fr)); gap:0; background:#fff; overflow:hidden">
+              <sc-for list="{{ recibo.meta }}" as="m" hint-placeholder-count="6">
+                <div style="{{ m.style }}">
+                  <p style="margin:0; font-size:12px; text-transform:uppercase; letter-spacing:.07em; color:#888">{{ m.k }}</p>
+                  <p style="margin:5px 0 0; font-size:14.5px; font-weight:700; text-wrap:pretty">{{ m.v }}</p>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="overflow-x:auto; border-top:1px solid #EEE">
+              <table style="min-width:660px">
+                <thead>
+                  <tr>
+                    <sc-for list="{{ recibo.cols }}" as="c" hint-placeholder-count="5">
+                      <th style="{{ c.style }}">{{ c.label }}</th>
+                    </sc-for>
+                  </tr>
+                </thead>
+                <tbody>
+                  <sc-for list="{{ recibo.filas }}" as="r" hint-placeholder-count="4">
+                    <tr>
+                      <sc-for list="{{ r.celdas }}" as="cl" hint-placeholder-count="5">
+                        <td style="{{ cl.style }}">{{ cl.texto }}</td>
+                      </sc-for>
+                    </tr>
+                  </sc-for>
+                </tbody>
+                <tfoot>
+                  <sc-for list="{{ recibo.pie }}" as="r" hint-placeholder-count="3">
+                    <tr>
+                      <sc-for list="{{ r.celdas }}" as="cl" hint-placeholder-count="5">
+                        <td style="{{ cl.style }}">{{ cl.texto }}</td>
+                      </sc-for>
+                    </tr>
+                  </sc-for>
+                </tfoot>
+              </table>
+            </div>
+
+            <div style="padding:18px 24px 22px; border-top:1px solid #EEE">
+              <p style="margin:0; font-size:13.5px; line-height:1.65; color:#666; max-width:80ch; text-wrap:pretty">{{ recibo.nota }}</p>
+            </div>
+          </div>
+
+          <div data-acciones="1" data-noprint="1" style="display:flex; align-items:center; gap:11px; flex-wrap:wrap; margin-top:18px">
+            <button onClick="{{ descargar }}" style="min-height:46px; border:0; border-radius:3px; padding:0 24px; background:#0D5FA8; color:#fff; font-size:15.5px; font-weight:700; cursor:pointer" style-hover="background:#0A4C86">Descargar comprobante</button>
+            <button onClick="{{ imprimir }}" style="min-height:46px; border:1px solid #CCC; border-radius:3px; padding:0 22px; background:#fff; font-size:15.5px; cursor:pointer" style-hover="border-color:#999">Imprimir</button>
+            <span style="flex:1; min-width:8px"></span>
+            <sc-for list="{{ listo.acciones }}" as="a" hint-placeholder-count="2">
+              <button onClick="{{ a.ir }}" style="{{ a.style }}">{{ a.label }}</button>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ anonimo }}">
+            <div data-noprint="1" style="margin-top:18px; border:1px solid #D6E4F0; border-left:4px solid #3D7EB7; background:#F0F6FB; padding:16px 18px">
+              <p style="margin:0; font-size:15px; font-weight:700">Guarde este pago en una cuenta</p>
+              <p style="margin:6px 0 12px; font-size:14px; line-height:1.6; color:#555; max-width:70ch; text-wrap:pretty">Si crea una cuenta con {{ correo }}, este comprobante y los anteriores quedan guardados: no tendrá que volver a buscarlos.</p>
+              <button onClick="{{ abrirEntrar }}" style="min-height:42px; border:1px solid #0D5FA8; border-radius:3px; padding:0 18px; background:#fff; color:#0D5FA8; font-size:14.5px; font-weight:700; cursor:pointer" style-hover="background:#E8F1F9">Crear mi cuenta</button>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- ══════════════════ HISTORIAL (con sesión) ══════════════════ -->
+      <sc-if value="{{ esHistorial }}">
+        <div>
+          <h1 style="margin:0 0 6px; font-size:24px; font-weight:700; color:#0D5FA8">Mis pagos</h1>
+          <p style="margin:0 0 18px; font-size:15.5px; line-height:1.6; color:#555; max-width:68ch; text-wrap:pretty">Todos sus pagos, con sus comprobantes. Abajo está lo que le queda pendiente.</p>
+
+          <sc-if value="{{ hayReciente }}">
+            <div style="background:#DFF0D8; border:1px solid #D6E9C6; border-left:5px solid #3C763D; padding:16px 18px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:18px">
+              <span style="flex:1; min-width:200px">
+                <span style="display:block; font-size:15px; font-weight:700; color:#2D5A2E">{{ reciente.titulo }}</span>
+                <span style="display:block; font-size:13.5px; color:#3C763D; margin-top:3px; text-wrap:pretty">{{ reciente.detalle }}</span>
+              </span>
+              <button onClick="{{ verRecibo }}" style="min-height:40px; border:1px solid #3C763D; border-radius:3px; padding:0 16px; background:#fff; color:#3C763D; font-size:14px; font-weight:700; cursor:pointer; flex:0 0 auto" style-hover="background:#EFF7EC">Ver el comprobante</button>
+            </div>
+          </sc-if>
+
+          <div style="background:#fff; border:1px solid #DDD; margin-bottom:18px">
+            <div style="padding:14px 20px; border-bottom:1px solid #EEE">
+              <h2 style="margin:0; font-size:17px; font-weight:700">Pagos realizados</h2>
+            </div>
+            <div style="overflow-x:auto">
+              <table style="min-width:760px">
+                <thead>
+                  <tr>
+                    <sc-for list="{{ historial.cols }}" as="c" hint-placeholder-count="6">
+                      <th style="{{ c.style }}">{{ c.label }}</th>
+                    </sc-for>
+                  </tr>
+                </thead>
+                <tbody>
+                  <sc-for list="{{ historial.filas }}" as="r" hint-placeholder-count="5">
+                    <tr style="{{ r.filaStyle }}">
+                      <sc-for list="{{ r.celdas }}" as="cl" hint-placeholder-count="6">
+                        <td style="{{ cl.style }}">{{ cl.texto }}</td>
+                      </sc-for>
+                      <td style="padding:9px 18px; text-align:right; border-bottom:1px solid #F0F0F0">
+                        <button onClick="{{ r.descargar }}" style="min-height:36px; border:1px solid #CCC; border-radius:3px; padding:0 13px; background:#fff; font-size:13px; cursor:pointer; white-space:nowrap" style-hover="border-color:#999">Comprobante</button>
+                      </td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+            <p style="margin:0; padding:12px 20px; background:#F9FBFD; border-top:1px solid #EEE; font-size:13.5px; line-height:1.55; color:#666; text-wrap:pretty">Un pago aplicado ya descontó la cuota. Si pagó y la deuda sigue apareciendo, traiga el comprobante: se resuelve el mismo día.</p>
+          </div>
+
+          <div style="background:#fff; border:1px solid #DDD; margin-bottom:18px">
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:14px 20px; border-bottom:1px solid #EEE">
+              <h2 style="margin:0; flex:1; min-width:180px; font-size:17px; font-weight:700">Lo que queda pendiente</h2>
+              <span style="font-size:15px; font-weight:700; color:#A94442; font-variant-numeric:tabular-nums">{{ pendiente.total }}</span>
+            </div>
+            <sc-for list="{{ pendiente.filas }}" as="p" hint-placeholder-count="3">
+              <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:13px 20px; border-bottom:1px solid #F0F0F0">
+                <span style="flex:1; min-width:180px">
+                  <span style="display:block; font-size:15px; font-weight:700; text-wrap:pretty">{{ p.concepto }}</span>
+                  <span style="display:block; font-size:13.5px; color:#666; margin-top:2px">{{ p.vence }}</span>
+                </span>
+                <span style="{{ p.insignia }}">{{ p.estado }}</span>
+                <span style="font-size:16px; font-weight:700; font-variant-numeric:tabular-nums; flex:0 0 auto">{{ p.monto }}</span>
+              </div>
+            </sc-for>
+            <sc-if value="{{ pendiente.hay }}">
+              <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:16px 20px; background:#F9FBFD">
+                <p style="margin:0; flex:1; min-width:180px; font-size:13.5px; color:#666; text-wrap:pretty">Puede pagar todo o elegir solo algunos conceptos.</p>
+                <button onClick="{{ pagarPendiente }}" style="min-height:46px; white-space:nowrap; border:0; border-radius:3px; padding:0 24px; background:#0D5FA8; color:#fff; font-size:15.5px; font-weight:700; cursor:pointer" style-hover="background:#0A4C86">Pagar lo pendiente</button>
+              </div>
+            </sc-if>
+            <sc-if value="{{ sinDeuda }}">
+              <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:16px 20px; background:#F5FBF3">
+                <p style="margin:0; flex:1; min-width:180px; font-size:13.5px; color:#3C763D; text-wrap:pretty">No le queda nada pendiente. Puede pedir su constancia de no adeudo, que acredita que está al día.</p>
+                <button onClick="{{ pedirConstancia }}" style="min-height:46px; white-space:nowrap; border:1px solid #3C763D; border-radius:3px; padding:0 22px; background:#fff; color:#3C763D; font-size:15.5px; font-weight:700; cursor:pointer" style-hover="background:#EFF7EC">Pedir mi constancia</button>
+              </div>
+            </sc-if>
+          </div>
+
+          <!-- De dónde sale cada cobro: lo que aporta Catastro y Rentas -->
+          <div style="background:#fff; border:1px solid #DDD">
+            <div style="padding:14px 20px; border-bottom:1px solid #EEE">
+              <h2 style="margin:0; font-size:17px; font-weight:700">De dónde sale lo que paga</h2>
+              <p style="margin:5px 0 0; font-size:14px; line-height:1.55; color:#666; max-width:72ch; text-wrap:pretty">Sus predios y vehículos, con los datos sobre los que se calcula cada tributo. Si algo no coincide con la realidad, puede pedir que se rectifique.</p>
+            </div>
+            <sc-for list="{{ unidades }}" as="u" hint-placeholder-count="3">
+              <div style="border-bottom:1px solid #F0F0F0; padding:15px 20px">
+                <div style="display:flex; align-items:flex-start; gap:14px; flex-wrap:wrap">
+                  <span style="flex:1; min-width:200px">
+                    <span style="display:block; font-size:15.5px; font-weight:700; text-wrap:pretty">{{ u.titulo }}</span>
+                    <span style="display:block; font-size:13.5px; color:#666; margin-top:3px; text-wrap:pretty">{{ u.detalle }}</span>
+                  </span>
+                  <span style="flex:0 0 auto; text-align:right">
+                    <span style="display:block; font-size:12px; text-transform:uppercase; letter-spacing:.07em; color:#888">{{ u.baseEtiqueta }}</span>
+                    <span style="display:block; font-size:16px; font-weight:700; margin-top:2px; font-variant-numeric:tabular-nums">{{ u.base }}</span>
+                  </span>
+                </div>
+                <div style="display:flex; gap:9px; flex-wrap:wrap; margin-top:11px">
+                  <sc-for list="{{ u.datos }}" as="d" hint-placeholder-count="4">
+                    <span style="font-size:12.5px; color:#555; background:#F2F6FA; border:1px solid #E1E9F0; border-radius:3px; padding:4px 9px">{{ d.texto }}</span>
+                  </sc-for>
+                </div>
+                <p style="margin:11px 0 0; font-size:13px; color:#888; text-wrap:pretty">{{ u.origen }}</p>
+              </div>
+            </sc-for>
+            <p style="margin:0; padding:13px 20px; background:#F9FBFD; font-size:13.5px; line-height:1.55; color:#666; text-wrap:pretty">El autovalúo lo determina Catastro con el arancel de su calle y los valores unitarios del año; la deuda y las cuotas las lleva Rentas; los pagos se registran en Caja.</p>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <div data-noprint="1" style="border-top:1px solid #DDD; background:#fff">
+    <div style="max-width:1020px; margin:0 auto; display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding:18px">
+      <p style="margin:0; flex:1; min-width:220px; font-size:13px; line-height:1.55; color:#777; text-wrap:pretty">{{ entidad }} — Pago de tributos en línea. Atención en ventanilla de lunes a viernes, de 8:00 a 16:00. Los datos de esta pantalla son de demostración.</p>
+      <span style="display:flex; gap:16px; flex-wrap:wrap; font-size:13px">
+        <a href="#">Preguntas frecuentes</a>
+        <a href="#">Reclamos</a>
+        <a href="#">Términos</a>
+      </span>
+    </div>
+  </div>
+
+  <sc-if value="{{ toast }}">
+    <div role="status" data-noprint="1" style="position:fixed; z-index:90; bottom:20px; left:50%; transform:translateX(-50%); padding:13px 22px; border-radius:3px; background:#333; color:#fff; font-size:14.5px; box-shadow:0 4px 16px rgba(0,0,0,.25); max-width:calc(100vw - 36px)">{{ toast }}</div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1180,&quot;height&quot;:900},&quot;entidad&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Municipalidad Distrital de Catacaos&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Institución&quot;}}">
+/* ════════════════════════════════════════════════════════════════════════
+   Ciudadano — portal público de pago, con el lenguaje visual de RentasV7
+   (azul #0D5FA8, Arial, radio de 3 px, tablas de filo fino) pero para una
+   persona que entra una vez al año, no para un cajero que vive dentro.
+
+   De ahí las tres diferencias con el módulo de personal: sin árbol de
+   submódulos (una sola tarea), pasos numerados en vez de pestañas, y el
+   total arriba en grande, que es lo que se viene a saber.
+
+   El flujo: buscar → ver la deuda → identificarse (correo o cuenta) →
+   elegir medio → comprobante. Con sesión, el pago cae en el historial.
+   ════════════════════════════════════════════════════════════════════════ */
+
+const AZUL = '#0D5FA8';
+const AZUL_2 = '#0A4C86';
+const ACERO = '#3D7EB7';
+const AZUL_TXT = '#1569B0';
+const GRANATE = '#A6093D';
+const VERDE_BG = '#DFF0D8';
+const VERDE_FG = '#3C763D';
+const ROJO_BG = '#F2DEDE';
+const ROJO_FG = '#A94442';
+const AMBAR_BG = '#FCF8E3';
+const AMBAR_FG = '#8A6D3B';
+
+const IN = 'width:100%; box-sizing:border-box; min-height:44px; border:1px solid #CCC; border-radius:3px; padding:10px 12px; background:#fff; font-size:15px';
+const IN_MAL = 'width:100%; box-sizing:border-box; min-height:44px; border:1px solid ' + ROJO_FG + '; border-radius:3px; padding:10px 12px; background:#FFF9F9; font-size:15px';
+
+const TH = 'padding:10px 18px; text-align:left; font-size:12.5px; font-weight:700; color:#555; background:#F2F2F2; border-bottom:1px solid #DDD; white-space:nowrap';
+const THN = TH + '; text-align:right';
+const TD = 'padding:10px 18px; font-size:14px; color:#444; border-bottom:1px solid #F0F0F0';
+const TDN = TD + '; text-align:right; font-variant-numeric:tabular-nums; color:#333';
+const TDT = 'padding:12px 18px; font-size:14.5px; font-weight:700; color:#333; background:#F6F6F6; border-top:2px solid #DDD';
+const TDTN = TDT + '; text-align:right; font-variant-numeric:tabular-nums';
+
+const CELDA = '; border-left:1px solid #EEE; border-top:1px solid #EEE; margin:-1px 0 0 -1px';
+
+const INS = {
+  ok: 'display:inline-block; font-size:12.5px; font-weight:700; border-radius:3px; padding:3px 9px; white-space:nowrap; background:' + VERDE_BG + '; color:' + VERDE_FG,
+  atencion: 'display:inline-block; font-size:12.5px; font-weight:700; border-radius:3px; padding:3px 9px; white-space:nowrap; background:' + AMBAR_BG + '; color:' + AMBAR_FG,
+  mal: 'display:inline-block; font-size:12.5px; font-weight:700; border-radius:3px; padding:3px 9px; white-space:nowrap; background:' + ROJO_BG + '; color:' + ROJO_FG
+};
+
+/* La deuda del contribuyente. Cada concepto trae su desglose, que es lo
+   que un ciudadano pregunta en ventanilla: «¿y esto de dónde sale?».
+   El desglose llega de otros módulos: las cuotas y el autovalúo de Rentas
+   sobre la ficha de Catastro, los servicios del arbitrio de su frontis. */
+const DEUDAS = [
+  {
+    id: 'pred26', concepto: 'Impuesto predial 2026', unidad: 'Casa habitación · Calle Santa Rosa 116',
+    cuotas: 'Cuotas 3 y 4 de 4', vence: 'La cuota 3 vence el 30 de setiembre',
+    insoluto: 293.72, interes: 0, gastos: 0, estado: 'Por vencer', tono: 'atencion',
+    detalle: {
+      titulo: 'Cuotas del impuesto predial 2026', min: '580px',
+      cols: [['Cuota', 0], ['Vence', 0], ['Importe S/', 1], ['Situación', 0]],
+      filas: [
+        ['1 de 4', '28/02/2026', '147.98', 'Pagada'],
+        ['2 de 4', '31/05/2026', '146.86', 'Pagada'],
+        ['3 de 4', '30/09/2026', '146.86', 'Por vencer'],
+        ['4 de 4', '30/11/2026', '146.86', 'Por vencer']
+      ],
+      insignia: 3,
+      nota: 'El impuesto del año sale del autovalúo de todos sus predios: S/ 151,406.75 de base, con la escala progresiva. Se reparte en cuatro cuotas iguales.'
+    }
+  },
+  {
+    id: 'arb26', concepto: 'Arbitrios municipales 2026', unidad: 'Casa habitación · Calle Santa Rosa 116',
+    cuotas: 'Cuotas 1 a 8 de 12', vence: 'La última venció el 31 de agosto',
+    insoluto: 291.60, interes: 18.44, gastos: 0, estado: 'Vencida', tono: 'mal',
+    detalle: {
+      titulo: 'Servicios que componen el arbitrio', min: '640px',
+      cols: [['Servicio', 0], ['Cómo se calcula', 0], ['Mensual S/', 1], ['8 meses S/', 1]],
+      filas: [
+        ['Barrido de calles', 'Por metro de frontis: 8.20 m', '8.40', '67.20'],
+        ['Recolección de residuos', 'Por área construida: 164.50 m²', '14.20', '113.60'],
+        ['Parques y jardines', 'Por la zona del predio', '6.10', '48.80'],
+        ['Serenazgo', 'Por uso y zona', '7.75', '62.00']
+      ],
+      nota: 'Los arbitrios se pagan por predio y por mes, no por año. Se calculan con los metros de su frontis y su área construida, que figuran en su ficha catastral.'
+    }
+  },
+  {
+    id: 'pred24', concepto: 'Impuesto predial 2024', unidad: 'Casa habitación · Calle Santa Rosa 116',
+    cuotas: 'Cuotas 1 a 4 de 4', vence: 'Venció el 30 de noviembre de 2024',
+    insoluto: 1842.60, interes: 212.44, gastos: 12.00, estado: 'Vencida', tono: 'mal',
+    detalle: {
+      titulo: 'Composición de la deuda de 2024', min: '560px',
+      cols: [['Concepto', 0], ['Detalle', 0], ['Importe S/', 1]],
+      filas: [
+        ['Impuesto del año', 'Autovalúo de 2024, cuatro cuotas', '1,842.60'],
+        ['Interés moratorio', '0.90 % mensual desde el vencimiento', '212.44'],
+        ['Gastos de emisión', 'Notificación de la orden de pago', '12.00'],
+        ['Total de 2024', 'Con la amnistía: S/ 1,854.60', '2,067.04']
+      ],
+      nota: 'Con la amnistía vigente se condona el interés de S/ 212.44. El impuesto y los gastos no se condonan.'
+    }
+  },
+  {
+    id: 'veh24', concepto: 'Impuesto vehicular 2024', unidad: 'Automóvil Toyota Yaris GLI 2018 · placa T2G-418',
+    cuotas: 'Cuota 1 de 4', vence: 'En cobranza coactiva desde julio de 2026',
+    insoluto: 614.00, interes: 182.44, gastos: 96.00, estado: 'En coactiva', tono: 'mal',
+    detalle: {
+      titulo: 'Deuda en cobranza coactiva', min: '560px',
+      cols: [['Concepto', 0], ['Detalle', 0], ['Importe S/', 1]],
+      filas: [
+        ['Impuesto de la cuota', '1 % sobre S/ 61,400.00 de base', '614.00'],
+        ['Interés moratorio', 'Desde el vencimiento de la cuota', '182.44'],
+        ['Costas del procedimiento', 'Expediente coactivo 2026-0418', '96.00'],
+        ['Total de la cuota', 'Con la amnistía: S/ 710.00', '892.44']
+      ],
+      nota: 'Esta deuda está en cobranza coactiva: se puede pagar en línea igual, y al pagarla se levanta la medida. Las costas del procedimiento no se condonan.'
+    }
+  }
+];
+
+const MEDIOS = [
+  {
+    id: 'tarjeta', label: 'Tarjeta',
+    nota: 'Visa, Mastercard, débito o crédito',
+    icon: ['M3 7.5h18v11H3z', 'M3 11h18'],
+    titulo: 'Pagar con tarjeta',
+    detalleNota: 'El pago se aplica al instante y el comprobante se emite de inmediato. No cobramos comisión.',
+    campos: [
+      { k: 'tNum', l: 'Número de la tarjeta', ph: '0000 0000 0000 0000', ancho: 2 },
+      { k: 'tNombre', l: 'Nombre como figura en la tarjeta', ph: 'MARIA E CASTILLO P', ancho: 2 },
+      { k: 'tVence', l: 'Vence', ph: 'MM/AA', ancho: 1 },
+      { k: 'tCvv', l: 'Código de seguridad', ph: '123', ancho: 1, ayuda: 'Los tres dígitos del reverso' }
+    ],
+    aviso: 'Al continuar acepta el cargo en su tarjeta. La operación va cifrada.',
+    boton: 'Pagar ahora'
+  },
+  {
+    id: 'yape', label: 'Yape o Plin',
+    nota: 'Desde su celular, con el QR',
+    icon: ['M6.5 2.5h11v19h-11z', 'M10 18.5h4'],
+    titulo: 'Pagar con Yape o Plin',
+    detalleNota: 'Abra su aplicación, escanee el código y confirme el monto. El pago se aplica en cuanto lo confirme.',
+    codigoEtiqueta: 'Número para yapear',
+    codigo: '969 032 194',
+    codigoNota: 'A nombre de la Municipalidad Distrital de Catacaos. Ponga como mensaje su código de contribuyente.',
+    pasos: [
+      'Abra Yape o Plin y elija «Yapear» o «Enviar».',
+      'Escanee el código o escriba el número que aparece arriba.',
+      'Confirme el monto exacto de S/ {{TOTAL}} y escriba su código de contribuyente en el mensaje.',
+      'Vuelva aquí y pulse «Ya yapeé» para que le emitamos el comprobante.'
+    ],
+    aviso: 'El monto tiene que ser exacto. Si yapea de menos, la deuda queda parcialmente pagada.',
+    boton: 'Ya yapeé'
+  },
+  {
+    id: 'pagalo', label: 'pagalo.pe',
+    nota: 'Plataforma del Banco de la Nación',
+    icon: ['M4 20.5h16', 'M12 3.5 20.5 9H3.5z', 'M6.5 9v11.5', 'M17.5 9v11.5'],
+    titulo: 'Pagar por pagalo.pe',
+    detalleNota: 'Le llevamos a pagalo.pe con el código ya cargado. Puede pagar con tarjeta, Yape o en una agencia del Banco de la Nación.',
+    codigoEtiqueta: 'Código de tributo en pagalo.pe',
+    codigo: '8 4 1 6 2',
+    codigoNota: 'Con este código y su código de contribuyente encontrará el pago ya registrado.',
+    pasos: [
+      'Pulse «Ir a pagalo.pe»: se abre en una pestaña nueva con el código cargado.',
+      'Elija cómo pagar y complete la operación allí.',
+      'Vuelva a esta pestaña: el pago aparece en un minuto y podrá descargar su comprobante.'
+    ],
+    aviso: 'pagalo.pe es del Banco de la Nación y cobra su propia comisión.',
+    boton: 'Ir a pagalo.pe'
+  },
+  {
+    id: 'banco', label: 'Banco o agente',
+    nota: 'Con un código de pago',
+    icon: ['M3.2 7.4h17.6v9.2H3.2z', 'M13.6 12a1.6 1.6 0 1 1-3.2 0 1.6 1.6 0 0 1 3.2 0', 'M6.6 10.6v2.8'],
+    titulo: 'Pagar en un banco o agente',
+    detalleNota: 'Le damos un código de pago. Llévelo a cualquiera de los bancos de la lista, a su aplicación o a un agente, y pague ahí.',
+    codigoEtiqueta: 'Su código de pago',
+    codigo: '2026-0025673-4418',
+    codigoNota: 'Válido por 72 horas. Apúntelo o descárguelo: con él pagan por usted sin que haga falta nada más.',
+    pasos: [
+      'Vaya a su banco, a su aplicación o a un agente autorizado.',
+      'Busque «Municipalidad de Catacaos» en pagos de servicios.',
+      'Escriba el código de pago y confirme el monto de S/ {{TOTAL}}.',
+      'Guarde el voucher: el pago se aplica al día siguiente hábil.'
+    ],
+    bancos: [
+      ['BCP', 'Banca por internet, app y agentes'],
+      ['Interbank', 'Banca por internet y app'],
+      ['BBVA', 'Banca por internet y ventanilla'],
+      ['Scotiabank', 'Banca por internet y app'],
+      ['Caja Piura', 'Ventanilla y app'],
+      ['Banco de la Nación', 'Ventanilla y pagalo.pe']
+    ],
+    aviso: 'Con código de banco el pago se aplica al día siguiente hábil. Si su cuota vence hoy, pague con tarjeta o Yape.',
+    boton: 'Ya pagué en el banco'
+  }
+];
+
+const HISTORIAL = [
+  ['12/08/2026', 'Impuesto predial 2026 — cuotas 1 y 2', 'Tarjeta', '0003-0041182', '294.84'],
+  ['28/05/2026', 'Arbitrios 2025 — cuotas 1 a 12', 'Yape', '0003-0038944', '412.00'],
+  ['18/02/2025', 'Impuesto predial 2025 — cuotas 1 a 4', 'BCP con código', '0003-0034118', '578.20'],
+  ['04/12/2024', 'Arbitrios 2024 — cuotas 9 a 12', 'Ventanilla', '0003-0031044', '148.60'],
+  ['22/02/2024', 'Impuesto predial 2024 — cuota 1', 'pagalo.pe', '0003-0028801', '460.65']
+];
+
+const UNIDADES = [
+  {
+    titulo: 'Casa habitación · Calle Santa Rosa 116',
+    detalle: 'Su predio principal. De él salen el impuesto predial y los arbitrios.',
+    baseEtiqueta: 'Autovalúo 2026', base: 'S/ 132,196.75',
+    datos: ['210.00 m² de terreno', '164.50 m² construidos', '8.20 m de frontis', 'Usted es propietaria al 100 %'],
+    origen: 'Ficha catastral 200601-02-014-014, actualizada el 12 de marzo de 2026.'
+  },
+  {
+    titulo: 'Terreno sin construir · Mz. B Lt. 7 — Bellavista',
+    detalle: 'Suma al autovalúo del predial. Sin construcción no genera arbitrios de recolección.',
+    baseEtiqueta: 'Autovalúo 2026', base: 'S/ 38,420.00',
+    datos: ['184.00 m² de terreno', 'Sin construcciones', 'Usted es copropietaria al 50 %'],
+    origen: 'Ficha catastral 200601-04-021-007. El 50 % restante figura a nombre de otro titular.'
+  },
+  {
+    titulo: 'Automóvil Toyota Yaris GLI 2018 · placa T2G-418',
+    detalle: 'Estuvo afecto de 2019 a 2021. Ya no genera impuesto nuevo, pero queda la cuota de 2024 sin pagar.',
+    baseEtiqueta: 'Base imponible', base: 'S/ 61,400.00',
+    datos: ['Afecto de 2019 a 2021', 'Dado de baja por vencimiento del plazo'],
+    origen: 'Padrón vehicular de Rentas, con la tabla referencial del MEF para su año de fabricación.'
+  }
+];
+
+const ICO = {
+  buscar: ['M17.4 11a6.4 6.4 0 1 1-12.8 0 6.4 6.4 0 0 1 12.8 0', 'M15.8 15.8 20.6 20.6'],
+  pagar: ['M3.2 7.4h17.6v9.2H3.2z', 'M13.6 12a1.6 1.6 0 1 1-3.2 0 1.6 1.6 0 0 1 3.2 0'],
+  recibo: ['M6.5 3.5h7.5l4 4v13h-11.5z', 'M14 3.5v4h4', 'M9.5 12.5h5'],
+  detalle: ['M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17', 'M12 11v5.5', 'M12 7.8v.02']
+};
+
+class Component extends DCLogic {
+  state = {
+    paso: 'buscar',
+    tipo: 'Código de contribuyente', q: '', errorBusqueda: '',
+    marcadas: { pred26: true, arb26: true, pred24: true, veh24: true },
+    /* Lo que ya se pago, por id. Es la unica verdad sobre que sigue
+       siendo deuda: antes cada pantalla lo deducia de `marcadas` con un
+       criterio distinto y acababan contradiciendose. */
+    pagadas: {}, ultimo: null,
+    abierta: null,
+    correo: '', copia: true, errorCorreo: '',
+    loginDoc: '', loginClave: '', errorLogin: '',
+    autenticado: false, medio: 'tarjeta', vals: {},
+    menuSesion: false, recienPagado: false, toast: ''
+  };
+
+  componentDidMount() { this.aplicar(); }
+  componentDidUpdate() { this.aplicar(); }
+  componentWillUnmount() { if (this._reloj) clearTimeout(this._reloj); }
+
+  aplicar() {
+    if (this.state.toast && this.state.toast !== this._ultimo) {
+      this._ultimo = this.state.toast;
+      if (this._reloj) clearTimeout(this._reloj);
+      this._reloj = setTimeout(() => { this._ultimo = ''; this.setState({ toast: '' }); }, 3600);
+    }
+  }
+
+  di(m) { this.setState({ toast: m }); }
+  soles(n) { return 'S/ ' + Number(n).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  set(k, v) { this.setState((s) => ({ vals: Object.assign({}, s.vals, { [k]: v }) })); }
+
+  /* El tono de una situación sale de su propio texto: son las cuatro
+     palabras que usa el recibo y no hay más. */
+  tono(t) {
+    const s = String(t).toLowerCase();
+    if (/coactiva|vencida/.test(s)) return 'mal';
+    if (/por vencer/.test(s)) return 'atencion';
+    return 'ok';
+  }
+
+  tabla(def) {
+    return {
+      titulo: def.titulo, min: def.min, nota: def.nota,
+      cols: def.cols.map((c) => ({ label: c[0], style: c[1] ? THN : TH })),
+      filas: def.filas.map((f) => ({
+        celdas: f.map((c, j) => {
+          if (def.insignia !== undefined && j === def.insignia) {
+            return { texto: c, insignia: INS[this.tono(c)], plano: false, style: 'padding:10px 18px; border-bottom:1px solid #F0F0F0' };
+          }
+          return {
+            texto: c, insignia: '', plano: true,
+            style: def.cols[j] && def.cols[j][1] ? TDN : (j === 0 ? TD + '; font-weight:700; color:#333' : TD)
+          };
+        })
+      }))
+    };
+  }
+
+  /* Lo elegido, con sus tres componentes separados: el ciudadano tiene que
+     poder ver qué parte le condona la amnistía y qué parte no. */
+  /* La deuda que sigue viva: todo lo que no esta pagado. De aqui salen el
+     paso 2, el resumen y el bloque de pendientes del historial, asi que las
+     tres pantallas no pueden discrepar. */
+  vivas() { return DEUDAS.filter((d) => !this.state.pagadas[d.id]); }
+
+  cuenta() {
+    const s = this.state;
+    const sel = this.vivas().filter((d) => s.marcadas[d.id]);
+    let insoluto = 0, interes = 0, gastos = 0;
+    sel.forEach((d) => { insoluto += d.insoluto; interes += d.interes; gastos += d.gastos; });
+    return { sel: sel, insoluto: insoluto, interes: interes, gastos: gastos, total: insoluto + interes + gastos, conAmnistia: insoluto + gastos };
+  }
+
+  irPaso(p) { this.setState({ paso: p, menuSesion: false }); }
+
+  buscar() {
+    const q = this.state.q.trim();
+    if (q === '') { this.setState({ errorBusqueda: 'Escriba su código de contribuyente o su documento para poder buscar.' }); return; }
+    if (!/^[0-9]+$/.test(q)) { this.setState({ errorBusqueda: 'El código y el documento son solo números. Revise lo que escribió.' }); return; }
+    this.setState({ errorBusqueda: '', paso: 'deudas', toast: 'Encontramos 4 conceptos pendientes.' });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const c = this.cuenta();
+    const anonimo = !s.autenticado;
+    const total = this.soles(c.total);
+    /* El importe que se cobra: con la amnistía aplicada. Es el que va en el
+       paso 3, en el resumen, en las instrucciones del banco y en el recibo. */
+    const aCobrar = this.soles(c.conAmnistia);
+
+    const PASOS = [
+      ['buscar', 'Buscar mi deuda'], ['deudas', 'Elegir qué pago'],
+      ['identificar', 'Mis datos'], ['pagar', 'Pagar'], ['listo', 'Comprobante']
+    ];
+    const iPaso = PASOS.findIndex((x) => x[0] === s.paso);
+
+    const medioDef = MEDIOS.find((m) => m.id === s.medio) || MEDIOS[0];
+    const pasosMedio = (medioDef.pasos || []).map((t) => ({ texto: t.replace('{{TOTAL}}', c.conAmnistia.toLocaleString('es-PE', { minimumFractionDigits: 2 })) }));
+
+    const destino = anonimo ? (s.correo || 'su correo') : 'fruiz159@gmail.com';
+
+    /* La deuda viva y el pago sellado son las dos fuentes de esta pantalla:
+       el paso 2 y los pendientes miran la primera, el comprobante y el
+       historial la segunda. Ninguna se deduce de la seleccion. */
+    const vivas = this.vivas();
+    const pago = s.ultimo || {
+      ids: c.sel.map((d) => d.id), insoluto: c.insoluto, interes: c.interes,
+      gastos: c.gastos, conAmnistia: c.conAmnistia, medio: medioDef.label,
+      numero: '0003-0041418', operacion: '86 4418 2026 0913',
+      fecha: '13/09/2026 · 10:42', destino: destino
+    };
+    const pagoSel = DEUDAS.filter((d) => pago.ids.indexOf(d.id) >= 0);
+
+    return {
+      entidad: this.props.entidad || 'Municipalidad Distrital de Catacaos',
+      hoy: '13 de setiembre de 2026',
+      anonimo: anonimo, identificado: s.autenticado,
+      usuario: { iniciales: 'MC', nombre: 'María E. Castillo', doc: 'DNI 44218937', codigo: 'Contribuyente 00000025673', correo: 'fruiz159@gmail.com' },
+      menuSesion: s.menuSesion, menuAria: s.menuSesion ? 'true' : 'false',
+      abrirMenu: () => this.setState((x) => ({ menuSesion: !x.menuSesion })),
+      cerrarMenu: () => this.setState({ menuSesion: false }),
+      menuStyle: 'display:flex; align-items:center; gap:10px; border:0; border-left:1px solid rgba(255,255,255,.25); padding:8px 16px; cursor:pointer; color:#fff; flex:0 0 auto; background:' +
+        (s.menuSesion ? 'rgba(255,255,255,.18)' : 'transparent'),
+      opcionesMenu: [
+        ['Mis pagos', () => this.irPaso('historial')],
+        ['Mis predios y vehículos', () => this.irPaso('historial')],
+        ['Cambiar mi clave', () => this.di('Abriría el cambio de clave.')],
+        ['Cerrar sesión', () => this.setState({ autenticado: false, menuSesion: false, paso: 'buscar', toast: 'Sesión cerrada.' })]
+      ].map((o, i) => ({
+        label: o[0],
+        ir: () => { this.setState({ menuSesion: false }); o[1](); },
+        style: 'display:block; width:100%; text-align:left; border:0; border-bottom:1px solid #F0F0F0; background:transparent; padding:12px 16px; cursor:pointer; font-size:14.5px; color:' +
+          (i === 3 ? ROJO_FG : AZUL_TXT)
+      })),
+
+      /* Los pasos no aparecen en el historial: allí no hay nada que avanzar. */
+      hayPasos: s.paso !== 'historial',
+      pasos: PASOS.map((p, i) => {
+        const on = s.paso === p[0];
+        const hecho = i < iPaso;
+        const alcanzable = i <= iPaso;
+        return {
+          num: String(i + 1), label: p[1], actual: on ? 'step' : 'false',
+          ir: () => { if (alcanzable) this.irPaso(p[0]); else this.di('Complete primero los pasos anteriores.'); },
+          numStyle: 'display:grid; place-items:center; width:24px; height:24px; border-radius:50%; flex:0 0 auto; font-size:12.5px; font-weight:700; background:' +
+            (on ? AZUL : (hecho ? VERDE_BG : '#EEE')) + '; color:' + (on ? '#fff' : (hecho ? VERDE_FG : '#999')),
+          style: 'display:flex; align-items:center; gap:9px; min-height:48px; border:0; border-bottom:3px solid ' +
+            (on ? AZUL : 'transparent') + '; background:transparent; padding:0 15px; cursor:' + (alcanzable ? 'pointer' : 'default') +
+            '; font-size:14px; color:' + (on ? '#333' : (hecho ? '#555' : '#AAA')) + '; font-weight:' + (on ? '700' : '400')
+        };
+      }),
+
+      /* ── 1 · buscar ─────────────────────────────────────────── */
+      esBuscar: s.paso === 'buscar',
+      inputStyle: IN,
+      tipoBusqueda: s.tipo,
+      tiposBusqueda: ['Código de contribuyente', 'DNI', 'RUC'],
+      onTipoBusqueda: (e) => this.setState({ tipo: e.target.value, q: '', errorBusqueda: '' }),
+      etiquetaBusqueda: s.tipo === 'Código de contribuyente' ? 'Código de contribuyente' : 'Número de ' + s.tipo,
+      placeholderBusqueda: s.tipo === 'Código de contribuyente' ? '00000025673' : (s.tipo === 'DNI' ? '03593174' : '20525118447'),
+      q: s.q,
+      onQ: (e) => this.setState({ q: e.target.value, errorBusqueda: '' }),
+      errorBusqueda: s.errorBusqueda,
+      buscar: () => this.buscar(),
+      capacidades: [
+        ['Ver lo que debe', 'Su impuesto predial, arbitrios y vehicular, con el vencimiento de cada cuota.', 'buscar'],
+        ['Pagar en línea', 'Con tarjeta, Yape, pagalo.pe o un código para el banco.', 'pagar'],
+        ['Descargar comprobantes', 'El del pago que acaba de hacer y los de años anteriores.', 'recibo'],
+        ['Saber de dónde sale', 'El autovalúo de su predio, los metros de frontis y la tabla que se le aplica.', 'detalle']
+      ].map((x, i) => ({
+        titulo: x[0], detalle: x[1], icon: ICO[x[2]].map((d) => ({ d: d })),
+        style: 'padding:14px 18px 16px 0; margin-right:18px; border-top:1px solid #E4E4E4' + (i === 0 ? '' : '')
+      })),
+
+      /* ── 2 · deudas ─────────────────────────────────────────── */
+      esDeudas: s.paso === 'deudas',
+      contribuyente: {
+        nombre: 'Suc. Rufina Medina Medina',
+        detalle: 'Código 00000025673 · DNI 03593174 · 2 predios y 1 vehículo'
+      },
+      resumen: (() => {
+        let ins = 0, inte = 0, gas = 0;
+        vivas.forEach((d) => { ins += d.insoluto; inte += d.interes; gas += d.gastos; });
+        const vencidas = vivas.filter((d) => d.estado !== 'Por vencer').length;
+        return {
+          total: this.soles(ins + inte + gas),
+          conAmnistia: this.soles(ins + gas),
+          descuento: this.soles(inte),
+          nota: vencidas + ' de ' + vivas.length + ' conceptos están vencidos. El interés corre cada día que pasa.',
+          cifras: [
+            ['Impuesto y arbitrios', this.soles(ins), 'Lo que no se condona', '#333'],
+            ['Interés moratorio', this.soles(inte), 'La amnistía lo condona entero', VERDE_FG],
+            ['Gastos y costas', this.soles(gas), 'Emisión y cobranza coactiva', '#333'],
+            ['Conceptos', String(vivas.length), 'Predial, arbitrios y vehicular', '#333']
+          ].map((x) => ({
+            k: x[0], v: x[1], nota: x[2], color: x[3],
+            style: 'padding:15px 18px; background:#fff' + CELDA
+          }))
+        };
+      })(),
+      /* Sin deuda viva el paso 2 no tiene lista que pintar. */
+      sinDeuda: vivas.length === 0, hayDeuda: vivas.length > 0,
+      deudas: vivas.map((d) => {
+        const marcada = s.marcadas[d.id] === true;
+        const abierta = s.abierta === d.id;
+        const suma = d.insoluto + d.interes + d.gastos;
+        const recargo = d.interes + d.gastos;
+        return {
+          marcada: marcada, aria: 'Pagar ' + d.concepto,
+          alternar: () => this.setState((x) => ({ marcadas: Object.assign({}, x.marcadas, { [d.id]: !marcada }) })),
+          concepto: d.concepto, unidad: d.unidad + ' · ' + d.cuotas,
+          estado: d.estado, insignia: INS[d.tono],
+          vence: d.vence, venceColor: d.tono === 'mal' ? ROJO_FG : (d.tono === 'atencion' ? AMBAR_FG : '#666'),
+          total: this.soles(suma),
+          recargo: recargo > 0 ? 'incluye ' + this.soles(recargo) + ' de recargo' : '',
+          abierta: abierta, abiertaAria: abierta ? 'true' : 'false',
+          etiquetaDetalle: abierta ? 'Ocultar el detalle' : 'Ver el detalle',
+          verDetalle: () => this.setState((x) => ({ abierta: x.abierta === d.id ? null : d.id })),
+          detalle: this.tabla(d.detalle),
+          marcoStyle: 'border-bottom:1px solid #EEE; background:' + (marcada ? '#F7FBFE' : '#fff') +
+            '; border-left:4px solid ' + (marcada ? AZUL : 'transparent')
+        };
+      }),
+      etiquetaTodas: c.sel.length === vivas.length ? 'Quitar todo' : 'Marcar todo',
+      todas: () => {
+        const todo = c.sel.length === vivas.length;
+        const m = {};
+        vivas.forEach((d) => { m[d.id] = !todo; });
+        this.setState({ marcadas: m });
+      },
+      seleccion: {
+        detalle: c.sel.length === 0
+          ? 'No ha marcado ningún concepto'
+          : (c.sel.length === vivas.length
+            ? 'Va a pagar los ' + vivas.length + ' conceptos'
+            : 'Va a pagar ' + c.sel.length + (c.sel.length === 1 ? ' concepto' : ' conceptos') + ' de ' + vivas.length),
+        total: total, aCobrar: aCobrar,
+        ahorro: c.interes > 0 ? 'Con la amnistía paga ' + this.soles(c.conAmnistia) + ': se descuentan ' + this.soles(c.interes) + ' de interés' : '',
+        vacio: c.sel.length === 0, vacioAria: c.sel.length === 0 ? 'true' : 'false',
+        boton: c.sel.length === vivas.length ? 'Pagar todo' : 'Pagar lo marcado',
+        botonStyle: 'min-height:52px; border:0; border-radius:3px; padding:0 32px; font-size:17px; font-weight:700; white-space:nowrap; cursor:pointer; flex:0 0 auto; background:' +
+          (c.sel.length === 0 ? '#BBB' : AZUL) + '; color:#fff'
+      },
+      pagar: () => {
+        if (c.sel.length === 0) { this.di('Marque al menos un concepto para poder pagar.'); return; }
+        this.irPaso(s.autenticado ? 'pagar' : 'identificar');
+      },
+      irInicio: () => this.setState({ paso: s.autenticado ? 'historial' : 'buscar', menuSesion: false }),
+
+      /* ── 3 · identificar ───────────────────────────────────── */
+      esIdentificar: s.paso === 'identificar',
+      correo: s.correo, correoStyle: s.errorCorreo ? IN_MAL : IN,
+      onCorreo: (e) => this.setState({ correo: e.target.value, errorCorreo: '' }),
+      errorCorreo: s.errorCorreo,
+      copia: s.copia,
+      onCopia: (e) => this.setState({ copia: e.target.checked }),
+      seguirConCorreo: () => {
+        const v = s.correo.trim();
+        if (v === '') { this.setState({ errorCorreo: 'Escriba un correo para poder enviarle el comprobante.' }); return; }
+        if (v.indexOf('@') < 1 || v.lastIndexOf('.') < v.indexOf('@')) {
+          this.setState({ errorCorreo: 'Ese correo no parece completo. Revíselo: le enviaremos el comprobante ahí.' }); return;
+        }
+        this.setState({ errorCorreo: '', paso: 'pagar' });
+      },
+      loginDoc: s.loginDoc, loginClave: s.loginClave, errorLogin: s.errorLogin,
+      onLoginDoc: (e) => this.setState({ loginDoc: e.target.value, errorLogin: '' }),
+      onLoginClave: (e) => this.setState({ loginClave: e.target.value, errorLogin: '' }),
+      entrar: () => {
+        if (s.loginDoc.trim() === '' || s.loginClave === '') {
+          this.setState({ errorLogin: 'Escriba su documento y su clave para entrar.' }); return;
+        }
+        this.setState({ autenticado: true, errorLogin: '', paso: 'pagar', toast: 'Bienvenida. Este pago quedará en su historial.' });
+      },
+
+      /* ── 4 · pagar ─────────────────────────────────────────── */
+      esPagar: s.paso === 'pagar',
+      medios: MEDIOS.map((m) => {
+        const on = s.medio === m.id;
+        return {
+          label: m.label, nota: m.nota, on: on ? 'true' : 'false',
+          icon: m.icon.map((d) => ({ d: d })),
+          ir: () => this.setState({ medio: m.id }),
+          iconStyle: 'display:grid; place-items:center; width:30px; height:30px; border-radius:3px; flex:0 0 auto; background:' +
+            (on ? AZUL : '#F0F2F4') + '; color:' + (on ? '#fff' : '#777'),
+          style: 'display:block; width:100%; text-align:left; min-height:88px; border:' +
+            (on ? '2px solid ' + AZUL : '1px solid #DDD') + '; border-radius:3px; padding:' + (on ? '13px 14px' : '14px 15px') +
+            '; cursor:pointer; background:' + (on ? '#F0F6FB' : '#fff')
+        };
+      }),
+      medio: {
+        titulo: medioDef.titulo, nota: medioDef.detalleNota,
+        hayCampos: (medioDef.campos || []).length > 0,
+        campos: (medioDef.campos || []).map((f) => ({
+          label: f.l, valor: s.vals[f.k] === undefined ? '' : s.vals[f.k],
+          ph: f.ph || '', ayuda: f.ayuda || '', opts: f.o || [],
+          esSel: f.t === 'sel', esTexto: f.t !== 'sel',
+          style: IN,
+          on: (e) => this.set(f.k, e.target.value),
+          marcoStyle: 'display:block; flex:' + (f.ancho === 2 ? '1 1 100%' : '1 1 168px') + '; min-width:0; padding:8px'
+        })),
+        hayCodigo: medioDef.codigo !== undefined,
+        codigoEtiqueta: medioDef.codigoEtiqueta || '', codigo: medioDef.codigo || '',
+        codigoNota: medioDef.codigoNota || '',
+        hayPasos: pasosMedio.length > 0, pasos: pasosMedio,
+        hayBancos: (medioDef.bancos || []).length > 0,
+        bancos: (medioDef.bancos || []).map((b, i) => ({
+          nombre: b[0], canal: b[1],
+          style: 'padding:13px 15px; border-top:' + (i === 0 ? '0' : '1px solid #EEE')
+        })),
+        aviso: medioDef.aviso, boton: medioDef.boton
+      },
+      carrito: c.sel.map((d) => ({
+        concepto: d.concepto, nota: d.cuotas, monto: this.soles(d.insoluto + d.interes + d.gastos)
+      })),
+      carritoTotales: [
+        ['Impuesto y arbitrios', this.soles(c.insoluto), '14px', '400', '#333'],
+        ['Interés condonado', '− ' + this.soles(c.interes), '14px', '400', VERDE_FG],
+        ['Gastos y costas', this.soles(c.gastos), '14px', '400', '#333'],
+        ['Total a pagar', this.soles(c.conAmnistia), '19px', '700', AZUL]
+      ].map((t, i) => ({
+        k: t[0], v: t[1], tam: t[2], peso: t[3], color: t[4],
+        filaStyle: 'display:flex; align-items:baseline; gap:12px; padding:' + (i === 3 ? '14px 18px' : '9px 18px') +
+          '; background:' + (i === 3 ? '#F2F6FA' : '#fff') + '; border-top:' + (i === 3 ? '2px solid #DDD' : '1px solid #F6F6F6')
+      })),
+      destinoComprobante: destino,
+      volverDeudas: () => this.irPaso('deudas'),
+      confirmarPago: () => {
+        if (c.sel.length === 0) { this.di('No hay nada que pagar.'); return; }
+        const pagadas = Object.assign({}, s.pagadas);
+        c.sel.forEach((d) => { pagadas[d.id] = true; });
+        this.setState({
+          paso: 'listo', recienPagado: true, pagadas: pagadas,
+          /* El comprobante se sella con lo que se pago: si luego el
+             ciudadano vuelve a el, no cambia porque cambie la seleccion. */
+          ultimo: {
+            ids: c.sel.map((d) => d.id),
+            insoluto: c.insoluto, interes: c.interes, gastos: c.gastos,
+            conAmnistia: c.conAmnistia, medio: medioDef.label,
+            numero: '0003-0041418', operacion: '86 4418 2026 0913', fecha: '13/09/2026 - 10:42',
+            destino: destino
+          },
+          toast: 'Pago registrado. Le enviamos el comprobante a ' + destino + '.'
+        });
+      },
+
+      /* ── 5 · listo ─────────────────────────────────────────── */
+      esListo: s.paso === 'listo',
+      listo: {
+        titulo: 'Su pago se registró',
+        detalle: 'Pagó ' + this.soles(pago.conAmnistia) + ' con ' + pago.medio.toLowerCase() + '. Le enviamos el comprobante a ' + pago.destino +
+          ', y puede descargarlo aquí mismo. La deuda pagada ya se descontó de su cuenta.',
+        acciones: (s.autenticado
+          ? [['Ver mis pagos', () => this.irPaso('historial'), true]].concat(vivas.length > 0 ? [['Pagar otra deuda', () => this.irPaso('deudas'), false]] : [])
+          : [['Consultar otra deuda', () => this.setState({ paso: 'buscar', q: '' }), false]]
+        ).map((a) => ({
+          label: a[0], ir: a[1],
+          style: 'min-height:46px; border:' + (a[2] ? '0' : '1px solid #CCC') + '; border-radius:3px; padding:0 22px; cursor:pointer; font-size:15.5px; font-weight:' +
+            (a[2] ? '700' : '400') + '; background:' + (a[2] ? ACERO : '#fff') + '; color:' + (a[2] ? '#fff' : '#333')
+        }))
+      },
+      recibo: {
+        numero: pago.numero,
+        meta: [
+          ['Número de operación', pago.operacion],
+          ['Fecha y hora', pago.fecha],
+          ['Medio de pago', pago.medio],
+          ['Contribuyente', 'Suc. Rufina Medina Medina'],
+          ['Código', '00000025673'],
+          ['Enviado a', pago.destino]
+        ].map((m) => ({
+          k: m[0], v: m[1],
+          style: 'padding:14px 24px; background:#fff' + CELDA
+        })),
+        cols: [['Concepto', 0], ['Unidad', 0], ['Cuotas', 0], ['Importe S/', 1]].map((x) => ({ label: x[0], style: x[1] ? THN : TH })),
+        filas: pagoSel.map((d) => ({
+          celdas: [
+            { texto: d.concepto, style: TD + '; font-weight:700; color:#333' },
+            { texto: d.unidad, style: TD },
+            { texto: d.cuotas, style: TD },
+            { texto: (d.insoluto + d.gastos).toLocaleString('es-PE', { minimumFractionDigits: 2 }), style: TDN }
+          ]
+        })),
+        pie: [
+          ['Interés condonado por la Ordenanza 012-2026-MPS', '− ' + pago.interes.toLocaleString('es-PE', { minimumFractionDigits: 2 })],
+          ['Total pagado', pago.conAmnistia.toLocaleString('es-PE', { minimumFractionDigits: 2 })]
+        ].map((p, i) => ({
+          celdas: [
+            { texto: p[0], style: (i === 1 ? TDT : 'padding:10px 18px; font-size:14px; color:' + VERDE_FG + '; border-top:1px solid #EEE') },
+            { texto: '', style: i === 1 ? TDT : 'padding:10px 18px; border-top:1px solid #EEE' },
+            { texto: '', style: i === 1 ? TDT : 'padding:10px 18px; border-top:1px solid #EEE' },
+            { texto: p[1], style: i === 1 ? TDTN : 'padding:10px 18px; text-align:right; font-size:14px; color:' + VERDE_FG + '; border-top:1px solid #EEE; font-variant-numeric:tabular-nums' }
+          ]
+        })),
+        nota: 'Esta constancia acredita el pago de los conceptos detallados. Consérvela: es lo que hay que presentar si la deuda volviera a aparecer. El pago con tarjeta, Yape o pagalo.pe se aplica de inmediato; el pago con código de banco, al día siguiente hábil.'
+      },
+      descargar: () => this.di('Se descargaría el comprobante ' + pago.numero + ' en PDF.'),
+      imprimir: () => window.print(),
+      abrirEntrar: () => this.irPaso('identificar'),
+
+      /* ── historial ─────────────────────────────────────────── */
+      esHistorial: s.paso === 'historial',
+      hayReciente: s.recienPagado,
+      reciente: {
+        titulo: 'Pago de ' + this.soles(pago.conAmnistia) + ' registrado hoy',
+        detalle: 'Operación ' + pago.operacion + ' · ' + pago.medio + ' · comprobante ' + pago.numero + ', enviado a ' + pago.destino
+      },
+      verRecibo: () => this.irPaso('listo'),
+      historial: {
+        cols: [['Fecha', 0], ['Concepto', 0], ['Medio', 0], ['Comprobante', 0], ['Importe S/', 1], ['', 0]].map((x) => ({ label: x[0], style: x[1] ? THN : TH })),
+        filas: (s.recienPagado
+          ? [['13/09/2026', pagoSel.map((d) => d.concepto).join(' · '), pago.medio, pago.numero, pago.conAmnistia.toLocaleString('es-PE', { minimumFractionDigits: 2 })]].concat(HISTORIAL)
+          : HISTORIAL
+        ).map((f, i) => ({
+          filaStyle: 'background:' + (i === 0 && s.recienPagado ? '#F5FBF3' : '#fff'),
+          descargar: () => this.di('Se descargaría el comprobante ' + f[3] + '.'),
+          celdas: f.map((x, j) => ({
+            texto: x,
+            style: j === 4 ? TDN : (j === 0 ? TD + '; white-space:nowrap' : TD)
+          }))
+        }))
+      },
+      pendiente: (() => {
+        const lista = vivas;
+        let t = 0;
+        lista.forEach((d) => { t += d.insoluto + d.interes + d.gastos; });
+        return {
+          /* Sin deuda viva no se ofrece pagar: solo queda la constancia de
+             no adeudo, que es lo unico que tiene sentido pedir. */
+          hay: lista.length > 0,
+          total: lista.length === 0 ? 'Sin deuda pendiente' : this.soles(t),
+          filas: (lista.length === 0
+            ? [{ concepto: 'No le queda nada pendiente', vence: 'Puede pedir su constancia de no adeudo', estado: 'Al día', tono: 'ok', monto: 'S/ 0.00' }]
+            : lista.map((d) => ({
+                concepto: d.concepto, vence: d.vence, estado: d.estado, tono: d.tono,
+                monto: this.soles(d.insoluto + d.interes + d.gastos)
+              }))
+          ).map((p) => ({ concepto: p.concepto, vence: p.vence, estado: p.estado, insignia: INS[p.tono], monto: p.monto }))
+        };
+      })(),
+      pagarPendiente: () => this.irPaso('deudas'),
+      pedirConstancia: () => this.di('Se emitiría su constancia de no adeudo al día de hoy.'),
+      unidades: UNIDADES.map((u) => ({
+        titulo: u.titulo, detalle: u.detalle, baseEtiqueta: u.baseEtiqueta, base: u.base,
+        datos: u.datos.map((d) => ({ texto: d })), origen: u.origen
+      })),
+
+      toast: s.toast
+    };
+  }
+}
+
+</script>
+</body>
+</html>
+
