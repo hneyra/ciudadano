@@ -60,7 +60,7 @@ describe('Tailwind esta conectado a este frontend', () => {
     const nombres = complementos.map((c) => c?.name ?? '').filter((n) => n !== '');
     expect(
       nombres.some((n) => n.includes('tailwind')),
-      'Sin el complemento, las clases de `@kamayuk/ui` y del interprete no producen CSS: la\n' +
+      'Sin el complemento, las clases de `@kamayuk/ui` y de este portal no producen CSS: la\n' +
         'aplicacion sale sin un solo estilo y NADA se pone rojo — las pruebas comparan\n' +
         `\`className\` como texto. Complementos declarados: ${nombres.join(', ')}`,
     ).toBe(true);
