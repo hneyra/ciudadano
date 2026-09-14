@@ -13,10 +13,11 @@ suponer nada— son [`rentas`](https://github.com/hneyra/rentas) (`frontend/`, `
 
 | Pieza | Estado |
 |---|---|
-| `frontend/` — `ciudadano-web` | **El andamiaje (issue 1), sin pantallas.** Vite 7 + React 19.3 + TypeScript 5.9 con yarn classic. `yarn verificar` encadena lint, tipos, i18n y pruebas: **12 archivos, 96 pruebas**, 0 fallos. `yarn build` construye el bundle en `dist/`. `yarn dev` sirve `http://localhost:5174/portal/` con un marcador que dice, por `t()`, «Pago de tributos en línea» y «Municipalidad Distrital de Catacaos» |
+| `frontend/` — `ciudadano-web` | **El andamiaje (issue 1) y el tema (issue 2), sin pantallas.** Vite 7 + React 19.3 + TypeScript 5.9 con yarn classic. `yarn verificar` encadena lint, tipos, i18n y pruebas: **16 archivos, 130 pruebas**, 0 fallos. `yarn build` construye el bundle en `dist/`. `yarn dev` sirve `http://localhost:5174/portal/` con un marcador —la barra del artboard: escudo, «Pago de tributos en línea» y «Municipalidad Distrital de Catacaos» por `t()`, en blanco sobre `bg-azul`, sobre `bg-fondo`— |
 | `frontend/diseno/` | `Ciudadano.dc.html` y `escudo-catacaos.png`, **vendorizados tal cual**, con su huella SHA-256 vigilada |
 | `.github/workflows/frontend.yml` | El job `verificar` de `rentas`: dos checkouts hermanos, `yarn install --frozen-lockfile`, `yarn verificar`, `yarn build` |
-| Tema, datos, pantallas | **No existen todavía.** Tema: issue 2 (identidad `clasico`, en `kamayuk-lib`). Datos de demostración: issue 3, en `src/datos/`. Arnés de Playwright: issue 11 |
+| Tema | **Elegido, no escrito** (issue 2): `ProveedorDeTema` de `@kamayuk/ui` en `src/aplicacion.tsx` con `identidadPorOmision: 'clasico'` y `prefijoDeClaves: 'kamayuk.ciudadano'`. `src/estilos.css` no declara ni un color, ni una fuente, ni un radio; su capa `base` porta los estilos globales del artboard con `var(--color-…)`. Lo que del artboard NO es token, o la libreria decidio distinto, esta en la tabla de `verificaciones/la-paleta-cuadra-con-el-artboard.test.ts` |
+| Datos, pantallas | **No existen todavía.** Datos de demostración: issue 3, en `src/datos/`. Arnés de Playwright: issue 11 |
 
 ## Lo que este repositorio NO hace
 
@@ -36,11 +37,13 @@ frontend/                 Vite 7, React 19, TypeScript 5.9, con yarn. `ciudadano
   src/main.tsx            StrictMode + I18nextProvider + QueryClientProvider. Importa la hoja, UNA vez
   src/aplicacion.tsx      el marcador del andamiaje; lo sustituyen las pantallas
   src/i18n/               el castellano es la clave; el locale se REGENERA, no se escribe
-  src/estilos.css         no define ni un color: importa la de `@kamayuk/ui` y dice a Tailwind dónde mirar
+  src/estilos.css         no define ni un color: importa la de `@kamayuk/ui`, dice a Tailwind dónde mirar
+                          y porta en `@layer base` los estilos globales del artboard, con tokens
   diseno/                 el artboard y el escudo, tal cual se entregaron
   resolucion.ts           `resolve.dedupe` DERIVADO de las peerDependencies de cada `@kamayuk/*`
   eslint.prohibiciones.mjs  DERIVA las nueve de `@kamayuk/verificaciones`; aquí solo su excepción de ruta
-  verificaciones/         las guardas del árbol, sus `muestras/` que las violan y `tipos/`
+  verificaciones/         las guardas del árbol, sus `muestras/` que las violan y `tipos/`;
+                          `colores-propios/` es la muestra de `sin-colores-propios`
 .github/workflows/        la CI del frontend
 ```
 
@@ -126,3 +129,8 @@ ejecuta, y se anota el rojo exacto que sale.
 | `el-locale-esta-completo.test.ts` (#1) | un valor distinto de su clave; una clave quitada | ««Pago de tributos en línea» dice «Pago de tributos online»»; «faltan». Con la clave quitada, `yarn i18n` sale rc=1: «Incomplete translations detected» |
 | `los-artboards-estan.test.ts` (#1) | un texto del artboard retocado; `<x-dc>` quitado; el archivo borrado | «ya no es la copia que se vendorizo»; «no trae el bloque <x-dc>»; «FALTA UN ARTBOARD VENDORIZADO» |
 | `src/aplicacion.test.tsx` (#1) | el título, y luego la entidad, escritos a pelo sin `t()` (ESLint no lo caza: rc=0) | «Unable to find an accessible element with the role "heading" and name "⟦Pago de tributos en línea⟧"»; «Unable to find an element with the text: ⟦Municipalidad Distrital de Catacaos⟧» |
+| `la-paleta-cuadra-con-el-artboard.test.ts` (#2) | `const AZUL = '#0D5FA9'` y el velo del avatar a `.12` en el artboard vendorizado (restaurados); la fila `GRANATE` renombrada; `laLibreriaDice` de `--mal-borde` a `#EBCCD1`; el umbral de `#777` a 4.4 | «AZUL (constante, linea 706…): el artboard dice «#0d5fa9» y --color-azul vale «#0d5fa8»»; «velo del disco del avatar (linea 80): la tabla se decidio contra «rgba(255, 255, 255, 0.22)» y el artboard dice ahora «rgba(255, 255, 255, 0.12)»»; «El artboard declara constantes de color que la tabla no decide: … [ 'GRANATE' ]»; «la tabla dice que --color-mal-borde vale «#ebccd1» y la identidad dice «#a94442»»; «gris de nota `#777` (#777777) contra --color-superficie (#ffffff) da 4.48:1, que YA LLEGA a 4.4:1» |
+| `tailwind-emite-las-clases.test.ts` (#2) | `bg-azull` en el marcador; `@theme { --color-azul: initial; --radius-sm: 5px }` en `src/estilos.css`; el contorno global con `var(--color-foco)`; `table { width }` quitado | «Hay clases escritas que Tailwind NO genera … bg-azull»; «Tailwind no genera la regla `.bg-azul`» y «expected '5px' to be '3px'»; «El contorno de foco global no llega a 3:1 … #1ba0d7 sobre --color-fondo (#f4f6f8): 2.75:1 / sobre --color-superficie (#ffffff): 2.98:1»; «expected '(no se declara)' to be '100%'» |
+| `sin-colores-propios.test.ts` (#2) | `:root { --color-azul: #0d5fa8; }` en la hoja; `bg-[#0D5FA8]` y `style={{ borderColor: 'rgb(0, 0, 0)' }}` en el marcador; la guarda sin `cn` y sin la comprobacion de `font-family` | «src/estilos.css:79 — declara --color-azul…» y «color literal «#0d5fa8»»; «src/aplicacion.tsx:47 — color literal «#0D5FA8» en `className`» / ««rgb(» en `style`»; «la guarda no senalo lo que la muestra … viola» (faltan las lineas 11 y 17). **Hallazgo**: sin `cn` seguia verde, porque el unico `cn()` de la muestra colgaba de un `className`; se anadio a la muestra uno suelto |
+| `src/aplicacion.test.tsx`, tema (#2) | el `ProveedorDeTema` quitado; `identidadPorOmision: 'institucional'`; `prefijoDeClaves: 'kamayuk.rentas'` | «Expected the element to have attribute: data-tema="clasico" Received: null»; «… Received: data-tema="institucional"»; «… Received: data-tema="sepia"» |
+| `tinta-4-no-es-color-de-texto.test.ts` (#2) | `text-tinta-4` en la entidad del marcador | «src/aplicacion.tsx:52 sobre <p> — el elemento no lleva `aria-hidden`, o sea que lo que pinta se lee» |

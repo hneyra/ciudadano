@@ -235,3 +235,40 @@ export function importesQueNoResuelven(
 export function hojaDeUi(): string {
   return resolverPorExports(requerir, ESPECIFICADOR_DE_LA_HOJA);
 }
+
+/**
+ * La vecina que una hoja **arrastra** con un `@import` relativo. Portada de `rentas` (rentas#145),
+ * que alli leen las guardas de la paleta y aqui, desde el issue 2, tambien.
+ *
+ * Hace falta porque no todo lo que el navegador recibe tiene entrada propia en el `exports`, y a
+ * proposito: `estilos/temas.css` —las ocho paletas, `clasico` entre ellas— se arrastra desde
+ * `estilos.css` en vez de publicarse aparte (`kamayuk-lib`#23): con una entrada propia, el
+ * consumidor tendria que escribir DOS `import` y quien se olvidara del segundo se quedaria sin
+ * paletas y sin que nada se lo dijera.
+ *
+ * Asi que se alcanza **como la alcanza el empaquetador**: desde la hoja publicada, siguiendo el
+ * `@import` que ella escribe. Y se exige que lo escriba: si la libreria deja de arrastrarla, lo que
+ * sale no es un archivo huerfano leido en silencio sino este rojo.
+ */
+export function hermanaDe(hoja: string, relativo: string): string {
+  const escritos = importesDe(readFileSync(hoja, 'utf8'));
+  if (!escritos.includes(relativo)) {
+    throw new Error(
+      `«${hoja}» ya no escribe \`@import "${relativo}"\`.\n` +
+        `  Lo que escribe es: ${escritos.length === 0 ? '(ningun @import)' : escritos.join(', ')}\n` +
+        '  Esa hoja se alcanza SOLO porque la publicada la arrastra. Sin el `@import`, el\n' +
+        '  navegador no la recibe — y leerla igual del disco seria medir un archivo que nadie sirve.',
+    );
+  }
+  return join(dirname(hoja), relativo);
+}
+
+/**
+ * **Las paletas que el navegador recibe**: `temas.css`, alcanzada desde la hoja publicada.
+ *
+ * Funcion y al final del archivo por lo mismo que `hojaDeUi`: si no resuelve, el rojo sale dentro
+ * de la prueba que la necesita y con el mensaje entero.
+ */
+export function temasDeUi(): string {
+  return hermanaDe(hojaDeUi(), './temas.css');
+}
