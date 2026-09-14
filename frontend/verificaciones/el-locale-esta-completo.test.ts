@@ -69,13 +69,46 @@ const LITERALES = [
   // El rotulo accesible de la region de avisos. No esta en el artboard (alli el aviso es un
   // `role="status"` sin nombre); es la palabra de `TEXTOS_DE_LA_UI.avisos` de `@kamayuk/ui`, traducida.
   'Avisos',
-  // Los titulos de los marcadores de cada paso, hasta que lleguen sus pantallas (issues 5-10):
-  // lineas 126, 224, 314, 360, 1276 y 570.
+  // Los titulos de cada paso: lineas 126, 224, 314, 360, 1276 y 570. El primero es ya el `h1` de la
+  // pantalla de buscar (issue 5); los demas, de los marcadores hasta que lleguen las suyas (6-10).
   'Consulte y pague sus tributos',
   'Lo que debe, por concepto',
   '¿A dónde le enviamos el comprobante?',
   '¿Cómo quiere pagar?',
   'Su pago se registró',
+
+  // ── Paso 1 · Buscar mi deuda (issue 5) ──────────────────────────────────────────────────────
+  // Linea 127: la entrada bajo el titulo (que es la clave de arriba, «Consulte y pague sus tributos»).
+  'Escriba su código de contribuyente o su documento de identidad. Verá lo que debe, con su vencimiento, y podrá pagar todo o solo lo que elija.',
+  // Lineas 131 y 1084: «Buscar por» y sus tres opciones. Las opciones son dato del recorrido
+  // (`TipoDeDocumento`) y se traducen al dibujarse.
+  'Buscar por',
+  'Código de contribuyente',
+  'DNI',
+  'RUC',
+  // Linea 1086: la etiqueta del numero. El artboard concatena «Número de » + tipo; aqui son dos
+  // frases enteras, para que un traductor no tenga que adivinar la concordancia.
+  'Número de DNI',
+  'Número de RUC',
+  // Lineas 1004-1005: los dos errores de `buscar()`, y el aviso de la busqueda valida (1006).
+  'Escriba su código de contribuyente o su documento para poder buscar.',
+  'El código y el documento son solo números. Revise lo que escribió.',
+  'Encontramos 4 conceptos pendientes.',
+  // Linea 151: la ayuda bajo el formulario.
+  'Su código de contribuyente figura en la cuponera del impuesto predial y en cualquier recibo anterior. Si no lo encuentra, busque por su DNI.',
+  // Lineas 155 y 1093-1096: «Qué puede hacer aquí» y sus cuatro capacidades.
+  'Qué puede hacer aquí',
+  'Ver lo que debe',
+  'Su impuesto predial, arbitrios y vehicular, con el vencimiento de cada cuota.',
+  'Pagar en línea',
+  'Con tarjeta, Yape, pagalo.pe o un código para el banco.',
+  'Descargar comprobantes',
+  'El del pago que acaba de hacer y los de años anteriores.',
+  'Saber de dónde sale',
+  'El autovalúo de su predio, los metros de frontis y la tabla que se le aplica.',
+  // Linea 177: la amnistia. La norma es dato (`ORDENANZA`, de `src/datos/`) y entra por su hueco.
+  'Amnistía vigente hasta el 31 de diciembre.',
+  'La {{ordenanza}} condona el 100 % del interés moratorio. Al pagar ahora, el descuento se aplica solo: no hay que solicitarlo.',
 ] as const;
 
 /** Lo que tiene que decir cada forma plural. Hoy no hay ninguna; el mecanismo es el de `rentas`. */
