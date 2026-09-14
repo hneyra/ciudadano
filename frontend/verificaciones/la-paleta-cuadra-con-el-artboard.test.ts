@@ -353,6 +353,78 @@ const TABLA: readonly Correspondencia[] = [
         '(`#f9fbfd`), el papel secundario mas cercano, y `src/marco/Barra.tsx` lo deja.',
     },
   },
+
+  // ── Paso 1 · Buscar mi deuda (issue 5) ────────────────────────────────────────────────────
+  {
+    delArtboard: 'filo de la tarjeta de la busqueda',
+    donde: 'linea 124',
+    leer: enElMarcado(/<div style="background:#fff; border:1px solid (#[0-9A-Fa-f]{3,6}); box-shadow:0 1px 2px/),
+    decision: { tipo: 'igual', token: '--color-linea' },
+  },
+  {
+    delArtboard: 'la entrada bajo el titulo',
+    donde: 'linea 127',
+    leer: enElMarcado(/font-size:16px; line-height:1\.6; color:(#[0-9A-Fa-f]{3,6}); max-width:64ch/),
+    decision: { tipo: 'igual', token: '--color-tinta-2' },
+  },
+  {
+    delArtboard: 'filo izquierdo del error de la busqueda',
+    donde: 'linea 148',
+    leer: enElMarcado(/<div role="alert" style="[^"]*?border-left:4px solid (#[0-9A-Fa-f]{3,6})/),
+    decision: { tipo: 'igual', token: '--color-mal-tinta' },
+  },
+  {
+    delArtboard: 'papel de «Qué puede hacer aquí»',
+    donde: 'linea 154',
+    leer: enElMarcado(/border-top:1px solid #EEE; background:(#[0-9A-Fa-f]{3,6}); padding:18px 26px 20px/),
+    decision: { tipo: 'igual', token: '--color-sup' },
+  },
+  {
+    delArtboard: 'caja del icono de una capacidad',
+    donde: 'linea 160',
+    leer: enElMarcado(/width:28px; height:28px; border-radius:3px; background:(#[0-9A-Fa-f]{3,6}); color:#0D5FA8/),
+    decision: { tipo: 'igual', token: '--color-azul-suave' },
+  },
+  {
+    delArtboard: 'detalle de una capacidad',
+    donde: 'linea 169',
+    leer: enElMarcado(/line-height:1\.55; color:(#[0-9A-Fa-f]{3,6}); text-wrap:pretty">\{\{ c\.detalle \}\}/),
+    decision: { tipo: 'igual', token: '--color-tinta-3' },
+  },
+  {
+    delArtboard: 'filo de cada capacidad',
+    donde: 'linea 1099: `border-top` del estilo de cada capacidad',
+    leer: enElMarcado(/margin-right:18px; border-top:1px solid (#[0-9A-Fa-f]{3,6})' \+ \(i === 0/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#E4E4E4',
+      seSustituyePor: '--color-linea',
+      porQue:
+        '`clasico` tiene dos filos grises, `--linea` (`#ddd`) y `--linea-2` (`#eee`), y ninguno es ' +
+        '`#E4E4E4`. `src/pasos/buscar/Buscar.tsx` usa `--linea`: es el mas cercano, y deja el filo de ' +
+        'cada capacidad un punto mas marcado que el `#EEE` que separa la seccion, como en el artboard.',
+    },
+  },
+  {
+    delArtboard: 'filo tenue de la amnistia',
+    donde: 'linea 176',
+    leer: enElMarcado(/<div style="margin-top:18px; border:1px solid (#[0-9A-Fa-f]{3,6}); border-left:4px solid/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#FAEBCC',
+      seSustituyePor: '--color-atencion-tinta',
+      porQue:
+        '`clasico` no tiene filo para el tono `atencion`. `src/piezas/AvisoConFilo.tsx` lo pinta con ' +
+        '`--atencion-tinta` al 25 %, que es lo que hace `Alerta` de `@kamayuk/ui` con el mismo tono ' +
+        '(el filo tenue del error, `#EBCCD1`, es la fila «filo de la alerta»).',
+    },
+  },
+  {
+    delArtboard: 'filo izquierdo de la amnistia',
+    donde: 'linea 176',
+    leer: enElMarcado(/<div style="margin-top:18px; border:1px solid #[0-9A-Fa-f]{3,6}; border-left:4px solid (#[0-9A-Fa-f]{3,6})/),
+    decision: { tipo: 'igual', token: '--color-atencion-tinta' },
+  },
 ];
 
 describe('la identidad `clasico` es la paleta del artboard', () => {
