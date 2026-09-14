@@ -1,0 +1,238 @@
+{
+ "artboard-1180": {
+  "tema": null,
+  "barra": {
+   "fondo": "rgb(13, 95, 168)",
+   "alto": 56,
+   "fuente": "Arial, Helvetica, sans-serif"
+  },
+  "franja": {
+   "alto": 49,
+   "pasos": [
+    {
+     "texto": "1Buscar mi deuda",
+     "color": "rgb(85, 85, 85)",
+     "peso": "400",
+     "subrayado": "rgba(0, 0, 0, 0) 3px",
+     "num": "rgb(223, 240, 216) / rgb(60, 118, 61)",
+     "etiquetaVisible": true
+    },
+    {
+     "texto": "2Elegir qué pago",
+     "color": "rgb(85, 85, 85)",
+     "peso": "400",
+     "subrayado": "rgba(0, 0, 0, 0) 3px",
+     "num": "rgb(223, 240, 216) / rgb(60, 118, 61)",
+     "etiquetaVisible": true
+    },
+    {
+     "texto": "3Mis datos",
+     "color": "rgb(51, 51, 51)",
+     "peso": "700",
+     "subrayado": "rgb(13, 95, 168) 3px",
+     "num": "rgb(13, 95, 168) / rgb(255, 255, 255)",
+     "etiquetaVisible": true
+    },
+    {
+     "texto": "4Pagar",
+     "color": "rgb(170, 170, 170)",
+     "peso": "400",
+     "subrayado": "rgba(0, 0, 0, 0) 3px",
+     "num": "rgb(238, 238, 238) / rgb(153, 153, 153)",
+     "etiquetaVisible": true
+    },
+    {
+     "texto": "5Comprobante",
+     "color": "rgb(170, 170, 170)",
+     "peso": "400",
+     "subrayado": "rgba(0, 0, 0, 0) 3px",
+     "num": "rgb(238, 238, 238) / rgb(153, 153, 153)",
+     "etiquetaVisible": true
+    }
+   ]
+  },
+  "pie": {
+   "alto": 77.28125,
+   "texto": "rgb(119, 119, 119)",
+   "enlace": "rgb(21, 105, 176)"
+  },
+  "anchoDoc": 1180
+ },
+ "portal-1180": {
+  "tema": "clasico",
+  "barra": {
+   "fondo": "rgb(13, 95, 168)",
+   "alto": 56,
+   "fuente": "Arial, Helvetica, sans-serif"
+  },
+  "franja": {
+   "alto": 49,
+   "pasos": [
+    {
+     "texto": "1Buscar mi deuda",
+     "color": "rgb(85, 85, 85)",
+     "peso": "400",
+     "subrayado": "rgba(0, 0, 0, 0) 3px",
+     "num": "rgb(223, 240, 216) / rgb(60, 118, 61)",
+     "etiquetaVisible": true
+    },
+    {
+     "texto": "2Elegir qué pago",
+     "color": "rgb(85, 85, 85)",
+     "peso": "400",
+     "subrayado": "rgba(0, 0, 0, 0) 3px",
+     "num": "rgb(223, 240, 216) / rgb(60, 118, 61)",
+     "etiquetaVisible": true
+    },
+    {
+     "texto": "3Mis datos",
+     "color": "rgb(51, 51, 51)",
+     "peso": "700",
+     "subrayado": "rgb(13, 95, 168) 3px",
+     "num": "rgb(13, 95, 168) / rgb(255, 255, 255)",
+     "etiquetaVisible": true
+    },
+    {
+     "texto": "4Pagar",
+     "color": "rgb(102, 102, 102)",
+     "peso": "400",
+     "subrayado": "rgba(0, 0, 0, 0) 3px",
+     "num": "rgb(238, 238, 238) / rgb(102, 102, 102)",
+     "etiquetaVisible": true
+    },
+    {
+     "texto": "5Comprobante",
+     "color": "rgb(102, 102, 102)",
+     "peso": "400",
+     "subrayado": "rgba(0, 0, 0, 0) 3px",
+     "num": "rgb(238, 238, 238) / rgb(102, 102, 102)",
+     "etiquetaVisible": true
+    }
+   ]
+  },
+  "pie": {
+   "alto": 77.28125,
+   "texto": "rgb(102, 102, 102)",
+   "enlace": "rgb(13, 95, 168)"
+  },
+  "anchoDoc": 1180
+ },
+ "artboard-400": {
+  "tema": null,
+  "barra": {
+   "fondo": "rgb(13, 95, 168)",
+   "alto": 56,
+   "fuente": "Arial, Helvetica, sans-serif"
+  },
+  "franja": {
+   "alto": 49,
+   "pasos": [
+    {
+     "texto": "1Buscar mi deuda",
+     "color": "rgb(85, 85, 85)",
+     "peso": "400",
+     "subrayado": "rgba(0, 0, 0, 0) 3px",
+     "num": "rgb(223, 240, 216) / rgb(60, 118, 61)",
+     "etiquetaVisible": false
+    },
+    {
+     "texto": "2Elegir qué pago",
+     "color": "rgb(85, 85, 85)",
+     "peso": "400",
+     "subrayado": "rgba(0, 0, 0, 0) 3px",
+     "num": "rgb(223, 240, 216) / rgb(60, 118, 61)",
+     "etiquetaVisible": false
+    },
+    {
+     "texto": "3Mis datos",
+     "color": "rgb(51, 51, 51)",
+     "peso": "700",
+     "subrayado": "rgb(13, 95, 168) 3px",
+     "num": "rgb(13, 95, 168) / rgb(255, 255, 255)",
+     "etiquetaVisible": false
+    },
+    {
+     "texto": "4Pagar",
+     "color": "rgb(170, 170, 170)",
+     "peso": "400",
+     "subrayado": "rgba(0, 0, 0, 0) 3px",
+     "num": "rgb(238, 238, 238) / rgb(153, 153, 153)",
+     "etiquetaVisible": false
+    },
+    {
+     "texto": "5Comprobante",
+     "color": "rgb(170, 170, 170)",
+     "peso": "400",
+     "subrayado": "rgba(0, 0, 0, 0) 3px",
+     "num": "rgb(238, 238, 238) / rgb(153, 153, 153)",
+     "etiquetaVisible": false
+    }
+   ]
+  },
+  "pie": {
+   "alto": 153.0625,
+   "texto": "rgb(119, 119, 119)",
+   "enlace": "rgb(21, 105, 176)"
+  },
+  "anchoDoc": 400
+ },
+ "portal-400": {
+  "tema": "clasico",
+  "barra": {
+   "fondo": "rgb(13, 95, 168)",
+   "alto": 56,
+   "fuente": "Arial, Helvetica, sans-serif"
+  },
+  "franja": {
+   "alto": 49,
+   "pasos": [
+    {
+     "texto": "1Buscar mi deuda",
+     "color": "rgb(85, 85, 85)",
+     "peso": "400",
+     "subrayado": "rgba(0, 0, 0, 0) 3px",
+     "num": "rgb(223, 240, 216) / rgb(60, 118, 61)",
+     "etiquetaVisible": false
+    },
+    {
+     "texto": "2Elegir qué pago",
+     "color": "rgb(85, 85, 85)",
+     "peso": "400",
+     "subrayado": "rgba(0, 0, 0, 0) 3px",
+     "num": "rgb(223, 240, 216) / rgb(60, 118, 61)",
+     "etiquetaVisible": false
+    },
+    {
+     "texto": "3Mis datos",
+     "color": "rgb(51, 51, 51)",
+     "peso": "700",
+     "subrayado": "rgb(13, 95, 168) 3px",
+     "num": "rgb(13, 95, 168) / rgb(255, 255, 255)",
+     "etiquetaVisible": false
+    },
+    {
+     "texto": "4Pagar",
+     "color": "rgb(102, 102, 102)",
+     "peso": "400",
+     "subrayado": "rgba(0, 0, 0, 0) 3px",
+     "num": "rgb(238, 238, 238) / rgb(102, 102, 102)",
+     "etiquetaVisible": false
+    },
+    {
+     "texto": "5Comprobante",
+     "color": "rgb(102, 102, 102)",
+     "peso": "400",
+     "subrayado": "rgba(0, 0, 0, 0) 3px",
+     "num": "rgb(238, 238, 238) / rgb(102, 102, 102)",
+     "etiquetaVisible": false
+    }
+   ]
+  },
+  "pie": {
+   "alto": 153.0625,
+   "texto": "rgb(102, 102, 102)",
+   "enlace": "rgb(13, 95, 168)"
+  },
+  "anchoDoc": 400
+ }
+}
