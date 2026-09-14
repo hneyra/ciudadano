@@ -1,0 +1,442 @@
+{
+ "artboard-reposo-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "tarjeta": {
+   "fondo": "rgb(255, 255, 255)",
+   "filo": "rgb(221, 221, 221)",
+   "sombra": "rgba(0, 0, 0, 0.04) 0px 1px 2px 0px"
+  },
+  "h1": {
+   "color": "rgb(13, 95, 168)",
+   "tam": "27px",
+   "peso": "700"
+  },
+  "rotulo": {
+   "tam": "13.5px",
+   "peso": "700",
+   "color": "rgb(51, 51, 51)"
+  },
+  "buscarPor": {
+   "ancho": 210,
+   "alto": 44,
+   "filo": "rgb(204, 204, 204)",
+   "letra": "15px"
+  },
+  "numero": {
+   "ancho": 525.47,
+   "alto": 44,
+   "filo": "rgb(204, 204, 204)",
+   "letra": "15px"
+  },
+  "boton": {
+   "ancho": 210.53,
+   "alto": 44,
+   "fondo": "rgb(13, 95, 168)",
+   "letra": "16px",
+   "peso": "700"
+  },
+  "alerta": null,
+  "capacidad": {
+   "filo": "rgb(228, 228, 228)",
+   "caja": "28px rgb(232, 241, 249) rgb(13, 95, 168)"
+  },
+  "amnistia": {
+   "fondo": "rgb(252, 248, 227)",
+   "tinta": "rgb(138, 109, 59)",
+   "filo": "rgb(250, 235, 204)",
+   "filoIzq": "4px rgb(138, 109, 59)",
+   "relleno": "15px 18px"
+  }
+ },
+ "portal-reposo-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "tarjeta": {
+   "fondo": "rgb(255, 255, 255)",
+   "filo": "rgb(221, 221, 221)",
+   "sombra": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(22, 35, 44, 0.06) 0px 1px 2px 0px"
+  },
+  "h1": {
+   "color": "rgb(13, 95, 168)",
+   "tam": "27px",
+   "peso": "700"
+  },
+  "rotulo": {
+   "tam": "13.5px",
+   "peso": "700",
+   "color": "rgb(51, 51, 51)"
+  },
+  "buscarPor": {
+   "ancho": 210,
+   "alto": 44.5,
+   "filo": "rgb(204, 204, 204)",
+   "letra": "15px"
+  },
+  "numero": {
+   "ancho": 525.47,
+   "alto": 44.5,
+   "filo": "rgb(204, 204, 204)",
+   "letra": "15px"
+  },
+  "boton": {
+   "ancho": 210.53,
+   "alto": 44,
+   "fondo": "rgb(13, 95, 168)",
+   "letra": "16px",
+   "peso": "700"
+  },
+  "alerta": null,
+  "capacidad": {
+   "filo": "rgb(221, 221, 221)",
+   "caja": "28px rgb(232, 241, 249) rgb(13, 95, 168)"
+  },
+  "amnistia": {
+   "fondo": "rgb(252, 248, 227)",
+   "tinta": "rgb(138, 109, 59)",
+   "filo": "oklab(0.552145 0.0137547 0.0756781 / 0.25)",
+   "filoIzq": "4px rgb(138, 109, 59)",
+   "relleno": "15px 18px"
+  }
+ },
+ "artboard-error-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "tarjeta": {
+   "fondo": "rgb(255, 255, 255)",
+   "filo": "rgb(221, 221, 221)",
+   "sombra": "rgba(0, 0, 0, 0.04) 0px 1px 2px 0px"
+  },
+  "h1": {
+   "color": "rgb(13, 95, 168)",
+   "tam": "27px",
+   "peso": "700"
+  },
+  "rotulo": {
+   "tam": "13.5px",
+   "peso": "700",
+   "color": "rgb(51, 51, 51)"
+  },
+  "buscarPor": {
+   "ancho": 210,
+   "alto": 44,
+   "filo": "rgb(204, 204, 204)",
+   "letra": "15px"
+  },
+  "numero": {
+   "ancho": 525.47,
+   "alto": 44,
+   "filo": "rgb(204, 204, 204)",
+   "letra": "15px"
+  },
+  "boton": {
+   "ancho": 210.53,
+   "alto": 44,
+   "fondo": "rgb(13, 95, 168)",
+   "letra": "16px",
+   "peso": "700"
+  },
+  "alerta": {
+   "fondo": "rgb(242, 222, 222)",
+   "tinta": "rgb(169, 68, 66)",
+   "filo": "rgb(235, 204, 209)",
+   "filoIzq": "4px rgb(169, 68, 66)",
+   "letra": "14.5px",
+   "relleno": "13px 16px"
+  },
+  "capacidad": {
+   "filo": "rgb(228, 228, 228)",
+   "caja": "28px rgb(232, 241, 249) rgb(13, 95, 168)"
+  },
+  "amnistia": {
+   "fondo": "rgb(252, 248, 227)",
+   "tinta": "rgb(138, 109, 59)",
+   "filo": "rgb(250, 235, 204)",
+   "filoIzq": "4px rgb(138, 109, 59)",
+   "relleno": "15px 18px"
+  }
+ },
+ "portal-error-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "tarjeta": {
+   "fondo": "rgb(255, 255, 255)",
+   "filo": "rgb(221, 221, 221)",
+   "sombra": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(22, 35, 44, 0.06) 0px 1px 2px 0px"
+  },
+  "h1": {
+   "color": "rgb(13, 95, 168)",
+   "tam": "27px",
+   "peso": "700"
+  },
+  "rotulo": {
+   "tam": "13.5px",
+   "peso": "700",
+   "color": "rgb(51, 51, 51)"
+  },
+  "buscarPor": {
+   "ancho": 210,
+   "alto": 44.5,
+   "filo": "rgb(204, 204, 204)",
+   "letra": "15px"
+  },
+  "numero": {
+   "ancho": 525.47,
+   "alto": 44.5,
+   "filo": "rgb(169, 68, 66)",
+   "letra": "15px"
+  },
+  "boton": {
+   "ancho": 210.53,
+   "alto": 44,
+   "fondo": "rgb(13, 95, 168)",
+   "letra": "16px",
+   "peso": "700"
+  },
+  "alerta": {
+   "fondo": "rgb(242, 222, 222)",
+   "tinta": "rgb(169, 68, 66)",
+   "filo": "oklab(0.522019 0.122278 0.054437 / 0.4)",
+   "filoIzq": "4px rgb(169, 68, 66)",
+   "letra": "14.5px",
+   "relleno": "13px 16px"
+  },
+  "capacidad": {
+   "filo": "rgb(221, 221, 221)",
+   "caja": "28px rgb(232, 241, 249) rgb(13, 95, 168)"
+  },
+  "amnistia": {
+   "fondo": "rgb(252, 248, 227)",
+   "tinta": "rgb(138, 109, 59)",
+   "filo": "oklab(0.552145 0.0137547 0.0756781 / 0.25)",
+   "filoIzq": "4px rgb(138, 109, 59)",
+   "relleno": "15px 18px"
+  }
+ },
+ "artboard-reposo-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "tarjeta": {
+   "fondo": "rgb(255, 255, 255)",
+   "filo": "rgb(221, 221, 221)",
+   "sombra": "rgba(0, 0, 0, 0.04) 0px 1px 2px 0px"
+  },
+  "h1": {
+   "color": "rgb(13, 95, 168)",
+   "tam": "27px",
+   "peso": "700"
+  },
+  "rotulo": {
+   "tam": "13.5px",
+   "peso": "700",
+   "color": "rgb(51, 51, 51)"
+  },
+  "buscarPor": {
+   "ancho": 210,
+   "alto": 44,
+   "filo": "rgb(204, 204, 204)",
+   "letra": "15px"
+  },
+  "numero": {
+   "ancho": 310,
+   "alto": 44,
+   "filo": "rgb(204, 204, 204)",
+   "letra": "15px"
+  },
+  "boton": {
+   "ancho": 210.53,
+   "alto": 44,
+   "fondo": "rgb(13, 95, 168)",
+   "letra": "16px",
+   "peso": "700"
+  },
+  "alerta": null,
+  "capacidad": {
+   "filo": "rgb(228, 228, 228)",
+   "caja": "28px rgb(232, 241, 249) rgb(13, 95, 168)"
+  },
+  "amnistia": {
+   "fondo": "rgb(252, 248, 227)",
+   "tinta": "rgb(138, 109, 59)",
+   "filo": "rgb(250, 235, 204)",
+   "filoIzq": "4px rgb(138, 109, 59)",
+   "relleno": "15px 18px"
+  }
+ },
+ "portal-reposo-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "tarjeta": {
+   "fondo": "rgb(255, 255, 255)",
+   "filo": "rgb(221, 221, 221)",
+   "sombra": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(22, 35, 44, 0.06) 0px 1px 2px 0px"
+  },
+  "h1": {
+   "color": "rgb(13, 95, 168)",
+   "tam": "27px",
+   "peso": "700"
+  },
+  "rotulo": {
+   "tam": "13.5px",
+   "peso": "700",
+   "color": "rgb(51, 51, 51)"
+  },
+  "buscarPor": {
+   "ancho": 210,
+   "alto": 44.5,
+   "filo": "rgb(204, 204, 204)",
+   "letra": "15px"
+  },
+  "numero": {
+   "ancho": 310,
+   "alto": 44.5,
+   "filo": "rgb(204, 204, 204)",
+   "letra": "15px"
+  },
+  "boton": {
+   "ancho": 210.53,
+   "alto": 44,
+   "fondo": "rgb(13, 95, 168)",
+   "letra": "16px",
+   "peso": "700"
+  },
+  "alerta": null,
+  "capacidad": {
+   "filo": "rgb(221, 221, 221)",
+   "caja": "28px rgb(232, 241, 249) rgb(13, 95, 168)"
+  },
+  "amnistia": {
+   "fondo": "rgb(252, 248, 227)",
+   "tinta": "rgb(138, 109, 59)",
+   "filo": "oklab(0.552145 0.0137547 0.0756781 / 0.25)",
+   "filoIzq": "4px rgb(138, 109, 59)",
+   "relleno": "15px 18px"
+  }
+ },
+ "artboard-error-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "tarjeta": {
+   "fondo": "rgb(255, 255, 255)",
+   "filo": "rgb(221, 221, 221)",
+   "sombra": "rgba(0, 0, 0, 0.04) 0px 1px 2px 0px"
+  },
+  "h1": {
+   "color": "rgb(13, 95, 168)",
+   "tam": "27px",
+   "peso": "700"
+  },
+  "rotulo": {
+   "tam": "13.5px",
+   "peso": "700",
+   "color": "rgb(51, 51, 51)"
+  },
+  "buscarPor": {
+   "ancho": 210,
+   "alto": 44,
+   "filo": "rgb(204, 204, 204)",
+   "letra": "15px"
+  },
+  "numero": {
+   "ancho": 310,
+   "alto": 44,
+   "filo": "rgb(204, 204, 204)",
+   "letra": "15px"
+  },
+  "boton": {
+   "ancho": 210.53,
+   "alto": 44,
+   "fondo": "rgb(13, 95, 168)",
+   "letra": "16px",
+   "peso": "700"
+  },
+  "alerta": {
+   "fondo": "rgb(242, 222, 222)",
+   "tinta": "rgb(169, 68, 66)",
+   "filo": "rgb(235, 204, 209)",
+   "filoIzq": "4px rgb(169, 68, 66)",
+   "letra": "14.5px",
+   "relleno": "13px 16px"
+  },
+  "capacidad": {
+   "filo": "rgb(228, 228, 228)",
+   "caja": "28px rgb(232, 241, 249) rgb(13, 95, 168)"
+  },
+  "amnistia": {
+   "fondo": "rgb(252, 248, 227)",
+   "tinta": "rgb(138, 109, 59)",
+   "filo": "rgb(250, 235, 204)",
+   "filoIzq": "4px rgb(138, 109, 59)",
+   "relleno": "15px 18px"
+  }
+ },
+ "portal-error-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "tarjeta": {
+   "fondo": "rgb(255, 255, 255)",
+   "filo": "rgb(221, 221, 221)",
+   "sombra": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(22, 35, 44, 0.06) 0px 1px 2px 0px"
+  },
+  "h1": {
+   "color": "rgb(13, 95, 168)",
+   "tam": "27px",
+   "peso": "700"
+  },
+  "rotulo": {
+   "tam": "13.5px",
+   "peso": "700",
+   "color": "rgb(51, 51, 51)"
+  },
+  "buscarPor": {
+   "ancho": 210,
+   "alto": 44.5,
+   "filo": "rgb(204, 204, 204)",
+   "letra": "15px"
+  },
+  "numero": {
+   "ancho": 310,
+   "alto": 44.5,
+   "filo": "rgb(169, 68, 66)",
+   "letra": "15px"
+  },
+  "boton": {
+   "ancho": 210.53,
+   "alto": 44,
+   "fondo": "rgb(13, 95, 168)",
+   "letra": "16px",
+   "peso": "700"
+  },
+  "alerta": {
+   "fondo": "rgb(242, 222, 222)",
+   "tinta": "rgb(169, 68, 66)",
+   "filo": "oklab(0.522019 0.122278 0.054437 / 0.4)",
+   "filoIzq": "4px rgb(169, 68, 66)",
+   "letra": "14.5px",
+   "relleno": "13px 16px"
+  },
+  "capacidad": {
+   "filo": "rgb(221, 221, 221)",
+   "caja": "28px rgb(232, 241, 249) rgb(13, 95, 168)"
+  },
+  "amnistia": {
+   "fondo": "rgb(252, 248, 227)",
+   "tinta": "rgb(138, 109, 59)",
+   "filo": "oklab(0.552145 0.0137547 0.0756781 / 0.25)",
+   "filoIzq": "4px rgb(138, 109, 59)",
+   "relleno": "15px 18px"
+  }
+ },
+ "busquedaValida": {
+  "hash": "#/deudas",
+  "aviso": true
+ }
+}
