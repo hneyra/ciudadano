@@ -41,6 +41,41 @@ const LITERALES = [
   'Pago de tributos en línea',
   // `diseno/Ciudadano.dc.html`, linea 692: el valor por omision de la prop `entidad`.
   'Municipalidad Distrital de Catacaos',
+
+  // ── El marco (issue 4) ──────────────────────────────────────────────────────────────────────
+  // Linea 73: el boton de la barra sin sesion.
+  'Iniciar sesión',
+  // Linea 1045: la cabecera del menu de la sesion (`usuario.codigo`). El codigo es dato y entra por el hueco.
+  'Contribuyente {{codigo}}',
+  // Lineas 1052-1055: las cuatro opciones del menu, y los dos avisos que levantan.
+  'Mis pagos',
+  'Mis predios y vehículos',
+  'Cambiar mi clave',
+  'Cerrar sesión',
+  'Abriría el cambio de clave.',
+  'Sesión cerrada.',
+  // Lineas 1019-1021: la franja de pasos, y el aviso de un paso futuro (1071).
+  'Buscar mi deuda',
+  'Elegir qué pago',
+  'Mis datos',
+  'Pagar',
+  'Comprobante',
+  'Complete primero los pasos anteriores.',
+  // Linea 677: el pie, con la entidad en su hueco; lineas 679-681, sus enlaces.
+  '{{entidad}} — Pago de tributos en línea. Atención en ventanilla de lunes a viernes, de 8:00 a 16:00. Los datos de esta pantalla son de demostración.',
+  'Preguntas frecuentes',
+  'Reclamos',
+  'Términos',
+  // El rotulo accesible de la region de avisos. No esta en el artboard (alli el aviso es un
+  // `role="status"` sin nombre); es la palabra de `TEXTOS_DE_LA_UI.avisos` de `@kamayuk/ui`, traducida.
+  'Avisos',
+  // Los titulos de los marcadores de cada paso, hasta que lleguen sus pantallas (issues 5-10):
+  // lineas 126, 224, 314, 360, 1276 y 570.
+  'Consulte y pague sus tributos',
+  'Lo que debe, por concepto',
+  '¿A dónde le enviamos el comprobante?',
+  '¿Cómo quiere pagar?',
+  'Su pago se registró',
 ] as const;
 
 /** Lo que tiene que decir cada forma plural. Hoy no hay ninguna; el mecanismo es el de `rentas`. */
