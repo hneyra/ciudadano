@@ -1,7 +1,9 @@
 import { ProveedorDeTema, type ConfiguracionDeTema } from '@kamayuk/ui';
-import { useTranslation } from 'react-i18next';
+import { RouterProvider } from 'react-router-dom';
 
-import escudo from '../diseno/escudo-catacaos.png';
+import type { Enrutador } from './enrutador.tsx';
+import { ProveedorDelRecorrido } from './recorrido/ProveedorDelRecorrido.tsx';
+import type { EstadoDelRecorrido } from './recorrido/recorrido.ts';
 
 /**
  * **El tema de este portal** (issue 2): dos decisiones, y ningun color.
@@ -24,36 +26,29 @@ const TEMA: ConfiguracionDeTema = {
 };
 
 /**
- * **El marcador del andamiaje, ya con el tema**: la pagina que `yarn dev` sirve mientras no hay
- * pantallas.
+ * **El portal**: el tema, el estado del recorrido y el enrutador, en ese orden.
  *
- * Es la barra del artboard (`diseno/Ciudadano.dc.html`, lineas 61-68) reducida a lo que se puede
- * comparar a ojo con la cabecera de verdad: el escudo, el titulo en blanco sobre `bg-azul` y la
- * entidad —la prop `entidad`, linea 692— en `text-sobre-barra-2`, que es el `#CFE3F4` del artboard,
- * con las medidas de sus estilos en linea, sobre el lienzo `bg-fondo`. Los botones de sesion son de
- * la pantalla que los usa.
+ * · **El proveedor del tema envuelve TODO**, y es lo primero que se monta: lo que se dibuje sin el
+ *   se dibuja con la paleta de `institucional`, que es la del `:root`.
+ * · **El recorrido va por encima del enrutador** (issue 4): cambiar de ruta no lo desmonta, asi que
+ *   ir de `#/pagar` a `#/deudas` y volver no pierde lo marcado ni lo pagado.
+ * · **El enrutador llega hecho**, como el cliente de consultas: se crea una vez fuera del render
+ *   (`main.tsx`), y cada prueba crea el suyo (`crearEnrutador`, en `src/enrutador.tsx`).
  *
- * Los dos textos pasan por `t()` —lo demuestra `aplicacion.test.tsx` con el idioma `marcado`— para
- * que la primera pantalla de verdad no herede una cadena escrita a pelo.
- *
- * **El proveedor envuelve TODO**, y es lo primero que se monta: lo que se dibuje sin el se dibuja con
- * la paleta de `institucional`, que es la del `:root`.
+ * La barra, la franja y el pie son `src/marco/`; cada paso, por ahora, un marcador con su titulo.
+ * `inicial` es para las pruebas: empezar con sesion o en un paso dado sin recorrerlo entero.
  */
-export function Aplicacion() {
-  const { t } = useTranslation();
+export interface AplicacionProps {
+  readonly enrutador: Enrutador;
+  readonly inicial?: EstadoDelRecorrido;
+}
+
+export function Aplicacion({ enrutador, inicial }: AplicacionProps) {
   return (
     <ProveedorDeTema configuracion={TEMA}>
-      <div className="flex min-h-screen flex-col bg-fondo">
-        <header className="bg-azul text-sobre-azul">
-          <div className="flex items-center gap-[12px] px-[18px] py-[10px]">
-            <img src={escudo} alt="" width={30} height={36} className="block h-[36px] w-auto" />
-            <div className="min-w-0 leading-[1.2]">
-              <h1 className="m-0 text-[17px] font-bold">{t('Pago de tributos en línea')}</h1>
-              <p className="m-0 text-[11.5px] text-sobre-barra-2">{t('Municipalidad Distrital de Catacaos')}</p>
-            </div>
-          </div>
-        </header>
-      </div>
+      <ProveedorDelRecorrido inicial={inicial}>
+        <RouterProvider router={enrutador} />
+      </ProveedorDelRecorrido>
     </ProveedorDeTema>
   );
 }

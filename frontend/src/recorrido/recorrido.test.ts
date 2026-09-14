@@ -1,0 +1,289 @@
+import { describe, expect, expectTypeOf, it } from 'vitest';
+
+import { COMPROBANTE, DEUDAS, USUARIO } from '../datos/demostracion.ts';
+import {
+  type AccionDelRecorrido,
+  ESTADO_INICIAL,
+  type EstadoDelRecorrido,
+  PASOS_NUMERADOS,
+  cuenta,
+  destinoAlPagar,
+  inicio,
+  pasoAlcanzable,
+  pendientes,
+  recorrido,
+  resumen,
+  seleccion,
+  ultimoAlcanzable,
+  vivas,
+} from './recorrido.ts';
+
+/**
+ * **El reductor del recorrido hace lo que el artboard hace, y no se contradice consigo mismo.**
+ *
+ * Las cifras van escritas A MANO, como en `cuentas.test.ts`: son las que el revisor del issue 3
+ * recalculo del artboard. Por concepto (insoluto / interes / gastos):
+ *
+ *     pred26   293.72 /   0.00 /  0.00
+ *     arb26    291.60 /  18.44 /  0.00
+ *     pred24  1842.60 / 212.44 / 12.00
+ *     veh24    614.00 / 182.44 / 96.00
+ */
+
+/** Aplica una lista de acciones desde un estado. */
+const tras = (acciones: readonly AccionDelRecorrido[], desde: EstadoDelRecorrido = ESTADO_INICIAL) =>
+  acciones.reduce(recorrido, desde);
+
+const ids = (lista: readonly { id: string }[]) => lista.map((d) => d.id);
+
+describe('el estado inicial', () => {
+  it('es el de las lineas 927-940 del artboard', () => {
+    expect(ESTADO_INICIAL).toStrictEqual({
+      paso: 'buscar',
+      tipoDeDocumento: 'Código de contribuyente',
+      numero: '',
+      marcadas: { pred26: true, arb26: true, pred24: true, veh24: true },
+      pagadas: {},
+      ultimo: null,
+      abierta: null,
+      correo: '',
+      avisarVencimiento: true,
+      autenticado: false,
+      medio: 'tarjeta',
+      valores: {},
+      recienPagado: false,
+    });
+  });
+
+  it('marca exactamente los conceptos de `DEUDAS`, ni uno mas ni uno menos', () => {
+    // Si `demostracion.ts` gana o pierde un concepto, lo marcado por omision tiene que decidirse otra
+    // vez: el artboard los marca todos.
+    expect(Object.keys(ESTADO_INICIAL.marcadas)).toEqual(ids(DEUDAS));
+  });
+});
+
+describe('confirmarPago', () => {
+  // Buscar, desmarcar el arbitrio, dar el correo, elegir Yape y pagar.
+  const pagado = tras([
+    { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' },
+    { tipo: 'alternar', id: 'arb26' },
+    { tipo: 'continuarConCorreo', correo: 'ana@correo.pe', avisarVencimiento: false },
+    { tipo: 'elegirMedio', medio: 'yape' },
+    { tipo: 'confirmarPago' },
+  ]);
+
+  it('marca como pagadas SOLO las seleccionadas vivas', () => {
+    expect(pagado.pagadas).toStrictEqual({ pred26: true, pred24: true, veh24: true });
+    expect(ids(vivas(pagado))).toEqual(['arb26']);
+  });
+
+  it('y lo ya pagado no se vuelve a pagar aunque siga marcado', () => {
+    // Tras el primer pago `pred26` sigue marcada en `marcadas`; marcar el arbitrio y pagar de nuevo
+    // tiene que sellar SOLO el arbitrio.
+    const segundo = tras([{ tipo: 'alternar', id: 'arb26' }, { tipo: 'confirmarPago' }], pagado);
+    expect(segundo.marcadas.pred26).toBe(true);
+    expect(segundo.ultimo?.ids).toEqual(['arb26']);
+    expect(segundo.ultimo?.conAmnistia).toBe('291.60');
+    expect(vivas(segundo)).toEqual([]);
+  });
+
+  it('sella `ultimo` con los ids, los importes como texto, el medio y el destino', () => {
+    // 293.72 + 1842.60 + 614.00 = 2750.32 · 0 + 212.44 + 182.44 = 394.88 · 0 + 12 + 96 = 108.00
+    expect(pagado.ultimo).toStrictEqual({
+      ids: ['pred26', 'pred24', 'veh24'],
+      insoluto: '2750.32',
+      interes: '394.88',
+      gastos: '108.00',
+      total: '3253.20',
+      conAmnistia: '2858.32',
+      medio: 'yape',
+      destino: 'ana@correo.pe',
+      comprobante: COMPROBANTE,
+    });
+    expectTypeOf(pagado.ultimo?.conAmnistia).toEqualTypeOf<string | undefined>();
+  });
+
+  it('pasa al comprobante y deja constancia de que hubo pago en esta visita', () => {
+    expect(pagado.paso).toBe('comprobante');
+    expect(pagado.recienPagado).toBe(true);
+  });
+
+  it('con sesion, el destino es el correo de la cuenta', () => {
+    const conSesion = tras([{ tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '1' }, { tipo: 'entrar' }, { tipo: 'confirmarPago' }]);
+    expect(conSesion.ultimo?.destino).toBe(USUARIO.correo);
+    expect(conSesion.ultimo?.conAmnistia).toBe('3149.92');
+  });
+
+  it('sin nada seleccionado no sella nada ni cambia de paso', () => {
+    const vacio = tras([{ tipo: 'marcarTodo' }, { tipo: 'irA', paso: 'pagar' }]);
+    expect(seleccion(vacio)).toEqual([]);
+    expect(recorrido(vacio, { tipo: 'confirmarPago' })).toBe(vacio);
+  });
+});
+
+describe('el sello no se mueve', () => {
+  it('cambiar `marcadas` despues de pagar NO cambia `ultimo`', () => {
+    const pagado = tras([{ tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '1' }, { tipo: 'confirmarPago' }]);
+    const sello = pagado.ultimo;
+    expect(sello?.ids).toEqual(['pred26', 'arb26', 'pred24', 'veh24']);
+
+    const despues = tras(
+      [
+        { tipo: 'alternar', id: 'pred26' },
+        { tipo: 'alternar', id: 'veh24' },
+        { tipo: 'marcarTodo' },
+        { tipo: 'elegirMedio', medio: 'banco' },
+      ],
+      pagado,
+    );
+    expect(despues.marcadas).not.toStrictEqual(pagado.marcadas);
+    expect(despues.ultimo).toBe(sello);
+    expect(despues.ultimo).toStrictEqual({
+      ids: ['pred26', 'arb26', 'pred24', 'veh24'],
+      insoluto: '3041.92',
+      interes: '413.32',
+      gastos: '108.00',
+      total: '3563.24',
+      conAmnistia: '3149.92',
+      medio: 'tarjeta',
+      destino: null,
+      comprobante: COMPROBANTE,
+    });
+  });
+});
+
+describe('`vivas` es la base de todo lo demas', () => {
+  const conUnPago = tras([
+    { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '1' },
+    { tipo: 'alternar', id: 'arb26' },
+    { tipo: 'alternar', id: 'pred24' },
+    { tipo: 'alternar', id: 'veh24' },
+    { tipo: 'confirmarPago' },
+  ]);
+
+  it('excluye lo pagado', () => {
+    expect(conUnPago.pagadas).toStrictEqual({ pred26: true });
+    expect(ids(vivas(conUnPago))).toEqual(['arb26', 'pred24', 'veh24']);
+  });
+
+  it('la seleccion sale de lo vivo: `pred26` sigue marcada y no se selecciona', () => {
+    expect(conUnPago.marcadas.pred26).toBe(true);
+    const todo = recorrido(conUnPago, { tipo: 'marcarTodo' });
+    expect(ids(seleccion(todo))).toEqual(['arb26', 'pred24', 'veh24']);
+    expect(cuenta(todo).conAmnistia).toBe('2856.20');
+    // Y «Marcar todo» deja fuera de `marcadas` lo pagado, como el artboard.
+    expect(Object.keys(todo.marcadas)).toEqual(['arb26', 'pred24', 'veh24']);
+  });
+
+  it('el resumen del paso 2 cuenta solo lo vivo', () => {
+    // 291.60 + 1842.60 + 614.00 = 2748.20 · 18.44 + 212.44 + 182.44 = 413.32 · 108.00
+    expect(resumen(conUnPago)).toStrictEqual({
+      insoluto: '2748.20',
+      interes: '413.32',
+      gastos: '108.00',
+      total: '3269.52',
+      conAmnistia: '2856.20',
+      conceptos: 3,
+      vencidas: 3,
+    });
+  });
+
+  it('y los pendientes del historial son lo vivo', () => {
+    expect(pendientes(conUnPago)).toEqual(vivas(conUnPago));
+    const todoPagado = tras([{ tipo: 'marcarTodo' }, { tipo: 'confirmarPago' }], conUnPago);
+    expect(pendientes(todoPagado)).toEqual([]);
+    expect(resumen(todoPagado).conceptos).toBe(0);
+  });
+});
+
+describe('a donde lleva cada cosa', () => {
+  it('`destinoAlPagar` da `identificar` sin sesion y `pagar` con sesion', () => {
+    expect(destinoAlPagar(ESTADO_INICIAL)).toBe('identificar');
+    expect(destinoAlPagar(recorrido(ESTADO_INICIAL, { tipo: 'entrar' }))).toBe('pagar');
+  });
+
+  it('`inicio` da el historial con sesion y buscar sin ella', () => {
+    expect(inicio(ESTADO_INICIAL)).toBe('buscar');
+    expect(inicio(recorrido(ESTADO_INICIAL, { tipo: 'entrar' }))).toBe('historial');
+  });
+
+  it('`cerrarSesion` deja `autenticado=false` y `paso=\'buscar\'`', () => {
+    const conSesion = tras([{ tipo: 'entrar' }, { tipo: 'irA', paso: 'historial' }]);
+    expect(conSesion.autenticado).toBe(true);
+    const cerrada = recorrido(conSesion, { tipo: 'cerrarSesion' });
+    expect(cerrada.autenticado).toBe(false);
+    expect(cerrada.paso).toBe('buscar');
+  });
+
+  it('`consultarOtra` vuelve a buscar con el numero vacio', () => {
+    const otra = tras([{ tipo: 'buscar', tipoDeDocumento: 'RUC', numero: '20525118447' }, { tipo: 'consultarOtra' }]);
+    expect(otra.paso).toBe('buscar');
+    expect(otra.numero).toBe('');
+  });
+});
+
+describe('`pasoAlcanzable`', () => {
+  it('solo permite los pasos numerados hasta el actual, inclusive', () => {
+    for (const [i, actual] of PASOS_NUMERADOS.entries()) {
+      const estado = recorrido(ESTADO_INICIAL, { tipo: 'irA', paso: actual });
+      const alcanzables = PASOS_NUMERADOS.filter((paso) => pasoAlcanzable(estado, paso));
+      expect(alcanzables, `desde «${actual}»`).toEqual(PASOS_NUMERADOS.slice(0, i + 1));
+    }
+  });
+
+  it('al empezar, solo buscar: ni `pagar` ni el historial', () => {
+    expect(pasoAlcanzable(ESTADO_INICIAL, 'buscar')).toBe(true);
+    expect(pasoAlcanzable(ESTADO_INICIAL, 'deudas')).toBe(false);
+    expect(pasoAlcanzable(ESTADO_INICIAL, 'pagar')).toBe(false);
+    expect(pasoAlcanzable(ESTADO_INICIAL, 'historial')).toBe(false);
+    expect(ultimoAlcanzable(ESTADO_INICIAL)).toBe('buscar');
+  });
+
+  it('el historial exige sesion, y desde el ninguna ruta numerada es alcanzable', () => {
+    const enElHistorial = tras([{ tipo: 'entrar' }, { tipo: 'irA', paso: 'historial' }]);
+    expect(pasoAlcanzable(enElHistorial, 'historial')).toBe(true);
+    expect(PASOS_NUMERADOS.filter((paso) => pasoAlcanzable(enElHistorial, paso))).toEqual([]);
+    expect(ultimoAlcanzable(enElHistorial)).toBe('historial');
+  });
+});
+
+describe('las acciones sueltas', () => {
+  it('`abrirDetalle` abre uno y, pulsado otra vez, lo cierra', () => {
+    const abierto = recorrido(ESTADO_INICIAL, { tipo: 'abrirDetalle', id: 'pred24' });
+    expect(abierto.abierta).toBe('pred24');
+    expect(recorrido(abierto, { tipo: 'abrirDetalle', id: 'veh24' }).abierta).toBe('veh24');
+    expect(recorrido(abierto, { tipo: 'abrirDetalle', id: 'pred24' }).abierta).toBeNull();
+  });
+
+  it('`marcarTodo` quita todo si todo estaba marcado, y marca todo si faltaba alguno', () => {
+    const nada = recorrido(ESTADO_INICIAL, { tipo: 'marcarTodo' });
+    expect(seleccion(nada)).toEqual([]);
+    const uno = recorrido(nada, { tipo: 'alternar', id: 'veh24' });
+    expect(ids(seleccion(recorrido(uno, { tipo: 'marcarTodo' })))).toEqual(ids(DEUDAS));
+  });
+
+  it('`fijarValor` guarda un campo sin tocar los demas', () => {
+    const dos = tras([
+      { tipo: 'fijarValor', clave: 'numero', valor: '4111' },
+      { tipo: 'fijarValor', clave: 'nombre', valor: 'ANA' },
+    ]);
+    expect(dos.valores).toStrictEqual({ numero: '4111', nombre: 'ANA' });
+  });
+
+  it('`continuarConCorreo` guarda el correo y la casilla y lleva a pagar', () => {
+    const conCorreo = recorrido(ESTADO_INICIAL, {
+      tipo: 'continuarConCorreo',
+      correo: 'ana@correo.pe',
+      avisarVencimiento: false,
+    });
+    expect([conCorreo.correo, conCorreo.avisarVencimiento, conCorreo.paso]).toEqual(['ana@correo.pe', false, 'pagar']);
+  });
+
+  it('el reductor no muta el estado que recibe', () => {
+    const congelado = Object.freeze({ ...ESTADO_INICIAL, marcadas: Object.freeze({ ...ESTADO_INICIAL.marcadas }) });
+    expect(() =>
+      tras([{ tipo: 'alternar', id: 'pred26' }, { tipo: 'marcarTodo' }, { tipo: 'confirmarPago' }], congelado),
+    ).not.toThrow();
+    expect(congelado.marcadas.pred26).toBe(true);
+  });
+});

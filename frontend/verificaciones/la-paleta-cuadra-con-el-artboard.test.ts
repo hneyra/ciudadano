@@ -316,6 +316,43 @@ const TABLA: readonly Correspondencia[] = [
       noLlegaA: { contra: '--color-superficie', umbral: UMBRAL_DE_TEXTO },
     },
   },
+
+  // ── El marco del portal (issue 4) ─────────────────────────────────────────────────────────
+  {
+    delArtboard: 'etiqueta de un paso futuro',
+    donde: 'linea 1076: `color` de la franja cuando el paso no es el actual ni esta hecho',
+    leer: enElMarcado(/color:' \+ \(on \? '#333' : \(hecho \? '#555' : '(#[0-9A-Fa-f]{3,6})'\)\)/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#AAA',
+      seSustituyePor: '--color-tinta-3',
+      porQue:
+        'Un paso futuro se lee y se pulsa (avisa «Complete primero los pasos anteriores.»), y `#AAA` ' +
+        'queda muy por debajo de AA sobre blanco (calculado abajo). `src/marco/FranjaDePasos.tsx` lo ' +
+        'pinta en `--tinta-3`, la tinta mas tenue que se lee, y su numero tambien: el `#999` del ' +
+        'artboard es `--tinta-4`, que la libreria declara «no es color de texto».',
+      noLlegaA: { contra: '--color-superficie', umbral: UMBRAL_DE_TEXTO },
+    },
+  },
+  {
+    delArtboard: 'disco del numero de un paso futuro',
+    donde: 'linea 1073: `background` del numero de la franja',
+    leer: enElMarcado(/\(on \? AZUL : \(hecho \? VERDE_BG : '(#[0-9A-Fa-f]{3,6})'\)\)/),
+    decision: { tipo: 'igual', token: '--color-linea-2' },
+  },
+  {
+    delArtboard: 'opcion del menu de la sesion con hover',
+    donde: 'linea 95: `style-hover` de cada opcion',
+    leer: enElMarcado(/style-hover="background:(#[0-9A-Fa-f]{3,6})">\{\{ o\.label \}\}/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#F6F9FC',
+      seSustituyePor: '--color-sup',
+      porQue:
+        '`clasico` no tiene ese papel. `OpcionDelMenu` de `@kamayuk/ui` resalta con `--sup` ' +
+        '(`#f9fbfd`), el papel secundario mas cercano, y `src/marco/Barra.tsx` lo deja.',
+    },
+  },
 ];
 
 describe('la identidad `clasico` es la paleta del artboard', () => {
