@@ -6,6 +6,7 @@ import { useRecorrido } from '../recorrido/ProveedorDelRecorrido.tsx';
 import { useLaRutaSigueAlPaso } from '../recorrido/rutas.ts';
 import { Barra } from './Barra.tsx';
 import { FranjaDePasos } from './FranjaDePasos.tsx';
+import { useImpresionEnClaro } from './impresionEnClaro.ts';
 import { Pie } from './Pie.tsx';
 
 /**
@@ -18,15 +19,21 @@ import { Pie } from './Pie.tsx';
  * · **Los avisos** son `Avisos` de `@kamayuk/ui` (sonner) en lugar del `toast` del estado del
  *   prototipo (lineas 686-688 y 945-952): la region viva, el cierre a los segundos y la tinta sobre
  *   `--tinta` los pone la libreria. Su rotulo accesible pasa por `t()`, y el modo es el del tema.
+ * · **Al imprimir solo queda el recibo** (issue 9): la barra, la franja, el pie y los avisos llevan
+ *   `data-noprint`, que la regla `@media print` de `src/estilos.css` oculta, y el lienzo pasa a
+ *   `--superficie` (el `html, body { background: #fff }` de la linea 47 del artboard). Y mientras se
+ *   imprime, la paleta es la clara aunque se este en oscuro (`useImpresionEnClaro`), para que ese
+ *   `--superficie` sea blanco.
  */
 export function Marco() {
   const { t } = useTranslation();
   const { estado } = useRecorrido();
   const { modo } = useTema();
   useLaRutaSigueAlPaso();
+  useImpresionEnClaro();
 
   return (
-    <div className="flex min-h-screen flex-col bg-fondo">
+    <div className="flex min-h-screen flex-col bg-fondo print:bg-superficie">
       <Barra />
       {estado.paso === 'historial' ? null : <FranjaDePasos />}
       <main className="flex-1 px-[18px] pt-6 pb-[60px]">
@@ -35,7 +42,10 @@ export function Marco() {
         </div>
       </main>
       <Pie />
-      <Avisos modo={modo} rotulo={t('Avisos')} />
+      {/* Los avisos tampoco se imprimen: un «Pago registrado…» abierto saldria encima del recibo. */}
+      <div data-noprint="1">
+        <Avisos modo={modo} rotulo={t('Avisos')} />
+      </div>
     </div>
   );
 }

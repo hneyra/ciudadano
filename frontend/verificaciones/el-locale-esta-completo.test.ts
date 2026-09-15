@@ -69,6 +69,16 @@ const PLURALES_DEL_PASO_2: Readonly<Record<string, string>> = {
   'Va a pagar {{count}} concepto de {{total}}_other': 'Va a pagar {{count}} conceptos de {{total}}',
 };
 
+/**
+ * El aviso de la busqueda (nota del revisor del issue 9): lo que queda pendiente es la deuda viva, y
+ * no los cuatro del artboard (linea 1006). Sin deuda viva, la frase de abajo, sin plural.
+ */
+const PLURALES_DE_LA_BUSQUEDA: Readonly<Record<string, string>> = {
+  'Encontramos {{count}} conceptos pendientes._one': 'Encontramos {{count}} concepto pendiente.',
+  'Encontramos {{count}} conceptos pendientes._many': 'Encontramos {{count}} conceptos pendientes.',
+  'Encontramos {{count}} conceptos pendientes._other': 'Encontramos {{count}} conceptos pendientes.',
+};
+
 /** Las claves que el codigo escribe como `t('…')`. Los textos son los del artboard, tal cual. */
 const LITERALES = [
   // `diseno/Ciudadano.dc.html`, linea 65: el titulo de la barra.
@@ -124,10 +134,11 @@ const LITERALES = [
   // frases enteras, para que un traductor no tenga que adivinar la concordancia.
   'Número de DNI',
   'Número de RUC',
-  // Lineas 1004-1005: los dos errores de `buscar()`, y el aviso de la busqueda valida (1006).
+  // Lineas 1004-1005: los dos errores de `buscar()`. El aviso de la busqueda valida (1006) sale de la
+  // deuda viva (issue 9): sus formas plurales, abajo, y sin deuda viva esta.
   'Escriba su código de contribuyente o su documento para poder buscar.',
   'El código y el documento son solo números. Revise lo que escribió.',
-  'Encontramos 4 conceptos pendientes.',
+  'No encontramos conceptos pendientes.',
   // Linea 151: la ayuda bajo el formulario.
   'Su código de contribuyente figura en la cuponera del impuesto predial y en cualquier recibo anterior. Si no lo encuentra, busque por su DNI.',
   // Lineas 155 y 1093-1096: «Qué puede hacer aquí» y sus cuatro capacidades.
@@ -236,16 +247,52 @@ const LITERALES = [
   // Sin nada que pagar, volver a elegir: son los rotulos de la franja («Buscar mi deuda», «Elegir qué
   // pago»), que ya estan arriba.
 
+  // ── Paso 5 · Comprobante (issue 9) ──────────────────────────────────────────────────────────
+  // Lineas 485-486 y 1278-1279: la banda de exito («Su pago se registró» ya esta arriba). El importe, el
+  // medio y el destino son del pago sellado y entran por su hueco; sin correo, «su correo».
+  'Pagó {{importe}} con {{medio}}. Le enviamos el comprobante a {{destino}}, y puede descargarlo aquí mismo. La deuda pagada ya se descontó de su cuenta.',
+  // Lineas 495-500: la cabecera del recibo. La entidad ya esta arriba; el numero es dato.
+  'Gerencia de Administración Tributaria',
+  'Constancia de pago',
+  // Lineas 1292-1297: la meta. «Contribuyente» ya esta en el paso 2; los valores son dato.
+  'Número de operación',
+  'Fecha y hora',
+  'Medio de pago',
+  'Código',
+  'Enviado a',
+  // Linea 1301: las columnas de la tabla.
+  'Concepto',
+  'Unidad',
+  'Cuotas',
+  'Importe S/',
+  // Lineas 1311-1312: el pie. La norma es dato (`ORDENANZA`) y entra por su hueco.
+  'Interés condonado por la {{ordenanza}}',
+  'Total pagado',
+  // Linea 1321: la nota del recibo.
+  'Esta constancia acredita el pago de los conceptos detallados. Consérvela: es lo que hay que presentar si la deuda volviera a aparecer. El pago con tarjeta, Yape o pagalo.pe se aplica de inmediato; el pago con código de banco, al día siguiente hábil.',
+  // Lineas 538-539 y 1283-1285: las acciones, y el aviso de descargar (1323).
+  'Descargar comprobante',
+  'Se descargaría el comprobante {{numero}} en PDF.',
+  'Imprimir',
+  'Ver mis pagos',
+  'Pagar otra deuda',
+  'Consultar otra deuda',
+  // Lineas 548-550: la invitacion sin sesion. El correo del pago entra por su hueco.
+  'Guarde este pago en una cuenta',
+  'Si crea una cuenta con {{correo}}, este comprobante y los anteriores quedan guardados: no tendrá que volver a buscarlos.',
+  'Crear mi cuenta',
+
   // Los plurales: cada forma que i18next pide para `es` (`_one`, `_many`, `_other`). Lo que dice
   // cada una esta en `PLURALES`.
   ...Object.keys(PLURALES_DEL_PASO_2),
+  ...Object.keys(PLURALES_DE_LA_BUSQUEDA),
 
   // Lo que dicen los cuatro medios de pago (issue 8), derivado del dato.
   ...clavesDeLosMedios(),
 ];
 
 /** Lo que tiene que decir cada forma plural, con el mecanismo de `rentas`. */
-const PLURALES: Readonly<Record<string, string>> = PLURALES_DEL_PASO_2;
+const PLURALES: Readonly<Record<string, string>> = { ...PLURALES_DEL_PASO_2, ...PLURALES_DE_LA_BUSQUEDA };
 
 function elQueDeberiaSer(): Readonly<Record<string, string>> {
   const claves = [...new Set(LITERALES)].sort((a, b) => a.localeCompare(b, 'es'));

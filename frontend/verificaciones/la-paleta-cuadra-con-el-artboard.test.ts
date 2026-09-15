@@ -777,6 +777,186 @@ const TABLA: readonly Correspondencia[] = [
       porQue: '`clasico` no tiene ese gris; `--linea-2` (`#eee`) es el mas cercano, calculado abajo.',
     },
   },
+
+  // ── Paso 5 · Comprobante (issue 9) ────────────────────────────────────────────────────────
+  {
+    delArtboard: 'papel de la banda de exito',
+    donde: 'linea 480',
+    leer: enElMarcado(/<div data-noprint="1" style="background:(#[0-9A-Fa-f]{3,6}); border:1px solid #[0-9A-Fa-f]{3,6}; border-left:5px solid/),
+    decision: { tipo: 'igual', token: '--color-ok-fondo' },
+  },
+  {
+    delArtboard: 'filo tenue de la banda de exito',
+    donde: 'linea 480',
+    leer: enElMarcado(/<div data-noprint="1" style="background:#DFF0D8; border:1px solid (#[0-9A-Fa-f]{3,6}); border-left:5px solid/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#D6E9C6',
+      seSustituyePor: '--color-ok-tinta',
+      porQue:
+        'El mismo filo que «No le queda nada por pagar» (paso 2), con la misma decision: `--ok-tinta` al 25 %, ' +
+        'que es lo que hace `Alerta` de `@kamayuk/ui` con el tono `ok`. Lo pinta `src/pasos/comprobante/Comprobante.tsx`.',
+    },
+  },
+  {
+    delArtboard: 'filo izquierdo de la banda de exito',
+    donde: 'linea 480',
+    leer: enElMarcado(/<div data-noprint="1" style="background:#DFF0D8; border:1px solid #[0-9A-Fa-f]{3,6}; border-left:5px solid (#[0-9A-Fa-f]{3,6})/),
+    decision: { tipo: 'igual', token: '--color-ok-tinta' },
+  },
+  {
+    delArtboard: 'titulo de la banda de exito',
+    donde: 'linea 485: «Su pago se registró»',
+    leer: enElMarcado(/font-size:21px; font-weight:700; color:(#[0-9A-Fa-f]{3,6}); text-wrap:pretty">\{\{ listo\.titulo \}\}/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#2D5A2E',
+      seSustituyePor: '--color-ok-tinta',
+      porQue:
+        'Como el titulo de «No le queda nada por pagar»: `clasico` no tiene un verde mas oscuro que `--ok-tinta`, ' +
+        'y el titulo se distingue por sus 21 px y su negrita, que se conservan.',
+    },
+  },
+  {
+    delArtboard: 'detalle de la banda de exito',
+    donde: 'linea 486',
+    leer: enElMarcado(/line-height:1\.6; color:(#[0-9A-Fa-f]{3,6}); margin-top:6px; text-wrap:pretty">\{\{ listo\.detalle \}\}/),
+    decision: { tipo: 'igual', token: '--color-ok-tinta' },
+  },
+  {
+    delArtboard: 'filo del recibo',
+    donde: 'linea 491',
+    leer: enElMarcado(/<div data-recibo="1" style="background:#fff; border:1px solid (#[0-9A-Fa-f]{3,6})/),
+    decision: { tipo: 'igual', token: '--color-linea' },
+  },
+  {
+    delArtboard: 'filo inferior de la cabecera del recibo',
+    donde: 'linea 492',
+    leer: enElMarcado(/padding:22px 24px 18px; border-bottom:2px solid (#[0-9A-Fa-f]{3,6})/),
+    decision: { tipo: 'igual', token: '--color-azul' },
+  },
+  {
+    delArtboard: '«Gerencia de Administración Tributaria» y «Constancia de pago»',
+    donde: 'lineas 496 y 499',
+    leer: enElMarcado(/font-size:13px; color:(#[0-9A-Fa-f]{3,6}); margin-top:2px">Gerencia de Administración Tributaria/),
+    decision: { tipo: 'igual', token: '--color-tinta-3' },
+  },
+  {
+    delArtboard: 'numero del comprobante',
+    donde: 'linea 500',
+    leer: enElMarcado(/font-size:17px; font-weight:700; color:(#[0-9A-Fa-f]{3,6}); margin-top:2px; font-variant-numeric:tabular-nums">\{\{ recibo\.numero \}\}/),
+    decision: { tipo: 'igual', token: '--color-azul' },
+  },
+  {
+    delArtboard: 'rotulo de la meta del recibo',
+    donde: 'linea 507',
+    leer: enElMarcado(/letter-spacing:\.07em; color:(#[0-9A-Fa-f]{3,6})">\{\{ m\.k \}\}/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#888',
+      seSustituyePor: '--color-tinta-3',
+      porQue: 'El gris de nota `#888` (fila de arriba), con su misma decision: `--tinta-3`.',
+      noLlegaA: { contra: '--color-superficie', umbral: UMBRAL_DE_TEXTO },
+    },
+  },
+  {
+    delArtboard: 'filo fino de cada celda de la meta',
+    donde: 'linea 728: `CELDA`',
+    leer: enElMarcado(/const CELDA = '; border-left:1px solid (#[0-9A-Fa-f]{3,6})/),
+    decision: { tipo: 'igual', token: '--color-linea-2' },
+  },
+  {
+    delArtboard: 'tinta de las celdas de la tabla',
+    donde: 'linea 723: `TD`',
+    leer: enElMarcado(/const TD = '[^']*color:(#[0-9A-Fa-f]{3,6})/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#444',
+      seSustituyePor: '--color-tinta-2',
+      porQue:
+        '`clasico` no tiene ese gris. `TablaCelda` de `@kamayuk/ui` pinta sus celdas en `--tinta-2` (`#555`), ' +
+        'y la primera columna y las cifras en `--tinta`, que es el `#333` del artboard para esas dos.',
+    },
+  },
+  {
+    delArtboard: 'papel de «Total pagado»',
+    donde: 'linea 725: `TDT`',
+    leer: enElMarcado(/const TDT = '[^']*background:(#[0-9A-Fa-f]{3,6})/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#F6F6F6',
+      seSustituyePor: '--color-sup',
+      porQue:
+        'El issue 9 lo pide («en negrita sobre fondo `sup`»). `clasico` no tiene ese gris, y `--sup` es el papel del ' +
+        'total del resumen del paso 4 y de la cabecera de `Tabla`, que esta misma tabla lleva arriba.',
+    },
+  },
+  {
+    delArtboard: 'filo de «Total pagado»',
+    donde: 'linea 725: `TDT`',
+    leer: enElMarcado(/const TDT = '[^']*border-top:2px solid (#[0-9A-Fa-f]{3,6})/),
+    decision: { tipo: 'igual', token: '--color-linea' },
+  },
+  {
+    delArtboard: 'nota del recibo',
+    donde: 'linea 531',
+    leer: enElMarcado(/line-height:1\.65; color:(#[0-9A-Fa-f]{3,6}); max-width:80ch; text-wrap:pretty">\{\{ recibo\.nota \}\}/),
+    decision: { tipo: 'igual', token: '--color-tinta-3' },
+  },
+  {
+    delArtboard: 'filo de «Imprimir»',
+    donde: 'linea 539',
+    leer: enElMarcado(/border:1px solid (#[0-9A-Fa-f]{3,6}); border-radius:3px; padding:0 22px; background:#fff; font-size:15\.5px/),
+    decision: { tipo: 'igual', token: '--color-borde-boton' },
+  },
+  {
+    delArtboard: '«Imprimir» con hover',
+    donde: 'linea 539: `style-hover` del boton',
+    leer: enElMarcado(/style-hover="border-color:(#[0-9A-Fa-f]{3,6})">Imprimir/),
+    decision: { tipo: 'igual', token: '--color-borde-hover' },
+  },
+  {
+    delArtboard: 'filo tenue de la invitacion a crear cuenta',
+    donde: 'linea 558',
+    leer: enElMarcado(/<div data-noprint="1" style="margin-top:18px; border:1px solid (#[0-9A-Fa-f]{3,6}); border-left:4px solid/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#D6E4F0',
+      seSustituyePor: '--color-azul',
+      porQue:
+        '`clasico` no tiene filo para el tono informativo. Como los filos tenues de los demas avisos (amnistia, ' +
+        '«No le queda nada por pagar»), es la tinta del filo izquierdo al 25 %: `--azul`, que es el `ACERO` de ese filo.',
+    },
+  },
+  {
+    delArtboard: 'filo izquierdo de la invitacion a crear cuenta',
+    donde: 'linea 558: escrito en el marcado, no con la constante `ACERO`',
+    leer: enElMarcado(/<div data-noprint="1" style="margin-top:18px; border:1px solid #[0-9A-Fa-f]{3,6}; border-left:4px solid (#[0-9A-Fa-f]{3,6})/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#3D7EB7',
+      seSustituyePor: '--color-azul',
+      porQue: 'Es `ACERO` (fila de arriba), con su misma decision: `--azul`.',
+    },
+  },
+  {
+    delArtboard: 'papel de la invitacion a crear cuenta',
+    donde: 'linea 558',
+    leer: enElMarcado(/border-left:4px solid #3D7EB7; background:(#[0-9A-Fa-f]{3,6}); padding:16px 18px/),
+    decision: { tipo: 'igual', token: '--color-info-fondo' },
+  },
+  {
+    delArtboard: 'texto de la invitacion a crear cuenta',
+    donde: 'linea 560',
+    leer: enElMarcado(/line-height:1\.6; color:(#[0-9A-Fa-f]{3,6}); max-width:70ch; text-wrap:pretty">Si crea una cuenta/),
+    decision: { tipo: 'igual', token: '--color-tinta-2' },
+  },
+  {
+    delArtboard: '«Crear mi cuenta» con hover',
+    donde: 'linea 561: `style-hover` del boton',
+    leer: enElMarcado(/style-hover="background:(#[0-9A-Fa-f]{3,6})">Crear mi cuenta/),
+    decision: { tipo: 'igual', token: '--color-azul-suave' },
+  },
 ];
 
 /**

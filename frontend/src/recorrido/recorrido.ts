@@ -121,7 +121,7 @@ export type AccionDelRecorrido =
   | { readonly tipo: 'elegirMedio'; readonly medio: MedioDePago['id'] }
   | { readonly tipo: 'fijarValor'; readonly clave: string; readonly valor: string }
   | { readonly tipo: 'confirmarPago' }
-  /** «Cerrar sesión» del menu (artboard, 1055). */
+  /** «Cerrar sesión» del menu (artboard, 1055). Olvida tambien el pago sellado: ver el reductor. */
   | { readonly tipo: 'cerrarSesion' }
   /** «Consultar otra deuda» del comprobante sin sesion (artboard, 1281). */
   | { readonly tipo: 'consultarOtra' };
@@ -151,6 +151,14 @@ export function resumen(estado: EstadoDelRecorrido): Resumen {
 /** Lo que queda pendiente en el historial (artboard, 1349-1368). Es la deuda viva, sin mas. */
 export function pendientes(estado: EstadoDelRecorrido): readonly Deuda[] {
   return vivas(estado);
+}
+
+/**
+ * Los conceptos de un pago sellado, en el orden de `DEUDAS`: las filas del comprobante (artboard,
+ * linea 1283 y 1302-1310). Salen de `pago.ids` y de nada mas: ni de `marcadas` ni de la deuda viva.
+ */
+export function conceptosDelPago(pago: PagoSellado): readonly Deuda[] {
+  return DEUDAS.filter((deuda) => pago.ids.includes(deuda.id));
 }
 
 /** A donde lleva «Pagar»: sin sesion hay que dar un correo; con sesion, directo a pagar (1173). */
@@ -216,12 +224,16 @@ export function indiceDelPaso(paso: Paso): number {
  * Si se puede ir a `paso` desde donde esta el recorrido.
  *
  * · El historial exige sesion.
+ * · **El comprobante, siempre que haya un pago sellado** (issue 9). Es la constancia que se conserva:
+ *   volver a elegir qué pago y regresar a `#/comprobante` tiene que ensenar el MISMO recibo, y con la
+ *   regla de la franja sola, desde `deudas` el comprobante seria un paso futuro y se redirigiria.
  * · Un paso numerado, solo si es el actual o uno anterior: lo mismo que la franja del artboard
  *   (`alcanzable = i <= iPaso`, linea 1068). Desde el historial ninguno lo es por esta via: alli se
  *   vuelve al recorrido con las acciones de su pantalla, no escribiendo la ruta.
  */
 export function pasoAlcanzable(estado: EstadoDelRecorrido, paso: Paso): boolean {
   if (paso === 'historial') return estado.autenticado;
+  if (paso === 'comprobante' && estado.ultimo !== null) return true;
   const actual = indiceDelPaso(estado.paso);
   return actual >= 0 && indiceDelPaso(paso) <= actual;
 }
@@ -299,7 +311,11 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
     }
 
     case 'cerrarSesion':
-      return { ...estado, autenticado: false, paso: 'buscar' };
+      // Tambien se olvida el comprobante de esta visita (revision del PR del issue 9; el artboard solo
+      // cambia `autenticado` y `paso`, linea 1055). En un equipo compartido, tras «Cerrar sesión» el
+      // recibo sellado —nombre, correo de la cuenta, numero de operacion— no puede seguir a un clic:
+      // sin `ultimo`, `#/comprobante` deja de ser alcanzable y redirige como cualquier otro paso.
+      return { ...estado, autenticado: false, paso: 'buscar', ultimo: null, recienPagado: false };
 
     case 'consultarOtra':
       return { ...estado, paso: 'buscar', numero: '' };

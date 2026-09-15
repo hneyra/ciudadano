@@ -114,6 +114,28 @@ describe('la busqueda valida', () => {
     ).toHaveAttribute('aria-current', 'step');
   });
 
+  it('el aviso cuenta la deuda VIVA, con plural: con tres ya pagados, «Encontramos 1 concepto pendiente.» (issue 9)', async () => {
+    montarElPortal({ estado: { pagadas: { pred26: true, arb26: true, pred24: true } } });
+
+    escribir(campoNumero(), '00000025673');
+    fireEvent.click(botonBuscar());
+
+    await waitFor(() => expect(window.location.hash).toBe('#/deudas'));
+    expect(await screen.findByText('Encontramos 1 concepto pendiente.')).toBeInTheDocument();
+    expect(screen.queryByText(AVISO)).toBeNull();
+  });
+
+  it('sin deuda viva, «No encontramos conceptos pendientes.», y pasa por `t()`', async () => {
+    await i18n.changeLanguage(IDIOMA_MARCADO);
+    montarElPortal({ estado: { pagadas: { pred26: true, arb26: true, pred24: true, veh24: true } } });
+
+    escribir(campoNumero(marcado('Código de contribuyente')), '00000025673');
+    fireEvent.click(botonBuscar(marcado('Buscar mi deuda')));
+
+    await waitFor(() => expect(window.location.hash).toBe('#/deudas'));
+    expect(await screen.findByText(marcado('No encontramos conceptos pendientes.'))).toBeInTheDocument();
+  });
+
   it('con espacios alrededor tambien busca: se recorta, como el `trim()` del artboard', async () => {
     montarElPortal();
 

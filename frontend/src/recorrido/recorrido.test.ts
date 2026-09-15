@@ -7,6 +7,7 @@ import {
   type EstadoDelRecorrido,
   PASOS_NUMERADOS,
   cuenta,
+  conceptosDelPago,
   cuentaPorPagar,
   destinoAlEntrar,
   destinoAlPagar,
@@ -277,6 +278,25 @@ describe('a donde lleva cada cosa', () => {
     expect(cerrada.paso).toBe('buscar');
   });
 
+  it('`cerrarSesion` olvida el comprobante de la visita: sin `ultimo` ni `recienPagado`, y no alcanzable (issue 9)', () => {
+    const pagadoConSesion = tras([
+      { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '1' },
+      { tipo: 'entrar' },
+      { tipo: 'confirmarPago' },
+    ]);
+    expect(pagadoConSesion.ultimo).not.toBeNull();
+    expect(pagadoConSesion.recienPagado).toBe(true);
+    expect(pasoAlcanzable(pagadoConSesion, 'comprobante')).toBe(true);
+
+    const cerrada = recorrido(pagadoConSesion, { tipo: 'cerrarSesion' });
+    expect(cerrada.ultimo).toBeNull();
+    expect(cerrada.recienPagado).toBe(false);
+    expect(pasoAlcanzable(cerrada, 'comprobante')).toBe(false);
+    expect(ultimoAlcanzable(cerrada)).toBe('buscar');
+    // Lo pagado sigue pagado: se olvida el recibo a la vista, no la deuda que ya se cobro.
+    expect(cerrada.pagadas).toStrictEqual(pagadoConSesion.pagadas);
+  });
+
   it('`consultarOtra` vuelve a buscar con el numero vacio', () => {
     const otra = tras([{ tipo: 'buscar', tipoDeDocumento: 'RUC', numero: '20525118447' }, { tipo: 'consultarOtra' }]);
     expect(otra.paso).toBe('buscar');
@@ -299,6 +319,24 @@ describe('`pasoAlcanzable`', () => {
     expect(pasoAlcanzable(ESTADO_INICIAL, 'pagar')).toBe(false);
     expect(pasoAlcanzable(ESTADO_INICIAL, 'historial')).toBe(false);
     expect(ultimoAlcanzable(ESTADO_INICIAL)).toBe('buscar');
+  });
+
+  it('con un pago sellado el comprobante sigue alcanzable desde un paso anterior; sin sello, no (issue 9)', () => {
+    // Pagar el predial 2026 y volver a elegir: el comprobante es la constancia, y no se pierde.
+    const sellado = tras([
+      { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '1' },
+      { tipo: 'alternar', id: 'arb26' },
+      { tipo: 'alternar', id: 'pred24' },
+      { tipo: 'alternar', id: 'veh24' },
+      { tipo: 'confirmarPago' },
+      { tipo: 'irA', paso: 'deudas' },
+    ]);
+    expect(pasoAlcanzable(sellado, 'comprobante')).toBe(true);
+    expect(pasoAlcanzable(sellado, 'identificar')).toBe(false);
+    expect(pasoAlcanzable(recorrido(sellado, { tipo: 'consultarOtra' }), 'comprobante')).toBe(true);
+
+    const sinSello = tras([{ tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '1' }]);
+    expect(pasoAlcanzable(sinSello, 'comprobante')).toBe(false);
   });
 
   it('el historial exige sesion, y desde el ninguna ruta numerada es alcanzable', () => {
@@ -347,5 +385,23 @@ describe('las acciones sueltas', () => {
       tras([{ tipo: 'alternar', id: 'pred26' }, { tipo: 'marcarTodo' }, { tipo: 'confirmarPago' }], congelado),
     ).not.toThrow();
     expect(congelado.marcadas.pred26).toBe(true);
+  });
+});
+
+describe('`conceptosDelPago` (issue 9)', () => {
+  it('son los del sello, en el orden de `DEUDAS`, y no cambian con lo que se marque despues', () => {
+    const pagado = tras([
+      { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '1' },
+      { tipo: 'alternar', id: 'pred26' },
+      { tipo: 'alternar', id: 'pred24' },
+      { tipo: 'confirmarPago' },
+    ]);
+    const sello = pagado.ultimo;
+    if (sello === null) throw new Error('confirmarPago no sello nada');
+    expect(ids(conceptosDelPago(sello))).toEqual(['arb26', 'veh24']);
+
+    const despues = tras([{ tipo: 'irA', paso: 'deudas' }, { tipo: 'alternar', id: 'pred24' }, { tipo: 'marcarTodo' }], pagado);
+    expect(despues.ultimo).toBe(sello);
+    expect(ids(conceptosDelPago(sello))).toEqual(['arb26', 'veh24']);
   });
 });

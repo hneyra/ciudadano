@@ -70,8 +70,10 @@
  *     el token tampoco vale: Tailwind lo emite con un respaldo que lleva el valor del `@theme`
  *     —el `#d3ebfa` de `institucional`— para el navegador que no lo entienda. Medido compilando.
  *
- * Las reglas de las lineas 23-49 —`[data-pagar]`, `[data-recibo]`, `[data-noprint]`, …— son de las
- * pantallas que las usan y entran con ellas.
+ * Las reglas de las lineas 23-44 —`[data-pagar]`, `[data-recibo]`, `[data-meta]`, …— son de las
+ * pantallas que las usan, y entraron con ellas como variantes `max-[…]:` escritas donde se leen. La de
+ * impresion (lineas 45-49) entra con el comprobante (issue 9) y va AQUI, al final de la capa: no es de
+ * una pantalla sino de todo lo que lleve `data-noprint`, este donde este.
  *
  * `@layer base`, y no suelto: las utilidades (`@layer utilities`) tienen que poder ganarle a esto
  * sin depender del orden ni de la especificidad.
@@ -115,5 +117,35 @@
 
   legend {
     padding: 0 8px;
+  }
+
+  /*
+   * AL IMPRIMIR, SOLO EL RECIBO (artboard, lineas 45-49; issue 9).
+   *
+   * · Todo lo marcado `data-noprint` —la barra, la franja, el pie, los avisos, y en el comprobante la
+   *   banda de exito, las acciones y la invitacion— desaparece. Con `!important`, como en el artboard:
+   *   las utilidades (`flex`, `grid`) viven en una capa posterior, y una declaracion `!important` de
+   *   una capa anterior les gana; sin el, `display: flex` volveria a pintar la barra en el papel.
+   * · El lienzo pasa a `--color-superficie`, el blanco de la identidad (el artboard escribe `#fff`, que
+   *   esta hoja no puede escribir). El contenedor del marco hace lo mismo con `print:bg-superficie`.
+   * · El recibo, sin filo ni sombra: en papel el filo del propio folio ya lo enmarca.
+   *
+   * Que esta regla este, oculte y siga oculta lo mide `verificaciones/lo-no-imprimible-no-se-imprime.test.ts`
+   * sobre el CSS emitido.
+   */
+  @media print {
+    [data-noprint] {
+      display: none !important;
+    }
+
+    html,
+    body {
+      background-color: var(--color-superficie);
+    }
+
+    [data-recibo] {
+      border: 0 !important;
+      box-shadow: none !important;
+    }
   }
 }

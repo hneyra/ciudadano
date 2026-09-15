@@ -20,7 +20,7 @@ import { ORDENANZA } from '../../datos/demostracion.ts';
 import { AvisoConFilo } from '../../piezas/AvisoConFilo.tsx';
 import { MEDIDAS_DE_CONTROL, Rotulo } from '../../piezas/Rotulo.tsx';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
-import type { TipoDeDocumento } from '../../recorrido/recorrido.ts';
+import { type TipoDeDocumento, vivas } from '../../recorrido/recorrido.ts';
 import { TRAZOS_DEL_ARTBOARD, type TrazoDelArtboard } from './trazos.ts';
 
 /**
@@ -103,7 +103,7 @@ function IconoDeCapacidad({ icono }: { readonly icono: Capacidad['icono'] }): Re
 
 export function Buscar() {
   const { t } = useTranslation();
-  const { despachar } = useRecorrido();
+  const { estado, despachar } = useRecorrido();
   const idDelError = useId();
   const idDeCapacidades = useId();
 
@@ -166,7 +166,15 @@ export function Buscar() {
 
   const alEnviar = ({ tipoDeDocumento, numero }: ValoresDeLaBusqueda) => {
     despachar({ tipo: 'buscar', tipoDeDocumento, numero });
-    avisar(t('Encontramos 4 conceptos pendientes.'));
+    // Lo que queda por pagar es la deuda viva, y no los cuatro del artboard (linea 1006): tras
+    // «Consultar otra deuda» lo pagado ya no esta pendiente (nota del revisor del issue 9). Buscar no
+    // cambia `pagadas`, asi que contarla antes de despachar da lo mismo que despues.
+    const pendientes = vivas(estado).length;
+    avisar(
+      pendientes === 0
+        ? t('No encontramos conceptos pendientes.')
+        : t('Encontramos {{count}} conceptos pendientes.', { count: pendientes }),
+    );
   };
 
   return (
