@@ -18,6 +18,7 @@ import { z } from 'zod';
 
 import { ORDENANZA } from '../../datos/demostracion.ts';
 import { AvisoConFilo } from '../../piezas/AvisoConFilo.tsx';
+import { MEDIDAS_DE_CONTROL, Rotulo } from '../../piezas/Rotulo.tsx';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
 import type { TipoDeDocumento } from '../../recorrido/recorrido.ts';
 import { TRAZOS_DEL_ARTBOARD, type TrazoDelArtboard } from './trazos.ts';
@@ -99,14 +100,6 @@ function IconoDeCapacidad({ icono }: { readonly icono: Capacidad['icono'] }): Re
     </svg>
   );
 }
-
-/** Los rotulos del artboard (13.5 px, negrita, tinta) dentro del de `Etiqueta` (12.5 px, `--tinta-2`). */
-function Rotulo({ children }: { readonly children: ReactNode }) {
-  return <span className="text-[13.5px] text-tinta">{children}</span>;
-}
-
-/** Las medidas de control del artboard (`IN`, linea 718) sobre las de `CONTROL`. */
-const MEDIDAS_DE_CONTROL = 'min-h-[44px] px-3 py-[10px] text-[15px]';
 
 export function Buscar() {
   const { t } = useTranslation();

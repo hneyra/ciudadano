@@ -25,7 +25,8 @@ import type { ComprobanteDeDemostracion, Deuda, MedioDePago } from '../datos/tip
  * <h2>Lo que NO vive aqui, y por que</h2>
  *
  * · `errorBusqueda`, `errorCorreo`, `loginDoc`, `loginClave`, `errorLogin`: son del formulario de su
- *   paso, y con `react-hook-form` viven en el (issues 5 y 7).
+ *   paso, y con `react-hook-form` viven en el (issues 5 y 7). La clave, en particular, no sale nunca
+ *   del formulario: ni al estado ni al almacenamiento del navegador.
  * · `menuSesion`: lo lleva el `Menu` de `@kamayuk/ui` (Radix).
  * · `toast`: los avisos son `avisar` de `@kamayuk/ui` (sonner). Un reductor puro no levanta avisos;
  *   quien despacha, avisa.
@@ -112,7 +113,10 @@ export type AccionDelRecorrido =
   /** Abre el desglose de un concepto, o lo cierra si ya estaba abierto (artboard, 1145). */
   | { readonly tipo: 'abrirDetalle'; readonly id: string }
   | { readonly tipo: 'continuarConCorreo'; readonly correo: string; readonly avisarVencimiento: boolean }
-  /** Entrar con la cuenta de demostracion (artboard, 1195-1200). */
+  /**
+   * Entrar con la cuenta de demostracion (artboard, 1195-1200). Lleva a `destinoAlEntrar`. La clave no
+   * viaja en la accion: en la demostracion no se comprueba, y lo que no entra aqui no se guarda.
+   */
   | { readonly tipo: 'entrar' }
   | { readonly tipo: 'elegirMedio'; readonly medio: MedioDePago['id'] }
   | { readonly tipo: 'fijarValor'; readonly clave: string; readonly valor: string }
@@ -152,6 +156,25 @@ export function pendientes(estado: EstadoDelRecorrido): readonly Deuda[] {
 /** A donde lleva «Pagar»: sin sesion hay que dar un correo; con sesion, directo a pagar (1173). */
 export function destinoAlPagar(estado: EstadoDelRecorrido): 'identificar' | 'pagar' {
   return estado.autenticado ? 'pagar' : 'identificar';
+}
+
+/**
+ * Si hay algo que pagar: se busco la deuda y la seleccion viva no esta vacia.
+ *
+ * `numero` vacio es «no se busco»: al abrir el portal y tras «Consultar otra deuda». Sin busqueda
+ * `marcadas` trae lo marcado por omision, que no es una seleccion de nadie.
+ */
+export function hayQuePagar(estado: EstadoDelRecorrido): boolean {
+  return estado.numero !== '' && seleccion(estado).length > 0;
+}
+
+/**
+ * A donde lleva entrar con la cuenta. El artboard siempre va a `pagar` (linea 1200); la nota del
+ * revisor del issue 7 lo corrige: «Iniciar sesión» abre «Mis datos» aunque no se haya buscado, y
+ * sin nada que pagar ese «Pagar» quedaria vacio. Entonces se va al historial.
+ */
+export function destinoAlEntrar(estado: EstadoDelRecorrido): 'pagar' | 'historial' {
+  return hayQuePagar(estado) ? 'pagar' : 'historial';
 }
 
 /** A donde lleva la marca de la barra (artboard, `irInicio`, linea 1175). */
@@ -226,7 +249,7 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
       };
 
     case 'entrar':
-      return { ...estado, autenticado: true, paso: 'pagar' };
+      return { ...estado, autenticado: true, paso: destinoAlEntrar(estado) };
 
     case 'elegirMedio':
       return { ...estado, medio: accion.medio };

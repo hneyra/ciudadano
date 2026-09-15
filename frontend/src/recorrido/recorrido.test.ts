@@ -7,7 +7,9 @@ import {
   type EstadoDelRecorrido,
   PASOS_NUMERADOS,
   cuenta,
+  destinoAlEntrar,
   destinoAlPagar,
+  hayQuePagar,
   inicio,
   pasoAlcanzable,
   pendientes,
@@ -200,6 +202,41 @@ describe('a donde lleva cada cosa', () => {
   it('`destinoAlPagar` da `identificar` sin sesion y `pagar` con sesion', () => {
     expect(destinoAlPagar(ESTADO_INICIAL)).toBe('identificar');
     expect(destinoAlPagar(recorrido(ESTADO_INICIAL, { tipo: 'entrar' }))).toBe('pagar');
+  });
+
+  it('`entrar` con una busqueda y algo seleccionado lleva a pagar, con sesion', () => {
+    const conDeuda = tras([{ tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' }, { tipo: 'irA', paso: 'identificar' }]);
+    expect(hayQuePagar(conDeuda)).toBe(true);
+    expect(destinoAlEntrar(conDeuda)).toBe('pagar');
+    const dentro = recorrido(conDeuda, { tipo: 'entrar' });
+    expect([dentro.autenticado, dentro.paso]).toEqual([true, 'pagar']);
+  });
+
+  it('`entrar` sin nada que pagar lleva al historial, y no a un «Pagar» vacio (nota del revisor, #7)', () => {
+    // Sin buscar: «Iniciar sesión» desde la barra, con lo marcado por omision pero sin busqueda.
+    const sinBuscar = recorrido(ESTADO_INICIAL, { tipo: 'irA', paso: 'identificar' });
+    expect(hayQuePagar(sinBuscar)).toBe(false);
+    expect(destinoAlEntrar(sinBuscar)).toBe('historial');
+    expect(recorrido(sinBuscar, { tipo: 'entrar' })).toMatchObject({ autenticado: true, paso: 'historial' });
+
+    // Con busqueda, pero la seleccion viva vacia: nada marcado…
+    const nadaMarcado = tras([
+      { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' },
+      { tipo: 'marcarTodo' },
+      { tipo: 'irA', paso: 'identificar' },
+    ]);
+    expect(hayQuePagar(nadaMarcado)).toBe(false);
+    expect(recorrido(nadaMarcado, { tipo: 'entrar' }).paso).toBe('historial');
+
+    // …o todo lo marcado ya pagado, aunque siga marcado.
+    const todoPagado = tras([
+      { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' },
+      { tipo: 'continuarConCorreo', correo: 'ana@correo.pe', avisarVencimiento: true },
+      { tipo: 'confirmarPago' },
+      { tipo: 'irA', paso: 'identificar' },
+    ]);
+    expect(seleccion(todoPagado)).toEqual([]);
+    expect(recorrido(todoPagado, { tipo: 'entrar' }).paso).toBe('historial');
   });
 
   it('`inicio` da el historial con sesion y buscar sin ella', () => {

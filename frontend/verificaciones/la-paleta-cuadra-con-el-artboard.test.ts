@@ -16,6 +16,7 @@ import {
   delHelmet,
   discrepancias,
   enElMarcado,
+  masCercanos,
   normalizar,
 } from './paleta-del-artboard.ts';
 import { paletaDeLaIdentidad, reglasDe } from './tailwind.ts';
@@ -77,6 +78,27 @@ const LAS_QUE_PIDE_EL_ISSUE = [
   'AMBAR_FG',
 ];
 
+/**
+ * El granate de «Con mi cuenta», decidido en el issue 7: lo leen dos filas, la constante y el marcado.
+ *
+ * `clasico` no tiene acento granate. El issue pide el token mas cercano y sin literal, y se CALCULA
+ * (ΔE*76, abajo): `--mal-tinta` (`#a94442`) queda a 20.1, y el siguiente, `--atencion-tinta`, a 57.4.
+ * El reparo de la tabla del issue 2 —que `--mal-tinta` dice «error»— se mira asi: el filo esta SIEMPRE,
+ * no aparece al fallar, y el error de la tarjeta no depende de el: lo dicen el mensaje con
+ * `role="alert"` y el campo con `aria-invalid`. Y lo que el artboard quiere del filo —distinguir los dos
+ * caminos, azul el del correo y rojo oscuro el de la cuenta— solo lo conserva un rojo.
+ */
+const GRANATE_DE_LA_CUENTA = {
+  tipo: 'sin-token',
+  elArtboardDice: '#A6093D',
+  seSustituyePor: '--color-mal-tinta',
+  esElMasCercano: true,
+  porQue:
+    'Ningun token de `clasico` es un acento granate (`kamayuk-lib`#56 no lo recoge). ' +
+    '`src/pasos/identificar/Identificar.tsx` pinta el filo con `--mal-tinta`, el mas cercano (calculado ' +
+    'abajo): es un filo que esta siempre, y el error de la tarjeta lo dicen su mensaje y `aria-invalid`.',
+} as const;
+
 const TABLA: readonly Correspondencia[] = [
   // ── Las constantes de la logica (lineas 706-716) ──────────────────────────────────────────
   {
@@ -131,15 +153,7 @@ const TABLA: readonly Correspondencia[] = [
     delArtboard: 'GRANATE',
     donde: 'constante, linea 710: filo superior de la tarjeta «Con mi cuenta» (335)',
     leer: constante('GRANATE'),
-    decision: {
-      tipo: 'sin-token',
-      elArtboardDice: '#A6093D',
-      seSustituyePor: null,
-      porQue:
-        'Ningun token de `clasico` es un acento granate, y `--mal-tinta` seria decir «error» con un ' +
-        'filo decorativo. Lo decide la pantalla de identificarse, y no con un hex propio: o se pide ' +
-        'el token a `kamayuk-lib` o se dibuja con otro de la identidad.',
-    },
+    decision: GRANATE_DE_LA_CUENTA,
   },
   {
     delArtboard: 'VERDE_BG',
@@ -556,6 +570,58 @@ const TABLA: readonly Correspondencia[] = [
       porQue: '`clasico` no tiene ese papel; `--ok-fondo` es el verde claro de la identidad.',
     },
   },
+
+  // ── Paso 3 · Mis datos (issue 7) ──────────────────────────────────────────────────────────
+  {
+    delArtboard: 'filo superior de «Solo con mi correo»',
+    donde: 'linea 318: escrito en el marcado, no con la constante `ACERO`',
+    leer: enElMarcado(/border-top:3px solid (#[0-9A-Fa-f]{3,6}); padding:22px 22px 24px">\s*<h2[^>]*>Solo con mi correo/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#3D7EB7',
+      seSustituyePor: '--color-azul',
+      porQue:
+        'Es `ACERO` (fila de arriba), con su misma decision: `--azul`. El issue 7 lo llama «acento del ' +
+        'tema», pero `--acento` (`#1ba0d7`) es el cian del foco, y a su lado el granate de la otra tarjeta ' +
+        'dejaria de leerse como su pareja.',
+    },
+  },
+  {
+    delArtboard: 'filo superior de «Con mi cuenta»',
+    donde: 'linea 335: escrito en el marcado, no con la constante `GRANATE`',
+    leer: enElMarcado(/border-top:3px solid (#[0-9A-Fa-f]{3,6}); padding:22px 22px 24px">\s*<h2[^>]*>Con mi cuenta/),
+    decision: GRANATE_DE_LA_CUENTA,
+  },
+  {
+    delArtboard: 'filo de las tarjetas de «Mis datos»',
+    donde: 'linea 318',
+    leer: enElMarcado(/<div style="background:#fff; border:1px solid (#[0-9A-Fa-f]{3,6}); border-top:3px solid #3D7EB7/),
+    decision: { tipo: 'igual', token: '--color-linea' },
+  },
+  {
+    delArtboard: 'lo que va a pagar',
+    donde: 'linea 315: el parrafo bajo el titulo',
+    leer: enElMarcado(/font-size:16px; line-height:1\.6; color:(#[0-9A-Fa-f]{3,6}); max-width:66ch; text-wrap:pretty">Va a pagar/),
+    decision: { tipo: 'igual', token: '--color-tinta-2' },
+  },
+  {
+    delArtboard: 'texto de una tarjeta de «Mis datos»',
+    donde: 'lineas 320 y 337',
+    leer: enElMarcado(/line-height:1\.6; color:(#[0-9A-Fa-f]{3,6}); text-wrap:pretty">Lo más rápido/),
+    decision: { tipo: 'igual', token: '--color-tinta-3' },
+  },
+  {
+    delArtboard: 'error del correo y de la cuenta',
+    donde: 'lineas 326 y 347',
+    leer: enElMarcado(/font-size:13\.5px; color:(#[0-9A-Fa-f]{3,6})">\{\{ errorCorreo \}\}/),
+    decision: { tipo: 'igual', token: '--color-mal-tinta' },
+  },
+  {
+    delArtboard: '«Entrar y pagar» con hover',
+    donde: 'linea 349: `style-hover` del boton secundario',
+    leer: enElMarcado(/style-hover="background:(#[0-9A-Fa-f]{3,6})">Entrar y pagar/),
+    decision: { tipo: 'igual', token: '--color-info-fondo' },
+  },
 ];
 
 describe('la identidad `clasico` es la paleta del artboard', () => {
@@ -619,6 +685,29 @@ describe('la identidad `clasico` es la paleta del artboard', () => {
         '  Este portal no arregla esto escribiendo un color: el artboard manda, y si la identidad se\n' +
         '  aparto, el cambio es un issue en `kamayuk-lib`. Si la desviacion es deliberada, entra en\n' +
         '  `TABLA` con su porque.',
+    ).toEqual([]);
+  });
+
+  it('y lo que se sustituye «por el mas cercano», no se cree: se calcula', () => {
+    const conEsaRazon = TABLA.filter(
+      (f): f is Correspondencia & { decision: { tipo: 'sin-token'; seSustituyePor: string } } =>
+        f.decision.tipo === 'sin-token' && f.decision.esElMasCercano === true && f.decision.seSustituyePor !== null,
+    );
+    expect(conEsaRazon.length, 'ninguna fila se justifica por cercania: esta prueba se quedo sin sujeto').toBeGreaterThan(0);
+
+    const lejos = conEsaRazon.flatMap(({ delArtboard, leer, decision }) => {
+      const valor = normalizar(leer(ARTBOARD) ?? decision.elArtboardDice);
+      const { tokens, distancia } = masCercanos(valor, CLASICO);
+      return tokens.includes(decision.seSustituyePor)
+        ? []
+        : [
+            `  ${delArtboard} (${valor}): se sustituye por ${decision.seSustituyePor}, y lo mas cercano de ` +
+              `la identidad es ${tokens.join(', ')} (ΔE ${conDosDecimales(distancia)})`,
+          ];
+    });
+    expect(
+      lejos,
+      'La tabla dice «el mas cercano» de un token que no lo es:\n' + `${lejos.join('\n')}\n\n  Revisa la fila.`,
     ).toEqual([]);
   });
 

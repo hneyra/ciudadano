@@ -179,6 +179,38 @@ const LITERALES = [
   'Pagó todos sus conceptos pendientes. Puede pedir su constancia de no adeudo, que acredita que está al día.',
   'Pedir mi constancia de no adeudo',
   'Se emitiría su constancia de no adeudo al día de hoy.',
+
+  // ── Paso 3 · Mis datos (issue 7) ────────────────────────────────────────────────────────────
+  // Linea 315: lo que va a pagar (el titulo, «¿A dónde le enviamos…», ya esta arriba). El importe lo
+  // dice `formatearImporte` y entra por su hueco.
+  'Va a pagar {{importe}}. Necesitamos un correo para enviarle el comprobante. Si tiene cuenta, entre y le guardamos el pago en su historial.',
+  // Sin seleccion no hay «Va a pagar» (nota del revisor): se invita a entrar para ver los pagos.
+  'Todavía no ha elegido qué pagar. Si tiene cuenta, entre para ver sus pagos y sus comprobantes.',
+  // Lineas 319-331 y 1186-1189: «Solo con mi correo», su campo, la casilla, el boton y los dos errores.
+  'Solo con mi correo',
+  'Lo más rápido. No hace falta crear una cuenta; el comprobante le llega al correo y lo podrá descargar al terminar.',
+  'Correo electrónico',
+  'nombre@correo.com',
+  'Avisarme por correo cuando venza mi próxima cuota',
+  'Continuar al pago',
+  'Escriba un correo para poder enviarle el comprobante.',
+  'Ese correo no parece completo. Revíselo: le enviaremos el comprobante ahí.',
+  // Lineas 336-350 y 1196-1199: «Con mi cuenta», sus campos, el boton, el error y la bienvenida.
+  'Con mi cuenta',
+  'Guarda este pago y todos los anteriores en un historial, con sus comprobantes siempre a mano.',
+  'Documento de identidad',
+  'Clave',
+  'Entrar y pagar',
+  'Escriba su documento y su clave para entrar.',
+  'Bienvenida. Este pago quedará en su historial.',
+  // Entrar sin nada que pagar lleva al historial (nota del revisor): alli no hay «este pago».
+  'Bienvenida. Aquí están sus pagos.',
+  // Linea 350: los dos enlaces, que en la demostracion son botones que avisan.
+  'Olvidé mi clave',
+  'Crear una cuenta',
+  'Abriría la recuperación de su clave.',
+  'Abriría el registro de una cuenta nueva.',
+
   // Los plurales: cada forma que i18next pide para `es` (`_one`, `_many`, `_other`). Lo que dice
   // cada una esta en `PLURALES`.
   ...Object.keys(PLURALES_DEL_PASO_2),
