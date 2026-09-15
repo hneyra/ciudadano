@@ -1,0 +1,1510 @@
+{
+ "artboard-tarjeta-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": "682px 320px",
+  "hueco": "18px",
+  "resumen": {
+   "caja": {
+    "x": 780,
+    "y": 129,
+    "ancho": 320,
+    "alto": 595
+   },
+   "position": "sticky",
+   "top": "14px",
+   "order": "0"
+  },
+  "medios": {
+   "caja": {
+    "x": 80,
+    "y": 238.59,
+    "ancho": 682,
+    "alto": 206
+   },
+   "columnas": "219.328px 219.328px 219.328px"
+  },
+  "resumenArriba": true,
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "activo": {
+   "caja": {
+    "x": 80,
+    "y": 238.59,
+    "ancho": 219.33,
+    "alto": 106
+   },
+   "pressed": "true",
+   "filo": "2px rgb(13, 95, 168)",
+   "papel": "rgb(240, 246, 251)"
+  },
+  "icono": {
+   "caja": {
+    "x": 96,
+    "y": 253.59,
+    "ancho": 30,
+    "alto": 30
+   },
+   "papel": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)"
+  },
+  "codigo": null,
+  "bancos": null,
+  "pasos": [],
+  "campos": [
+   {
+    "ph": "0000 0000 0000 0000",
+    "caja": {
+     "x": 101,
+     "y": 608.72,
+     "ancho": 640,
+     "alto": 44
+    }
+   },
+   {
+    "ph": "MARIA E CASTILLO P",
+    "caja": {
+     "x": 101,
+     "y": 694.97,
+     "ancho": 640,
+     "alto": 44
+    }
+   },
+   {
+    "ph": "MM/AA",
+    "caja": {
+     "x": 101,
+     "y": 781.22,
+     "ancho": 312,
+     "alto": 44
+    }
+   },
+   {
+    "ph": "123",
+    "caja": {
+     "x": 429,
+     "y": 781.22,
+     "ancho": 312,
+     "alto": 44
+    }
+   }
+  ],
+  "confirmar": {
+   "caja": {
+    "x": 575.33,
+    "y": 889.97,
+    "ancho": 165.67,
+    "alto": 48
+   },
+   "fondo": "rgb(60, 118, 61)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "total": {
+   "texto": "S/ 3,149.92",
+   "tam": "19px",
+   "color": "rgb(13, 95, 168)"
+  }
+ },
+ "portal-tarjeta-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": "682px 320px",
+  "hueco": "18px",
+  "resumen": {
+   "caja": {
+    "x": 780,
+    "y": 129,
+    "ancho": 320,
+    "alto": 596
+   },
+   "position": "sticky",
+   "top": "14px",
+   "order": "0"
+  },
+  "medios": {
+   "caja": {
+    "x": 80,
+    "y": 238.59,
+    "ancho": 682,
+    "alto": 206
+   },
+   "columnas": "219.328px 219.328px 219.328px"
+  },
+  "resumenArriba": true,
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "activo": {
+   "caja": {
+    "x": 80,
+    "y": 238.59,
+    "ancho": 219.33,
+    "alto": 106
+   },
+   "pressed": "true",
+   "filo": "2px rgb(13, 95, 168)",
+   "papel": "rgb(232, 241, 249)"
+  },
+  "icono": {
+   "caja": {
+    "x": 96,
+    "y": 253.59,
+    "ancho": 30,
+    "alto": 30
+   },
+   "papel": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)"
+  },
+  "codigo": null,
+  "bancos": null,
+  "pasos": [],
+  "campos": [
+   {
+    "ph": "0000 0000 0000 0000",
+    "caja": {
+     "x": 101,
+     "y": 609.22,
+     "ancho": 640,
+     "alto": 44.5
+    }
+   },
+   {
+    "ph": "MARIA E CASTILLO P",
+    "caja": {
+     "x": 101,
+     "y": 696.47,
+     "ancho": 640,
+     "alto": 44.5
+    }
+   },
+   {
+    "ph": "MM/AA",
+    "caja": {
+     "x": 101,
+     "y": 783.72,
+     "ancho": 312,
+     "alto": 44.5
+    }
+   },
+   {
+    "ph": "123",
+    "caja": {
+     "x": 429,
+     "y": 783.72,
+     "ancho": 312,
+     "alto": 44.5
+    }
+   }
+  ],
+  "confirmar": {
+   "caja": {
+    "x": 575.33,
+    "y": 892.34,
+    "ancho": 165.67,
+    "alto": 48
+   },
+   "fondo": "rgb(60, 118, 61)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "total": {
+   "texto": "S/ 3,149.92",
+   "tam": "19px",
+   "color": "rgb(13, 95, 168)"
+  }
+ },
+ "artboard-yape-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": "682px 320px",
+  "hueco": "18px",
+  "resumen": {
+   "caja": {
+    "x": 780,
+    "y": 129,
+    "ancho": 320,
+    "alto": 595
+   },
+   "position": "sticky",
+   "top": "14px",
+   "order": "0"
+  },
+  "medios": {
+   "caja": {
+    "x": 80,
+    "y": 238.59,
+    "ancho": 682,
+    "alto": 206
+   },
+   "columnas": "219.328px 219.328px 219.328px"
+  },
+  "resumenArriba": true,
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "activo": {
+   "caja": {
+    "x": 311.33,
+    "y": 238.59,
+    "ancho": 219.33,
+    "alto": 106
+   },
+   "pressed": "true",
+   "filo": "2px rgb(13, 95, 168)",
+   "papel": "rgb(240, 246, 251)"
+  },
+  "icono": {
+   "caja": {
+    "x": 327.33,
+    "y": 263.34,
+    "ancho": 30,
+    "alto": 30
+   },
+   "papel": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)"
+  },
+  "codigo": {
+   "texto": "969 032 194",
+   "tam": "31px",
+   "espaciado": "3.1px",
+   "color": "rgb(13, 95, 168)",
+   "filo": "dashed rgb(13, 95, 168)",
+   "papel": "rgb(240, 246, 251)"
+  },
+  "bancos": null,
+  "pasos": [
+   "Abra Yape o Plin y elija «Yapear» o «Enviar».",
+   "Escanee el código o escriba el número que aparece arriba.",
+   "Confirme el monto exacto de S/ 3,149.92 y escriba su código de contribuyente en el mensaje.",
+   "Vuelva aquí y pulse «Ya yapeé» para que le emitamos el comprobante."
+  ],
+  "campos": [],
+  "confirmar": {
+   "caja": {
+    "x": 604.13,
+    "y": 942.17,
+    "ancho": 136.88,
+    "alto": 48
+   },
+   "fondo": "rgb(60, 118, 61)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "total": {
+   "texto": "S/ 3,149.92",
+   "tam": "19px",
+   "color": "rgb(13, 95, 168)"
+  }
+ },
+ "portal-yape-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": "682px 320px",
+  "hueco": "18px",
+  "resumen": {
+   "caja": {
+    "x": 780,
+    "y": 129,
+    "ancho": 320,
+    "alto": 596
+   },
+   "position": "sticky",
+   "top": "14px",
+   "order": "0"
+  },
+  "medios": {
+   "caja": {
+    "x": 80,
+    "y": 238.59,
+    "ancho": 682,
+    "alto": 206
+   },
+   "columnas": "219.328px 219.328px 219.328px"
+  },
+  "resumenArriba": true,
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "activo": {
+   "caja": {
+    "x": 311.33,
+    "y": 238.59,
+    "ancho": 219.33,
+    "alto": 106
+   },
+   "pressed": "true",
+   "filo": "2px rgb(13, 95, 168)",
+   "papel": "rgb(232, 241, 249)"
+  },
+  "icono": {
+   "caja": {
+    "x": 327.33,
+    "y": 263.34,
+    "ancho": 30,
+    "alto": 30
+   },
+   "papel": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)"
+  },
+  "codigo": {
+   "texto": "969 032 194",
+   "tam": "31px",
+   "espaciado": "3.1px",
+   "color": "rgb(13, 95, 168)",
+   "filo": "dashed rgb(13, 95, 168)",
+   "papel": "rgb(240, 246, 251)"
+  },
+  "bancos": null,
+  "pasos": [
+   "Abra Yape o Plin y elija «Yapear» o «Enviar».",
+   "Escanee el código o escriba el número que aparece arriba.",
+   "Confirme el monto exacto de S/ 3,149.92 y escriba su código de contribuyente en el mensaje.",
+   "Vuelva aquí y pulse «Ya yapeé» para que le emitamos el comprobante."
+  ],
+  "campos": [],
+  "confirmar": {
+   "caja": {
+    "x": 604.13,
+    "y": 942.17,
+    "ancho": 136.88,
+    "alto": 48
+   },
+   "fondo": "rgb(60, 118, 61)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "total": {
+   "texto": "S/ 3,149.92",
+   "tam": "19px",
+   "color": "rgb(13, 95, 168)"
+  }
+ },
+ "artboard-pagalo-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": "682px 320px",
+  "hueco": "18px",
+  "resumen": {
+   "caja": {
+    "x": 780,
+    "y": 129,
+    "ancho": 320,
+    "alto": 595
+   },
+   "position": "sticky",
+   "top": "14px",
+   "order": "0"
+  },
+  "medios": {
+   "caja": {
+    "x": 80,
+    "y": 238.59,
+    "ancho": 682,
+    "alto": 206
+   },
+   "columnas": "219.328px 219.328px 219.328px"
+  },
+  "resumenArriba": true,
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "activo": {
+   "caja": {
+    "x": 542.66,
+    "y": 238.59,
+    "ancho": 219.33,
+    "alto": 106
+   },
+   "pressed": "true",
+   "filo": "2px rgb(13, 95, 168)",
+   "papel": "rgb(240, 246, 251)"
+  },
+  "icono": {
+   "caja": {
+    "x": 558.66,
+    "y": 253.59,
+    "ancho": 30,
+    "alto": 30
+   },
+   "papel": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)"
+  },
+  "codigo": {
+   "texto": "8 4 1 6 2",
+   "tam": "31px",
+   "espaciado": "3.1px",
+   "color": "rgb(13, 95, 168)",
+   "filo": "dashed rgb(13, 95, 168)",
+   "papel": "rgb(240, 246, 251)"
+  },
+  "bancos": null,
+  "pasos": [
+   "Pulse «Ir a pagalo.pe»: se abre en una pestaña nueva con el código cargado.",
+   "Elija cómo pagar y complete la operación allí.",
+   "Vuelva a esta pestaña: el pago aparece en un minuto y podrá descargar su comprobante."
+  ],
+  "campos": [],
+  "confirmar": {
+   "caja": {
+    "x": 559.86,
+    "y": 892.28,
+    "ancho": 181.14,
+    "alto": 48
+   },
+   "fondo": "rgb(60, 118, 61)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "total": {
+   "texto": "S/ 3,149.92",
+   "tam": "19px",
+   "color": "rgb(13, 95, 168)"
+  }
+ },
+ "portal-pagalo-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": "682px 320px",
+  "hueco": "18px",
+  "resumen": {
+   "caja": {
+    "x": 780,
+    "y": 129,
+    "ancho": 320,
+    "alto": 596
+   },
+   "position": "sticky",
+   "top": "14px",
+   "order": "0"
+  },
+  "medios": {
+   "caja": {
+    "x": 80,
+    "y": 238.59,
+    "ancho": 682,
+    "alto": 206
+   },
+   "columnas": "219.328px 219.328px 219.328px"
+  },
+  "resumenArriba": true,
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "activo": {
+   "caja": {
+    "x": 542.66,
+    "y": 238.59,
+    "ancho": 219.33,
+    "alto": 106
+   },
+   "pressed": "true",
+   "filo": "2px rgb(13, 95, 168)",
+   "papel": "rgb(232, 241, 249)"
+  },
+  "icono": {
+   "caja": {
+    "x": 558.66,
+    "y": 253.59,
+    "ancho": 30,
+    "alto": 30
+   },
+   "papel": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)"
+  },
+  "codigo": {
+   "texto": "8 4 1 6 2",
+   "tam": "31px",
+   "espaciado": "3.1px",
+   "color": "rgb(13, 95, 168)",
+   "filo": "dashed rgb(13, 95, 168)",
+   "papel": "rgb(240, 246, 251)"
+  },
+  "bancos": null,
+  "pasos": [
+   "Pulse «Ir a pagalo.pe»: se abre en una pestaña nueva con el código cargado.",
+   "Elija cómo pagar y complete la operación allí.",
+   "Vuelva a esta pestaña: el pago aparece en un minuto y podrá descargar su comprobante."
+  ],
+  "campos": [],
+  "confirmar": {
+   "caja": {
+    "x": 559.86,
+    "y": 892.28,
+    "ancho": 181.14,
+    "alto": 48
+   },
+   "fondo": "rgb(60, 118, 61)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "total": {
+   "texto": "S/ 3,149.92",
+   "tam": "19px",
+   "color": "rgb(13, 95, 168)"
+  }
+ },
+ "artboard-banco-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": "682px 320px",
+  "hueco": "18px",
+  "resumen": {
+   "caja": {
+    "x": 780,
+    "y": 129,
+    "ancho": 320,
+    "alto": 595
+   },
+   "position": "sticky",
+   "top": "14px",
+   "order": "0"
+  },
+  "medios": {
+   "caja": {
+    "x": 80,
+    "y": 238.59,
+    "ancho": 682,
+    "alto": 206
+   },
+   "columnas": "219.328px 219.328px 219.328px"
+  },
+  "resumenArriba": true,
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "activo": {
+   "caja": {
+    "x": 80,
+    "y": 356.59,
+    "ancho": 219.33,
+    "alto": 88
+   },
+   "pressed": "true",
+   "filo": "2px rgb(13, 95, 168)",
+   "papel": "rgb(240, 246, 251)"
+  },
+  "icono": {
+   "caja": {
+    "x": 96,
+    "y": 372.34,
+    "ancho": 30,
+    "alto": 30
+   },
+   "papel": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)"
+  },
+  "codigo": {
+   "texto": "2026-0025673-4418",
+   "tam": "31px",
+   "espaciado": "3.1px",
+   "color": "rgb(13, 95, 168)",
+   "filo": "dashed rgb(13, 95, 168)",
+   "papel": "rgb(240, 246, 251)"
+  },
+  "bancos": {
+   "columnas": "212.656px 212.672px 212.672px",
+   "cuantos": 6
+  },
+  "pasos": [
+   "Vaya a su banco, a su aplicación o a un agente autorizado.",
+   "Busque «Municipalidad de Catacaos» en pagos de servicios.",
+   "Escriba el código de pago y confirme el monto de S/ 3,149.92.",
+   "Guarde el voucher: el pago se aplica al día siguiente hábil."
+  ],
+  "campos": [],
+  "confirmar": {
+   "caja": {
+    "x": 493.16,
+    "y": 1147.03,
+    "ancho": 247.84,
+    "alto": 48
+   },
+   "fondo": "rgb(60, 118, 61)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "total": {
+   "texto": "S/ 3,149.92",
+   "tam": "19px",
+   "color": "rgb(13, 95, 168)"
+  }
+ },
+ "portal-banco-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": "682px 320px",
+  "hueco": "18px",
+  "resumen": {
+   "caja": {
+    "x": 780,
+    "y": 129,
+    "ancho": 320,
+    "alto": 596
+   },
+   "position": "sticky",
+   "top": "14px",
+   "order": "0"
+  },
+  "medios": {
+   "caja": {
+    "x": 80,
+    "y": 238.59,
+    "ancho": 682,
+    "alto": 206
+   },
+   "columnas": "219.328px 219.328px 219.328px"
+  },
+  "resumenArriba": true,
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "activo": {
+   "caja": {
+    "x": 80,
+    "y": 356.59,
+    "ancho": 219.33,
+    "alto": 88
+   },
+   "pressed": "true",
+   "filo": "2px rgb(13, 95, 168)",
+   "papel": "rgb(232, 241, 249)"
+  },
+  "icono": {
+   "caja": {
+    "x": 96,
+    "y": 372.34,
+    "ancho": 30,
+    "alto": 30
+   },
+   "papel": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)"
+  },
+  "codigo": {
+   "texto": "2026-0025673-4418",
+   "tam": "31px",
+   "espaciado": "3.1px",
+   "color": "rgb(13, 95, 168)",
+   "filo": "dashed rgb(13, 95, 168)",
+   "papel": "rgb(240, 246, 251)"
+  },
+  "bancos": {
+   "columnas": "212.656px 212.672px 212.672px",
+   "cuantos": 6
+  },
+  "pasos": [
+   "Vaya a su banco, a su aplicación o a un agente autorizado.",
+   "Busque «Municipalidad de Catacaos» en pagos de servicios.",
+   "Escriba el código de pago y confirme el monto de S/ 3,149.92.",
+   "Guarde el voucher: el pago se aplica al día siguiente hábil."
+  ],
+  "campos": [],
+  "confirmar": {
+   "caja": {
+    "x": 493.16,
+    "y": 1147.03,
+    "ancho": 247.84,
+    "alto": 48
+   },
+   "fondo": "rgb(60, 118, 61)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "total": {
+   "texto": "S/ 3,149.92",
+   "tam": "19px",
+   "color": "rgb(13, 95, 168)"
+  }
+ },
+ "artboard-tarjeta-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": "364px",
+  "hueco": "18px",
+  "resumen": {
+   "caja": {
+    "x": 18,
+    "y": 129,
+    "ancho": 364,
+    "alto": 575.63
+   },
+   "position": "static",
+   "top": "14px",
+   "order": "-1"
+  },
+  "medios": {
+   "caja": {
+    "x": 18,
+    "y": 881.81,
+    "ancho": 364,
+    "alto": 388
+   },
+   "columnas": "364px"
+  },
+  "resumenArriba": true,
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "activo": {
+   "caja": {
+    "x": 18,
+    "y": 881.81,
+    "ancho": 364,
+    "alto": 88
+   },
+   "pressed": "true",
+   "filo": "2px rgb(13, 95, 168)",
+   "papel": "rgb(240, 246, 251)"
+  },
+  "icono": {
+   "caja": {
+    "x": 34,
+    "y": 897.56,
+    "ancho": 30,
+    "alto": 30
+   },
+   "papel": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)"
+  },
+  "codigo": null,
+  "bancos": null,
+  "pasos": [],
+  "campos": [
+   {
+    "ph": "0000 0000 0000 0000",
+    "caja": {
+     "x": 39,
+     "y": 1455.63,
+     "ancho": 322,
+     "alto": 44
+    }
+   },
+   {
+    "ph": "MARIA E CASTILLO P",
+    "caja": {
+     "x": 39,
+     "y": 1541.88,
+     "ancho": 322,
+     "alto": 44
+    }
+   },
+   {
+    "ph": "MM/AA",
+    "caja": {
+     "x": 39,
+     "y": 1628.13,
+     "ancho": 153,
+     "alto": 44
+    }
+   },
+   {
+    "ph": "123",
+    "caja": {
+     "x": 208,
+     "y": 1648.38,
+     "ancho": 153,
+     "alto": 44
+    }
+   }
+  ],
+  "confirmar": {
+   "caja": {
+    "x": 39,
+    "y": 1829.72,
+    "ancho": 165.67,
+    "alto": 48
+   },
+   "fondo": "rgb(60, 118, 61)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "total": {
+   "texto": "S/ 3,149.92",
+   "tam": "19px",
+   "color": "rgb(13, 95, 168)"
+  }
+ },
+ "portal-tarjeta-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": "364px",
+  "hueco": "18px",
+  "resumen": {
+   "caja": {
+    "x": 18,
+    "y": 129,
+    "ancho": 364,
+    "alto": 576.63
+   },
+   "position": "static",
+   "top": "14px",
+   "order": "-1"
+  },
+  "medios": {
+   "caja": {
+    "x": 18,
+    "y": 882.81,
+    "ancho": 364,
+    "alto": 388
+   },
+   "columnas": "364px"
+  },
+  "resumenArriba": true,
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "activo": {
+   "caja": {
+    "x": 18,
+    "y": 882.81,
+    "ancho": 364,
+    "alto": 88
+   },
+   "pressed": "true",
+   "filo": "2px rgb(13, 95, 168)",
+   "papel": "rgb(232, 241, 249)"
+  },
+  "icono": {
+   "caja": {
+    "x": 34,
+    "y": 898.56,
+    "ancho": 30,
+    "alto": 30
+   },
+   "papel": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)"
+  },
+  "codigo": null,
+  "bancos": null,
+  "pasos": [],
+  "campos": [
+   {
+    "ph": "0000 0000 0000 0000",
+    "caja": {
+     "x": 39,
+     "y": 1457.13,
+     "ancho": 322,
+     "alto": 44.5
+    }
+   },
+   {
+    "ph": "MARIA E CASTILLO P",
+    "caja": {
+     "x": 39,
+     "y": 1544.38,
+     "ancho": 322,
+     "alto": 44.5
+    }
+   },
+   {
+    "ph": "MM/AA",
+    "caja": {
+     "x": 39,
+     "y": 1631.63,
+     "ancho": 153,
+     "alto": 44.5
+    }
+   },
+   {
+    "ph": "123",
+    "caja": {
+     "x": 208,
+     "y": 1652.38,
+     "ancho": 153,
+     "alto": 44.5
+    }
+   }
+  ],
+  "confirmar": {
+   "caja": {
+    "x": 39,
+    "y": 1832.97,
+    "ancho": 165.67,
+    "alto": 48
+   },
+   "fondo": "rgb(60, 118, 61)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "total": {
+   "texto": "S/ 3,149.92",
+   "tam": "19px",
+   "color": "rgb(13, 95, 168)"
+  }
+ },
+ "artboard-yape-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": "364px",
+  "hueco": "18px",
+  "resumen": {
+   "caja": {
+    "x": 18,
+    "y": 129,
+    "ancho": 364,
+    "alto": 575.63
+   },
+   "position": "static",
+   "top": "14px",
+   "order": "-1"
+  },
+  "medios": {
+   "caja": {
+    "x": 18,
+    "y": 881.81,
+    "ancho": 364,
+    "alto": 388
+   },
+   "columnas": "364px"
+  },
+  "resumenArriba": true,
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "activo": {
+   "caja": {
+    "x": 18,
+    "y": 981.81,
+    "ancho": 364,
+    "alto": 88
+   },
+   "pressed": "true",
+   "filo": "2px rgb(13, 95, 168)",
+   "papel": "rgb(240, 246, 251)"
+  },
+  "icono": {
+   "caja": {
+    "x": 34,
+    "y": 997.56,
+    "ancho": 30,
+    "alto": 30
+   },
+   "papel": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)"
+  },
+  "codigo": {
+   "texto": "969 032 194",
+   "tam": "21px",
+   "espaciado": "0.84px",
+   "color": "rgb(13, 95, 168)",
+   "filo": "dashed rgb(13, 95, 168)",
+   "papel": "rgb(240, 246, 251)"
+  },
+  "bancos": null,
+  "pasos": [
+   "Abra Yape o Plin y elija «Yapear» o «Enviar».",
+   "Escanee el código o escriba el número que aparece arriba.",
+   "Confirme el monto exacto de S/ 3,149.92 y escriba su código de contribuyente en el mensaje.",
+   "Vuelva aquí y pulse «Ya yapeé» para que le emitamos el comprobante."
+  ],
+  "campos": [],
+  "confirmar": {
+   "caja": {
+    "x": 39,
+    "y": 1946.73,
+    "ancho": 136.88,
+    "alto": 48
+   },
+   "fondo": "rgb(60, 118, 61)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "total": {
+   "texto": "S/ 3,149.92",
+   "tam": "19px",
+   "color": "rgb(13, 95, 168)"
+  }
+ },
+ "portal-yape-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": "364px",
+  "hueco": "18px",
+  "resumen": {
+   "caja": {
+    "x": 18,
+    "y": 129,
+    "ancho": 364,
+    "alto": 576.63
+   },
+   "position": "static",
+   "top": "14px",
+   "order": "-1"
+  },
+  "medios": {
+   "caja": {
+    "x": 18,
+    "y": 882.81,
+    "ancho": 364,
+    "alto": 388
+   },
+   "columnas": "364px"
+  },
+  "resumenArriba": true,
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "activo": {
+   "caja": {
+    "x": 18,
+    "y": 982.81,
+    "ancho": 364,
+    "alto": 88
+   },
+   "pressed": "true",
+   "filo": "2px rgb(13, 95, 168)",
+   "papel": "rgb(232, 241, 249)"
+  },
+  "icono": {
+   "caja": {
+    "x": 34,
+    "y": 998.56,
+    "ancho": 30,
+    "alto": 30
+   },
+   "papel": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)"
+  },
+  "codigo": {
+   "texto": "969 032 194",
+   "tam": "21px",
+   "espaciado": "0.84px",
+   "color": "rgb(13, 95, 168)",
+   "filo": "dashed rgb(13, 95, 168)",
+   "papel": "rgb(240, 246, 251)"
+  },
+  "bancos": null,
+  "pasos": [
+   "Abra Yape o Plin y elija «Yapear» o «Enviar».",
+   "Escanee el código o escriba el número que aparece arriba.",
+   "Confirme el monto exacto de S/ 3,149.92 y escriba su código de contribuyente en el mensaje.",
+   "Vuelva aquí y pulse «Ya yapeé» para que le emitamos el comprobante."
+  ],
+  "campos": [],
+  "confirmar": {
+   "caja": {
+    "x": 39,
+    "y": 1947.73,
+    "ancho": 136.88,
+    "alto": 48
+   },
+   "fondo": "rgb(60, 118, 61)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "total": {
+   "texto": "S/ 3,149.92",
+   "tam": "19px",
+   "color": "rgb(13, 95, 168)"
+  }
+ },
+ "artboard-pagalo-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": "364px",
+  "hueco": "18px",
+  "resumen": {
+   "caja": {
+    "x": 18,
+    "y": 129,
+    "ancho": 364,
+    "alto": 575.63
+   },
+   "position": "static",
+   "top": "14px",
+   "order": "-1"
+  },
+  "medios": {
+   "caja": {
+    "x": 18,
+    "y": 881.81,
+    "ancho": 364,
+    "alto": 388
+   },
+   "columnas": "364px"
+  },
+  "resumenArriba": true,
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "activo": {
+   "caja": {
+    "x": 18,
+    "y": 1081.81,
+    "ancho": 364,
+    "alto": 88
+   },
+   "pressed": "true",
+   "filo": "2px rgb(13, 95, 168)",
+   "papel": "rgb(240, 246, 251)"
+  },
+  "icono": {
+   "caja": {
+    "x": 34,
+    "y": 1097.56,
+    "ancho": 30,
+    "alto": 30
+   },
+   "papel": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)"
+  },
+  "codigo": {
+   "texto": "8 4 1 6 2",
+   "tam": "21px",
+   "espaciado": "0.84px",
+   "color": "rgb(13, 95, 168)",
+   "filo": "dashed rgb(13, 95, 168)",
+   "papel": "rgb(240, 246, 251)"
+  },
+  "bancos": null,
+  "pasos": [
+   "Pulse «Ir a pagalo.pe»: se abre en una pestaña nueva con el código cargado.",
+   "Elija cómo pagar y complete la operación allí.",
+   "Vuelva a esta pestaña: el pago aparece en un minuto y podrá descargar su comprobante."
+  ],
+  "campos": [],
+  "confirmar": {
+   "caja": {
+    "x": 39,
+    "y": 1892.45,
+    "ancho": 181.14,
+    "alto": 48
+   },
+   "fondo": "rgb(60, 118, 61)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "total": {
+   "texto": "S/ 3,149.92",
+   "tam": "19px",
+   "color": "rgb(13, 95, 168)"
+  }
+ },
+ "portal-pagalo-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": "364px",
+  "hueco": "18px",
+  "resumen": {
+   "caja": {
+    "x": 18,
+    "y": 129,
+    "ancho": 364,
+    "alto": 576.63
+   },
+   "position": "static",
+   "top": "14px",
+   "order": "-1"
+  },
+  "medios": {
+   "caja": {
+    "x": 18,
+    "y": 882.81,
+    "ancho": 364,
+    "alto": 388
+   },
+   "columnas": "364px"
+  },
+  "resumenArriba": true,
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "activo": {
+   "caja": {
+    "x": 18,
+    "y": 1082.81,
+    "ancho": 364,
+    "alto": 88
+   },
+   "pressed": "true",
+   "filo": "2px rgb(13, 95, 168)",
+   "papel": "rgb(232, 241, 249)"
+  },
+  "icono": {
+   "caja": {
+    "x": 34,
+    "y": 1098.56,
+    "ancho": 30,
+    "alto": 30
+   },
+   "papel": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)"
+  },
+  "codigo": {
+   "texto": "8 4 1 6 2",
+   "tam": "21px",
+   "espaciado": "0.84px",
+   "color": "rgb(13, 95, 168)",
+   "filo": "dashed rgb(13, 95, 168)",
+   "papel": "rgb(240, 246, 251)"
+  },
+  "bancos": null,
+  "pasos": [
+   "Pulse «Ir a pagalo.pe»: se abre en una pestaña nueva con el código cargado.",
+   "Elija cómo pagar y complete la operación allí.",
+   "Vuelva a esta pestaña: el pago aparece en un minuto y podrá descargar su comprobante."
+  ],
+  "campos": [],
+  "confirmar": {
+   "caja": {
+    "x": 39,
+    "y": 1893.45,
+    "ancho": 181.14,
+    "alto": 48
+   },
+   "fondo": "rgb(60, 118, 61)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "total": {
+   "texto": "S/ 3,149.92",
+   "tam": "19px",
+   "color": "rgb(13, 95, 168)"
+  }
+ },
+ "artboard-banco-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": "364px",
+  "hueco": "18px",
+  "resumen": {
+   "caja": {
+    "x": 18,
+    "y": 129,
+    "ancho": 364,
+    "alto": 575.63
+   },
+   "position": "static",
+   "top": "14px",
+   "order": "-1"
+  },
+  "medios": {
+   "caja": {
+    "x": 18,
+    "y": 881.81,
+    "ancho": 364,
+    "alto": 388
+   },
+   "columnas": "364px"
+  },
+  "resumenArriba": true,
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "activo": {
+   "caja": {
+    "x": 18,
+    "y": 1181.81,
+    "ancho": 364,
+    "alto": 88
+   },
+   "pressed": "true",
+   "filo": "2px rgb(13, 95, 168)",
+   "papel": "rgb(240, 246, 251)"
+  },
+  "icono": {
+   "caja": {
+    "x": 34,
+    "y": 1197.56,
+    "ancho": 30,
+    "alto": 30
+   },
+   "papel": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)"
+  },
+  "codigo": {
+   "texto": "2026-0025673-4418",
+   "tam": "21px",
+   "espaciado": "0.84px",
+   "color": "rgb(13, 95, 168)",
+   "filo": "dashed rgb(13, 95, 168)",
+   "papel": "rgb(240, 246, 251)"
+  },
+  "bancos": {
+   "columnas": "320px",
+   "cuantos": 6
+  },
+  "pasos": [
+   "Vaya a su banco, a su aplicación o a un agente autorizado.",
+   "Busque «Municipalidad de Catacaos» en pagos de servicios.",
+   "Escriba el código de pago y confirme el monto de S/ 3,149.92.",
+   "Guarde el voucher: el pago se aplica al día siguiente hábil."
+  ],
+  "campos": [],
+  "confirmar": {
+   "caja": {
+    "x": 39,
+    "y": 2437.02,
+    "ancho": 247.84,
+    "alto": 48
+   },
+   "fondo": "rgb(60, 118, 61)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "total": {
+   "texto": "S/ 3,149.92",
+   "tam": "19px",
+   "color": "rgb(13, 95, 168)"
+  }
+ },
+ "portal-banco-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": "364px",
+  "hueco": "18px",
+  "resumen": {
+   "caja": {
+    "x": 18,
+    "y": 129,
+    "ancho": 364,
+    "alto": 576.63
+   },
+   "position": "static",
+   "top": "14px",
+   "order": "-1"
+  },
+  "medios": {
+   "caja": {
+    "x": 18,
+    "y": 882.81,
+    "ancho": 364,
+    "alto": 388
+   },
+   "columnas": "364px"
+  },
+  "resumenArriba": true,
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "activo": {
+   "caja": {
+    "x": 18,
+    "y": 1182.81,
+    "ancho": 364,
+    "alto": 88
+   },
+   "pressed": "true",
+   "filo": "2px rgb(13, 95, 168)",
+   "papel": "rgb(232, 241, 249)"
+  },
+  "icono": {
+   "caja": {
+    "x": 34,
+    "y": 1198.56,
+    "ancho": 30,
+    "alto": 30
+   },
+   "papel": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)"
+  },
+  "codigo": {
+   "texto": "2026-0025673-4418",
+   "tam": "21px",
+   "espaciado": "0.84px",
+   "color": "rgb(13, 95, 168)",
+   "filo": "dashed rgb(13, 95, 168)",
+   "papel": "rgb(240, 246, 251)"
+  },
+  "bancos": {
+   "columnas": "320px",
+   "cuantos": 6
+  },
+  "pasos": [
+   "Vaya a su banco, a su aplicación o a un agente autorizado.",
+   "Busque «Municipalidad de Catacaos» en pagos de servicios.",
+   "Escriba el código de pago y confirme el monto de S/ 3,149.92.",
+   "Guarde el voucher: el pago se aplica al día siguiente hábil."
+  ],
+  "campos": [],
+  "confirmar": {
+   "caja": {
+    "x": 39,
+    "y": 2438.02,
+    "ancho": 247.84,
+    "alto": 48
+   },
+   "fondo": "rgb(60, 118, 61)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "total": {
+   "texto": "S/ 3,149.92",
+   "tam": "19px",
+   "color": "rgb(13, 95, 168)"
+  }
+ },
+ "portal-sin-nada-que-pagar-1180": {
+  "hash": "#/pagar",
+  "resumen": "Lo que va a pagarNo hay nada que pagar.El comprobante se enviará a maria@correo.com.Buscar mi deuda"
+ },
+ "portal-pagado-1180": {
+  "hash": "#/comprobante",
+  "almacenamiento": "{}{}"
+ }
+}
