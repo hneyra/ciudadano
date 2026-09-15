@@ -1,13 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import { Navigate, type RouteObject, createHashRouter, useNavigate } from 'react-router-dom';
 
 import { Marco } from './marco/Marco.tsx';
-import { Buscar } from './pasos/buscar/Buscar.tsx';
-import { Comprobante } from './pasos/comprobante/Comprobante.tsx';
-import { Deudas } from './pasos/deudas/Deudas.tsx';
-import { Historial } from './pasos/historial/Historial.tsx';
-import { Identificar } from './pasos/identificar/Identificar.tsx';
-import { Pagar } from './pasos/pagar/Pagar.tsx';
+import { PANTALLAS, precargarLasPantallas } from './pasos/pantallas.tsx';
 import { useRecorrido } from './recorrido/ProveedorDelRecorrido.tsx';
 import { type Paso, pasoAlcanzable, ultimoAlcanzable } from './recorrido/recorrido.ts';
 import { RUTA_DEL_PASO } from './recorrido/rutas.ts';
@@ -34,24 +29,26 @@ function PantallaDelPaso({ paso }: { readonly paso: Paso }) {
     else if (estado.paso !== paso) despachar({ tipo: 'irA', paso });
   }, [paso, alcanzable, estado, despachar, navegar]);
 
+  // Dibujada la primera pantalla, se piden las demas: cada una es un trozo del bundle (issue 11), y
+  // sin esto cada paso nuevo esperaria el suyo en blanco. Pedirlas dos veces no las pide dos veces.
+  useEffect(() => {
+    void precargarLasPantallas().catch(() => {
+      // Sin red no hay nada que hacer aqui: al abrir ese paso, `lazy` lo vuelve a pedir y, si falla,
+      // lo dice el limite de errores del enrutador.
+    });
+  }, []);
+
   // Mientras se redirige no se dibuja el paso: ni un cuadro de una pantalla a la que no se puede ir.
   if (!alcanzable) return null;
 
-  // Una pantalla por paso (issues 5-10). Ya no queda ningun marcador.
-  switch (paso) {
-    case 'buscar':
-      return <Buscar />;
-    case 'deudas':
-      return <Deudas />;
-    case 'identificar':
-      return <Identificar />;
-    case 'pagar':
-      return <Pagar />;
-    case 'comprobante':
-      return <Comprobante />;
-    case 'historial':
-      return <Historial />;
-  }
+  // Una pantalla por paso (issues 5-10), cada una en su trozo (`src/pasos/pantallas.tsx`). Mientras su
+  // trozo llega, el hueco se marca ocupado y guarda la altura, para que el pie no suba y baje.
+  const { Pantalla } = PANTALLAS[paso];
+  return (
+    <Suspense fallback={<div aria-busy="true" className="min-h-[60vh]" />}>
+      <Pantalla />
+    </Suspense>
+  );
 }
 
 /** La raiz y lo que no es ninguna ruta: al paso en que esta el recorrido. */
