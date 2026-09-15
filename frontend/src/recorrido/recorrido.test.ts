@@ -278,6 +278,25 @@ describe('a donde lleva cada cosa', () => {
     expect(cerrada.paso).toBe('buscar');
   });
 
+  it('`cerrarSesion` olvida el comprobante de la visita: sin `ultimo` ni `recienPagado`, y no alcanzable (issue 9)', () => {
+    const pagadoConSesion = tras([
+      { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '1' },
+      { tipo: 'entrar' },
+      { tipo: 'confirmarPago' },
+    ]);
+    expect(pagadoConSesion.ultimo).not.toBeNull();
+    expect(pagadoConSesion.recienPagado).toBe(true);
+    expect(pasoAlcanzable(pagadoConSesion, 'comprobante')).toBe(true);
+
+    const cerrada = recorrido(pagadoConSesion, { tipo: 'cerrarSesion' });
+    expect(cerrada.ultimo).toBeNull();
+    expect(cerrada.recienPagado).toBe(false);
+    expect(pasoAlcanzable(cerrada, 'comprobante')).toBe(false);
+    expect(ultimoAlcanzable(cerrada)).toBe('buscar');
+    // Lo pagado sigue pagado: se olvida el recibo a la vista, no la deuda que ya se cobro.
+    expect(cerrada.pagadas).toStrictEqual(pagadoConSesion.pagadas);
+  });
+
   it('`consultarOtra` vuelve a buscar con el numero vacio', () => {
     const otra = tras([{ tipo: 'buscar', tipoDeDocumento: 'RUC', numero: '20525118447' }, { tipo: 'consultarOtra' }]);
     expect(otra.paso).toBe('buscar');

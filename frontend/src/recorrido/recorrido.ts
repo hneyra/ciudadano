@@ -121,7 +121,7 @@ export type AccionDelRecorrido =
   | { readonly tipo: 'elegirMedio'; readonly medio: MedioDePago['id'] }
   | { readonly tipo: 'fijarValor'; readonly clave: string; readonly valor: string }
   | { readonly tipo: 'confirmarPago' }
-  /** «Cerrar sesión» del menu (artboard, 1055). */
+  /** «Cerrar sesión» del menu (artboard, 1055). Olvida tambien el pago sellado: ver el reductor. */
   | { readonly tipo: 'cerrarSesion' }
   /** «Consultar otra deuda» del comprobante sin sesion (artboard, 1281). */
   | { readonly tipo: 'consultarOtra' };
@@ -311,7 +311,11 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
     }
 
     case 'cerrarSesion':
-      return { ...estado, autenticado: false, paso: 'buscar' };
+      // Tambien se olvida el comprobante de esta visita (revision del PR del issue 9; el artboard solo
+      // cambia `autenticado` y `paso`, linea 1055). En un equipo compartido, tras «Cerrar sesión» el
+      // recibo sellado —nombre, correo de la cuenta, numero de operacion— no puede seguir a un clic:
+      // sin `ultimo`, `#/comprobante` deja de ser alcanzable y redirige como cualquier otro paso.
+      return { ...estado, autenticado: false, paso: 'buscar', ultimo: null, recienPagado: false };
 
     case 'consultarOtra':
       return { ...estado, paso: 'buscar', numero: '' };
