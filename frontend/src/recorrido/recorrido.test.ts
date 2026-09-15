@@ -7,6 +7,7 @@ import {
   type EstadoDelRecorrido,
   PASOS_NUMERADOS,
   cuenta,
+  conceptosDelPago,
   cuentaPorPagar,
   destinoAlEntrar,
   destinoAlPagar,
@@ -301,6 +302,24 @@ describe('`pasoAlcanzable`', () => {
     expect(ultimoAlcanzable(ESTADO_INICIAL)).toBe('buscar');
   });
 
+  it('con un pago sellado el comprobante sigue alcanzable desde un paso anterior; sin sello, no (issue 9)', () => {
+    // Pagar el predial 2026 y volver a elegir: el comprobante es la constancia, y no se pierde.
+    const sellado = tras([
+      { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '1' },
+      { tipo: 'alternar', id: 'arb26' },
+      { tipo: 'alternar', id: 'pred24' },
+      { tipo: 'alternar', id: 'veh24' },
+      { tipo: 'confirmarPago' },
+      { tipo: 'irA', paso: 'deudas' },
+    ]);
+    expect(pasoAlcanzable(sellado, 'comprobante')).toBe(true);
+    expect(pasoAlcanzable(sellado, 'identificar')).toBe(false);
+    expect(pasoAlcanzable(recorrido(sellado, { tipo: 'consultarOtra' }), 'comprobante')).toBe(true);
+
+    const sinSello = tras([{ tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '1' }]);
+    expect(pasoAlcanzable(sinSello, 'comprobante')).toBe(false);
+  });
+
   it('el historial exige sesion, y desde el ninguna ruta numerada es alcanzable', () => {
     const enElHistorial = tras([{ tipo: 'entrar' }, { tipo: 'irA', paso: 'historial' }]);
     expect(pasoAlcanzable(enElHistorial, 'historial')).toBe(true);
@@ -347,5 +366,23 @@ describe('las acciones sueltas', () => {
       tras([{ tipo: 'alternar', id: 'pred26' }, { tipo: 'marcarTodo' }, { tipo: 'confirmarPago' }], congelado),
     ).not.toThrow();
     expect(congelado.marcadas.pred26).toBe(true);
+  });
+});
+
+describe('`conceptosDelPago` (issue 9)', () => {
+  it('son los del sello, en el orden de `DEUDAS`, y no cambian con lo que se marque despues', () => {
+    const pagado = tras([
+      { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '1' },
+      { tipo: 'alternar', id: 'pred26' },
+      { tipo: 'alternar', id: 'pred24' },
+      { tipo: 'confirmarPago' },
+    ]);
+    const sello = pagado.ultimo;
+    if (sello === null) throw new Error('confirmarPago no sello nada');
+    expect(ids(conceptosDelPago(sello))).toEqual(['arb26', 'veh24']);
+
+    const despues = tras([{ tipo: 'irA', paso: 'deudas' }, { tipo: 'alternar', id: 'pred24' }, { tipo: 'marcarTodo' }], pagado);
+    expect(despues.ultimo).toBe(sello);
+    expect(ids(conceptosDelPago(sello))).toEqual(['arb26', 'veh24']);
   });
 });

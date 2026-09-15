@@ -2,7 +2,16 @@ import { formatearImporte, sumarImportes } from '@kamayuk/formato';
 import type { InsigniaProps } from '@kamayuk/ui';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
-import { cuentaDe, pasosConTotal, recargoDe, resumenDe, tonoDe, totalDe } from './cuentas.ts';
+import {
+  cifraSinSimbolo,
+  conAmnistiaDe,
+  cuentaDe,
+  pasosConTotal,
+  recargoDe,
+  resumenDe,
+  tonoDe,
+  totalDe,
+} from './cuentas.ts';
 import { DEUDAS, MEDIOS } from './demostracion.ts';
 import type { Deuda } from './tipos.ts';
 
@@ -160,5 +169,23 @@ describe('pasosConTotal', () => {
 
   it('no escribe «S/» dos veces ni pierde los decimales', () => {
     expect(pasosConTotal(['de S/ {{TOTAL}}.'], '614')).toEqual(['de S/ 614.00.']);
+  });
+});
+
+describe('conAmnistiaDe y cifraSinSimbolo (issue 9)', () => {
+  it('cada fila del comprobante es insoluto + gastos, sin el interes que la amnistia condona', () => {
+    // Escritas a mano (lineas 740-806): 293.72 + 0.00, 291.60 + 0.00, 1842.60 + 12.00, 614.00 + 96.00.
+    expect(DEUDAS.map((d) => [d.id, conAmnistiaDe(d)])).toEqual([
+      ['pred26', '293.72'],
+      ['arb26', '291.60'],
+      ['pred24', '1854.60'],
+      ['veh24', '710.00'],
+    ]);
+  });
+
+  it('la cifra sin «S/ », con miles y dos decimales, como la columna «Importe S/»', () => {
+    expect(cifraSinSimbolo('1854.6')).toBe('1,854.60');
+    expect(cifraSinSimbolo('413.32')).toBe('413.32');
+    expect(cifraSinSimbolo('3149.92')).toBe('3,149.92');
   });
 });

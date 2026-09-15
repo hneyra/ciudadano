@@ -53,6 +53,14 @@ export function totalDe(deuda: Deuda): Importe {
   return sumarImportes([deuda.insoluto, deuda.interes, deuda.gastos]);
 }
 
+/**
+ * Lo que se cobra de un concepto con la amnistia: insoluto + gastos, porque el interes se condona
+ * entero. Es el «Importe S/» de cada fila del comprobante (artboard, linea 1308).
+ */
+export function conAmnistiaDe(deuda: Deuda): Importe {
+  return sumarImportes([deuda.insoluto, deuda.gastos]);
+}
+
 /** Lo que se le suma al impuesto por no pagar a tiempo: interes + gastos (artboard, linea 1134). */
 export function recargoDe(deuda: Deuda): Importe {
   return sumarImportes([deuda.interes, deuda.gastos]);
@@ -106,6 +114,15 @@ export function tonoDe(texto: string): TonoDeInsignia {
  * Como en el artboard, se sustituye la primera aparicion de cada paso; ningun paso trae dos.
  */
 export function pasosConTotal(pasos: readonly string[], importe: Importe): string[] {
-  const cifra = formatearImporte(importe).replace(SIMBOLO, '');
+  const cifra = cifraSinSimbolo(importe);
   return pasos.map((paso) => paso.replace(HUECO_DEL_TOTAL, cifra));
+}
+
+/**
+ * Un importe con separador de miles y dos decimales, **sin «S/ »**: `'1854.6'` -> `'1,854.60'`. Para
+ * donde el simbolo ya lo dice otro —el paso de un medio de pago, o la columna «Importe S/» del
+ * comprobante—. Formatea; no suma ni redondea.
+ */
+export function cifraSinSimbolo(importe: Importe): string {
+  return formatearImporte(importe).replace(SIMBOLO, '');
 }
