@@ -128,7 +128,10 @@ function QuienEs() {
   );
 }
 
-/** El total, arriba (lineas 197-208), y las cuatro cifras que lo componen (210-218). */
+/**
+ * El total, arriba (lineas 197-208), y las cuatro cifras que lo componen (210-218). A ≤ 520 px, de dos en
+ * dos (linea 41): `max-[521px]`, porque Tailwind v4 emite `max-[520px]` como `width < 520px`.
+ */
 function ElTotal() {
   const { t } = useTranslation();
   const { estado } = useRecorrido();
@@ -191,7 +194,7 @@ function ElTotal() {
 
       <ul
         data-cifras=""
-        className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(162px,1fr))] overflow-hidden border border-t-0 border-linea bg-superficie p-0 max-[520px]:grid-cols-2"
+        className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(162px,1fr))] overflow-hidden border border-t-0 border-linea bg-superficie p-0 max-[521px]:grid-cols-2"
       >
         {cuatro.map(({ rotulo, valor, nota }) => (
           <li

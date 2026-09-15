@@ -398,6 +398,9 @@ describe('todo lo que se lee pasa por `t()`', () => {
 describe('las medidas del artboard', () => {
   const clases = (el: Element | null | undefined) => (el?.className ?? '').toString().split(/\s+/);
 
+  // `max-[821px]` y `max-[521px]`, y no `max-[820px]`/`max-[520px]`: Tailwind v4 emite `max-[820px]` como
+  // `width < 820px`, que a 820 px justos no aplica y el `max-width: 820px` del artboard si. Lo destapo
+  // el arnes (`e2e/se-ve.spec.ts`: «a 820 px el resumen tiene que ir ENCIMA de los medios»).
   it('dos columnas que a ≤ 820 px son una con el resumen arriba y sin pegar; medios y bancos a una columna a ≤ 520 px', () => {
     montarElPortal({ hash: '#/pagar', estado: { ...EN_PAGAR, medio: 'banco' } });
 
@@ -406,25 +409,25 @@ describe('las medidas del artboard', () => {
         'grid',
         'grid-cols-[minmax(0,1fr)_minmax(0,320px)]',
         'gap-[18px]',
-        'max-[820px]:grid-cols-[minmax(0,1fr)]',
+        'max-[821px]:grid-cols-[minmax(0,1fr)]',
       ]),
     );
     expect(clases(principal().querySelector('[data-resumen]'))).toEqual(
-      expect.arrayContaining(['sticky', 'top-[14px]', 'max-[820px]:static', 'max-[820px]:-order-1']),
+      expect.arrayContaining(['sticky', 'top-[14px]', 'max-[821px]:static', 'max-[821px]:-order-1']),
     );
     expect(clases(principal().querySelector('[data-medios]'))).toEqual(
-      expect.arrayContaining(['grid-cols-[repeat(auto-fit,minmax(218px,1fr))]', 'max-[520px]:grid-cols-[minmax(0,1fr)]']),
+      expect.arrayContaining(['grid-cols-[repeat(auto-fit,minmax(218px,1fr))]', 'max-[521px]:grid-cols-[minmax(0,1fr)]']),
     );
     expect(clases(principal().querySelector('[data-bancos]'))).toEqual(
-      expect.arrayContaining(['grid-cols-[repeat(auto-fit,minmax(186px,1fr))]', 'max-[520px]:grid-cols-[minmax(0,1fr)]']),
+      expect.arrayContaining(['grid-cols-[repeat(auto-fit,minmax(186px,1fr))]', 'max-[521px]:grid-cols-[minmax(0,1fr)]']),
     );
     expect(clases(principal().querySelector('[data-codigo]'))).toEqual(
       expect.arrayContaining([
         'text-[31px]',
         'font-bold',
         'tracking-[0.1em]',
-        'max-[820px]:text-[24px]',
-        'max-[520px]:text-[21px]',
+        'max-[821px]:text-[24px]',
+        'max-[521px]:text-[21px]',
       ]),
     );
   });

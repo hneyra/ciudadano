@@ -43,6 +43,11 @@ import { inicio } from '../recorrido/recorrido.ts';
  *   (`AZUL_TXT`) es `--azul` y su hover (`#F6F9FC`) es `--sup`: ninguno de los tres tiene token propio.
  * · El nombre y el documento del disparador, ocultos a ≤ 880 px en el artboard, pasan a `sr-only`:
  *   la vista es la misma y el boton no se queda con «MC» por todo nombre accesible.
+ * · **«Iniciar sesión» NO desaparece a ≤ 880 px** (nota del revisor del issue 11). El artboard lo
+ *   oculta entero (`data-sm-hide`), y entonces en un celular no hay forma de entrar a la cuenta salvo
+ *   en mitad de un pago. Se queda **solo con su icono**: el texto pasa a `sr-only` —el boton se sigue
+ *   llamando «Iniciar sesión»— y el boton mide 44×44 px, el area tactil minima (WCAG 2.5.5). Lo mide
+ *   `Barra.test.tsx` y, en Chromium a 400 px, `e2e/recorrido-con-sesion.spec.ts`.
  *
  * <h2>«Mis predios y vehículos»</h2>
  *
@@ -57,6 +62,13 @@ import { inicio } from '../recorrido/recorrido.ts';
  * `max-[881px]` y no `max-[880px]`: Tailwind v4 lo emite como `width < 881px`, que es el
  * `max-width: 880px` del artboard.
  */
+/**
+ * «Iniciar sesión» a ≤ 880 px: sin relleno, 44×44 px y el icono en el centro. El texto va aparte, en
+ * `sr-only` a esa anchura. Exportado para que `Barra.test.tsx` lo compare con lo que el boton lleva.
+ */
+export const ICONO_SOLO_EN_EL_CELULAR =
+  'max-[881px]:my-[6px] max-[881px]:size-[44px] max-[881px]:justify-center max-[881px]:gap-0 max-[881px]:px-0';
+
 export function Barra() {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
@@ -154,7 +166,9 @@ export function Barra() {
           onClick={() => despachar({ tipo: 'irA', paso: 'identificar' })}
           className={cn(
             'my-[10px] mr-[18px] flex cursor-pointer items-center gap-[9px] rounded-sm border border-sobre-barra/40 bg-barra-control px-[18px] text-[14px] text-sobre-azul',
-            'hover:bg-barra-hover max-[881px]:hidden',
+            'hover:bg-barra-hover',
+            // A ≤ 880 px, solo el icono en un cuadro de 44 px, centrado en la barra de 56.
+            ICONO_SOLO_EN_EL_CELULAR,
             CONTORNO_DE_FOCO_EN_LA_BARRA,
           )}
         >
@@ -174,7 +188,7 @@ export function Barra() {
             <path d="M15 12H3" />
             <path d="M15 4.5h4.5v15H15" />
           </svg>
-          {t('Iniciar sesión')}
+          <span className="max-[881px]:sr-only">{t('Iniciar sesión')}</span>
         </button>
       )}
     </header>
