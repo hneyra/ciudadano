@@ -52,7 +52,7 @@ async function soloQuedaElRecibo(pagina: Page): Promise<void> {
     'la invitacion a crear cuenta': main.getByRole('heading', { name: 'Guarde este pago en una cuenta' }),
   };
   for (const [que, donde] of Object.entries(loQueNoSeImprime)) {
-    await expect(donde, `${que} sale en el papel`).toBeHidden();
+    await expect(donde, `en el papel sale ${que}`).toBeHidden();
   }
 }
 
