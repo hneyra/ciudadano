@@ -186,3 +186,65 @@ describe('el frontend tiene su propia CI', () => {
     expect(workflow).toMatch(/^\s*path:\s*ciudadano\s*$/m);
   });
 });
+
+/**
+ * **El arnes de Playwright corre en la CI, en su propio trabajo** (issue 11).
+ *
+ * Un arnes que solo corre en la maquina de quien lo escribe se apaga el dia que alguien no lo corre, y
+ * nada se pone rojo. Lo que aqui se vigila es lo que el issue pide del trabajo —que espere a `verificar`,
+ * que tenga su tope de tiempo, que instale Chromium, que corra `yarn e2e` y que suba el informe AUNQUE
+ * falle— y de la configuracion, lo que hace que mida el bundle y no otra cosa.
+ */
+describe('el arnes corre en la CI contra el bundle', () => {
+  const ruta = join(REPOSITORIO, SITIO_DEL_WORKFLOW);
+  const workflow = (existsSync(ruta) ? leer(ruta) : '')
+    .split('\n')
+    .filter((linea) => !linea.trim().startsWith('#'))
+    .join('\n');
+  // El bloque del trabajo: desde `  arnes:` hasta el siguiente trabajo (dos espacios y un nombre) o el final.
+  const trabajo = workflow.match(/^ {2}arnes:\n((?: {4,}.*\n?|\s*\n)*)/m)?.[1] ?? '';
+  const config = existsSync(join(RAIZ, 'playwright.config.ts')) ? leer(join(RAIZ, 'playwright.config.ts')) : '';
+  const scripts = JSON.parse(leer(join(RAIZ, 'package.json'))).scripts as Record<string, string>;
+
+  it('EL CENTINELA: el workflow tiene un trabajo `arnes`', () => {
+    expect(trabajo, 'No hay trabajo `arnes` en el workflow del frontend.').not.toBe('');
+  });
+
+  it('espera a `verificar` y tiene su tope de 20 minutos', () => {
+    expect(trabajo).toMatch(/^\s*needs:\s*verificar\s*$/m);
+    expect(trabajo).toMatch(/^\s*timeout-minutes:\s*20\s*$/m);
+  });
+
+  it('con los dos clones hermanos y el candado', () => {
+    expect(trabajo).toMatch(/^\s*path:\s*ciudadano\s*$/m);
+    expect(trabajo).toMatch(/^\s*repository:\s*hneyra\/kamayuk-lib\s*$/m);
+    expect(trabajo).toMatch(/^\s*path:\s*kamayuk-lib\s*$/m);
+    expect(trabajo).toMatch(/^\s*run:\s*yarn install --frozen-lockfile\s*$/m);
+  });
+
+  it('instala Chromium y corre el arnes, en ese orden', () => {
+    const navegador = trabajo.search(/^\s*run:\s*yarn e2e:navegador\s*$/m);
+    const arnes = trabajo.search(/^\s*run:\s*yarn e2e\s*$/m);
+    expect(navegador, 'el trabajo no instala Chromium').toBeGreaterThanOrEqual(0);
+    expect(arnes, 'el trabajo no corre `yarn e2e`').toBeGreaterThan(navegador);
+  });
+
+  it('y sube el informe SIEMPRE, tambien cuando el arnes falla', () => {
+    expect(trabajo).toMatch(/uses:\s*actions\/upload-artifact@v\d+\s*\n\s*if:\s*always\(\)/);
+    expect(trabajo).toMatch(/^\s*path:\s*ciudadano\/frontend\/playwright-report\/\s*$/m);
+  });
+
+  it('los dos guiones: `e2e` y `e2e:navegador`', () => {
+    expect(scripts['e2e']).toBe('node puerto-del-arnes.mjs && playwright test');
+    expect(scripts['e2e:navegador']).toBe('playwright install chromium');
+  });
+
+  it('la configuracion mide el BUNDLE, en Chromium, de uno en uno y con trazas de lo que falle', () => {
+    expect(config).toContain("testDir: './e2e'");
+    expect(config).toContain('workers: 1');
+    expect(config).toContain("trace: 'retain-on-failure'");
+    expect(config).toContain("devices['Desktop Chrome']");
+    expect(config).toMatch(/command:\s*`yarn build && yarn preview --port \$\{PUERTO\} --strictPort`/);
+    expect(config).toContain("globalSetup: './e2e/el-bundle-servido-es-el-mio.ts'");
+  });
+});

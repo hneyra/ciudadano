@@ -61,6 +61,11 @@ export default tseslint.config(
     ignores: [
       '**/dist/**',
       '**/node_modules/**',
+      // Lo que deja el arnes (issue 11): el informe HTML con el visor de trazas empaquetado, y las
+      // trazas. No se versionan (`.gitignore`), pero estan en el disco: medido, tras una corrida con
+      // un rojo, `yarn lint` —y con el `yarn verificar`— salia con «✖ 3965 problems».
+      '**/playwright-report/**',
+      '**/test-results/**',
       '**/*.config.js',
       '**/*.config.ts',
       // El artboard es un prototipo de Claude Design, no codigo de este repositorio.

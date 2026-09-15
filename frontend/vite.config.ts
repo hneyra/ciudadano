@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 import { LO_QUE_PONE_EL_CONSUMIDOR } from './resolucion.ts';
+import { ningunTrozoPasaDelTope, trozoDeProveedor } from './trozos.ts';
 
 /**
  * El empaquetado de `ciudadano-web`, portado de `rentas/frontend/vite.config.ts`.
@@ -22,8 +23,11 @@ export default defineConfig({
   /**
    * Tailwind **antes** que React, como en `rentas`: el complemento de Tailwind tiene que ver los
    * archivos para saber que clases se usan. Lo vigila `verificaciones/tailwind-esta-conectado.test.ts`.
+   *
+   * El tercero hace FALLAR la construccion si algun trozo de JavaScript pasa de 500 kB (issue 11): el
+   * porque, en `trozos.ts`; que siga puesto, en `verificaciones/ningun-trozo-pasa-de-500-kb.test.ts`.
    */
-  plugins: [tailwind(), react()],
+  plugins: [tailwind(), react(), ningunTrozoPasaDelTope()],
   /**
    * **UNA sola copia de lo que los paquetes enlazados dan por puesto.**
    *
@@ -47,5 +51,13 @@ export default defineConfig({
     outDir: 'dist',
     // Que el bundle se pueda leer al depurarlo importa mas que su tamano, igual que en `rentas`.
     sourcemap: true,
+    // SIN `chunkSizeWarningLimit`: el aviso de los 500 kB se atiende repartiendo el codigo, no subiendo
+    // el liston. Cada pantalla es un `import()` (`src/pasos/pantallas.tsx`) y las dependencias grandes
+    // van por familias a su trozo (`trozos.ts`).
+    rollupOptions: {
+      output: {
+        manualChunks: trozoDeProveedor,
+      },
+    },
   },
 });

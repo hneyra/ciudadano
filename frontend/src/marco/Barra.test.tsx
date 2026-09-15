@@ -3,6 +3,7 @@ import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import i18n, { IDIOMA_MARCADO } from '../i18n/i18n.ts';
 import { limpiarElPortal, marcado, montarElPortal, remendarJsdomParaElMenu } from '../pruebas/portal.tsx';
+import { ICONO_SOLO_EN_EL_CELULAR } from './Barra.tsx';
 
 /**
  * **La barra**: la marca, «Iniciar sesión» sin sesion, y el menu de la sesion con ella.
@@ -45,6 +46,55 @@ describe('la barra sin sesion', () => {
     );
 
     await waitFor(() => expect(window.location.hash).toBe('#/buscar'));
+  });
+});
+
+/**
+ * **A ≤ 880 px, «Iniciar sesión» se queda con su icono** (nota del revisor del issue 11).
+ *
+ * El artboard lo oculta entero (`data-sm-hide`), y en un celular no quedaba forma de entrar a la cuenta
+ * salvo en mitad de un pago. jsdom no aplica CSS, asi que aqui se mide lo que el navegador va a
+ * recibir —el nombre accesible, que clase oculta que, y que nada oculta el boton—; que se VEA a 400 px,
+ * con 44×44 px de area tactil, y que por el se llegue al historial, lo mide
+ * `e2e/recorrido-con-sesion.spec.ts` en Chromium.
+ */
+describe('«Iniciar sesión» a ≤ 880 px', () => {
+  const iniciarSesion = (nombre = 'Iniciar sesión') => within(barra()).getByRole('button', { name: nombre });
+
+  it('se sigue llamando «Iniciar sesión»', () => {
+    montarElPortal();
+    expect(iniciarSesion()).toBeInTheDocument();
+  });
+
+  it('y ese nombre sale del texto, que pasa por `t()`', async () => {
+    await i18n.changeLanguage(IDIOMA_MARCADO);
+    montarElPortal();
+    expect(iniciarSesion(marcado('Iniciar sesión'))).toBeInTheDocument();
+  });
+
+  it('el boton NO se oculta: ninguna de sus clases lo quita a ninguna anchura', () => {
+    montarElPortal();
+    const clases = [...iniciarSesion().classList];
+
+    expect(clases.filter((clase) => /(^|:)(hidden|sr-only|invisible)$/.test(clase))).toEqual([]);
+    expect(clases).toEqual(expect.arrayContaining(ICONO_SOLO_EN_EL_CELULAR.split(' ')));
+  });
+
+  it('a esa anchura mide 44×44 px y lo que se oculta es SOLO el texto, no el icono', () => {
+    montarElPortal();
+    const boton = iniciarSesion();
+
+    // El area tactil: los dos lados, no solo el alto.
+    expect([...boton.classList]).toContain('max-[881px]:size-[44px]');
+
+    const [icono, ...resto] = [...boton.children];
+    expect(icono?.tagName.toLowerCase()).toBe('svg');
+    expect(icono).toHaveAttribute('aria-hidden', 'true');
+    expect(icono?.getAttribute('class') ?? '').not.toMatch(/hidden|sr-only/);
+
+    expect(resto).toHaveLength(1);
+    expect(resto[0]).toHaveTextContent(/^Iniciar sesión$/);
+    expect([...(resto[0]?.classList ?? [])]).toEqual(['max-[881px]:sr-only']);
   });
 });
 

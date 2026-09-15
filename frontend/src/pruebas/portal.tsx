@@ -6,6 +6,7 @@ import { Aplicacion } from '../aplicacion.tsx';
 import { FuenteActiva, type FuenteDelPortal, fuenteDeDemostracion } from '../datos/fuente.ts';
 import { type Enrutador, crearEnrutador } from '../enrutador.tsx';
 import i18n, { ABRE, CIERRA, IDIOMA_POR_OMISION } from '../i18n/i18n.ts';
+import { precargarLasPantallas } from '../pasos/pantallas.tsx';
 import { ESTADO_INICIAL, type EstadoDelRecorrido } from '../recorrido/recorrido.ts';
 
 /**
@@ -19,6 +20,24 @@ import { ESTADO_INICIAL, type EstadoDelRecorrido } from '../recorrido/recorrido.
  */
 
 const montados: Enrutador[] = [];
+
+/**
+ * **Las seis pantallas, cargadas ANTES de montar nada** (issue 11).
+ *
+ * Desde que cada pantalla es un trozo del bundle (`src/pasos/pantallas.tsx`), el portal recien montado
+ * dibuja el hueco de `Suspense` y la pantalla llega un turno despues. Las pruebas que preguntan
+ * `getByRole` justo tras montar ya no la encontrarian, y esperar en cada una seria cambiar lo que
+ * miden. Precargadas, `lazy` las dibuja en el mismo render, como antes del reparto.
+ *
+ * AQUI, con `await` de nivel superior, y no en `vitest.setup.ts`: los `vi.mock` de una prueba (las de
+ * `*.cuentas.test.tsx` sustituyen `src/datos/cuentas.ts`) se aplican a lo que ella importa. Precargado
+ * desde la configuracion, el modulo de la pantalla llegaria antes que el `vi.mock` y con las cuentas de
+ * verdad: esas pruebas seguirian en verde sin medir nada.
+ *
+ * Lo que esto deja de ver —el hueco mientras el trozo llega— lo mide `src/pasos/pantallas.test.tsx`
+ * con una pantalla perezosa no precargada, y en el navegador, contra el bundle, el arnes.
+ */
+await precargarLasPantallas();
 
 export interface ComoMontar {
   readonly hash?: string;

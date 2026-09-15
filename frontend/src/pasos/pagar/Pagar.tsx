@@ -59,8 +59,10 @@ import { ejemploSeTraduce } from './textosDeLosMedios.ts';
  *   (que es `--info-fondo`, el papel de los avisos informativos). Los grises sin token —la caja del
  *   icono, las cabeceras y los filos del resumen, el hover del boton verde— van con su porque en la
  *   tabla de la paleta.
- * · **Los `@media` de 820 y 520 px son variantes `max-[…]:`** de Tailwind y no reglas por
- *   `data-pagar` en `src/estilos.css`: el mismo corte, escrito donde se lee.
+ * · **Los `@media` de 820 y 520 px son variantes `max-[821px]:` y `max-[521px]:`** de Tailwind y no
+ *   reglas por `data-pagar` en `src/estilos.css`: el mismo corte, escrito donde se lee. Con un pixel
+ *   mas, porque Tailwind v4 emite `max-[820px]` como `width < 820px`: a 820 px justos no aplicaba y el
+ *   `max-width: 820px` del artboard si. Lo destapo el arnes (issue 11, `e2e/se-ve.spec.ts`).
  * · **Sin nada que pagar**, lo de arriba.
  */
 
@@ -192,7 +194,7 @@ function CodigoDelMedio({ medio }: { readonly medio: MedioDePago }) {
         </p>
         <p
           data-codigo=""
-          className="mt-2 mb-0 text-[31px] font-bold tracking-[0.1em] text-azul tabular-nums wrap-anywhere max-[820px]:text-[24px] max-[820px]:tracking-[0.04em] max-[520px]:text-[21px]"
+          className="mt-2 mb-0 text-[31px] font-bold tracking-[0.1em] text-azul tabular-nums wrap-anywhere max-[821px]:text-[24px] max-[821px]:tracking-[0.04em] max-[521px]:text-[21px]"
         >
           {medio.codigo}
         </p>
@@ -228,7 +230,7 @@ function Bancos({ medio }: { readonly medio: MedioDePago }) {
       <ul
         aria-labelledby={idDelTitulo}
         data-bancos=""
-        className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(186px,1fr))] border border-linea p-0 max-[520px]:grid-cols-[minmax(0,1fr)]"
+        className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(186px,1fr))] border border-linea p-0 max-[521px]:grid-cols-[minmax(0,1fr)]"
       >
         {bancos.map((banco, i) => (
           <li key={banco.nombre} className={cn('px-[15px] py-[13px]', i === 0 ? null : 'border-t border-linea-2')}>
@@ -340,7 +342,7 @@ function Resumen() {
     <section
       aria-labelledby={idDelTitulo}
       data-resumen=""
-      className="sticky top-[14px] border border-linea bg-superficie max-[820px]:static max-[820px]:-order-1"
+      className="sticky top-[14px] border border-linea bg-superficie max-[821px]:static max-[821px]:-order-1"
     >
       <div className="border-b border-linea-2 bg-sup px-[18px] py-[14px]">
         <h2 id={idDelTitulo} className="m-0 text-[15.5px] font-bold">
@@ -418,7 +420,7 @@ export function Pagar() {
   return (
     <div
       data-pagar=""
-      className="grid grid-cols-[minmax(0,1fr)_minmax(0,320px)] items-start gap-[18px] max-[820px]:grid-cols-[minmax(0,1fr)]"
+      className="grid grid-cols-[minmax(0,1fr)_minmax(0,320px)] items-start gap-[18px] max-[821px]:grid-cols-[minmax(0,1fr)]"
     >
       <div className="min-w-0">
         <h1 className="m-0 mb-[6px] text-[24px] font-bold text-pretty text-azul">{t('¿Cómo quiere pagar?')}</h1>
@@ -430,7 +432,7 @@ export function Pagar() {
 
         <div
           data-medios=""
-          className="mb-[18px] grid grid-cols-[repeat(auto-fit,minmax(218px,1fr))] gap-3 max-[520px]:grid-cols-[minmax(0,1fr)]"
+          className="mb-[18px] grid grid-cols-[repeat(auto-fit,minmax(218px,1fr))] gap-3 max-[521px]:grid-cols-[minmax(0,1fr)]"
         >
           {MEDIOS.map((m) => (
             <BotonDeMedio key={m.id} medio={m} />
