@@ -7,12 +7,14 @@ import {
   type EstadoDelRecorrido,
   PASOS_NUMERADOS,
   cuenta,
+  cuentaPorPagar,
   destinoAlEntrar,
   destinoAlPagar,
   hayQuePagar,
   inicio,
   pasoAlcanzable,
   pendientes,
+  porPagar,
   recorrido,
   resumen,
   seleccion,
@@ -120,6 +122,29 @@ describe('confirmarPago', () => {
     const vacio = tras([{ tipo: 'marcarTodo' }, { tipo: 'irA', paso: 'pagar' }]);
     expect(seleccion(vacio)).toEqual([]);
     expect(recorrido(vacio, { tipo: 'confirmarPago' })).toBe(vacio);
+  });
+
+  it('sin busqueda no sella nada, aunque `marcadas` traiga lo marcado por omision (issue 8)', () => {
+    // «Iniciar sesión» → «Mis datos» → «Solo con mi correo» llega a pagar sin haber buscado.
+    const sinBuscar = tras([
+      { tipo: 'irA', paso: 'identificar' },
+      { tipo: 'continuarConCorreo', correo: 'ana@correo.pe', avisarVencimiento: true },
+    ]);
+    expect(sinBuscar.paso).toBe('pagar');
+    expect(ids(seleccion(sinBuscar))).toEqual(ids(DEUDAS));
+    expect(porPagar(sinBuscar)).toEqual([]);
+    expect(cuentaPorPagar(sinBuscar).conAmnistia).toBe('0.00');
+    expect(recorrido(sinBuscar, { tipo: 'confirmarPago' })).toBe(sinBuscar);
+  });
+
+  it('`porPagar` es la seleccion viva cuando se busco, y `cuentaPorPagar` su cuenta', () => {
+    const conBusqueda = tras([
+      { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' },
+      { tipo: 'alternar', id: 'arb26' },
+    ]);
+    expect(porPagar(conBusqueda)).toEqual(seleccion(conBusqueda));
+    expect(cuentaPorPagar(conBusqueda)).toStrictEqual(cuenta(conBusqueda));
+    expect(cuentaPorPagar(conBusqueda).conAmnistia).toBe('2858.32');
   });
 });
 
