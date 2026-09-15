@@ -68,9 +68,27 @@ function remendarRequest(): void {
   globalThis.Request = SinSenalAjena;
 }
 
+/**
+ * jsdom tampoco trae `ResizeObserver`, y `Checkbox` de Radix lo pide en cuanto la casilla esta DENTRO
+ * de un `<form>`: entonces dibuja un `<input>` oculto que sigue su tamano (`useSize`) para que el
+ * formulario lo envie. Fuera de un formulario, como en el paso 2, no se llama. Medido con la casilla de
+ * aviso de «Mis datos» (issue 7): «ReferenceError: ResizeObserver is not defined» y la pantalla
+ * entera sustituida por el `ErrorBoundary` del enrutador. Es el mismo remiendo que
+ * `piezas-del-armazon.test.tsx` de `@kamayuk/ui`: nadie mide nada, y no hay nada que medir.
+ */
+function remendarResizeObserver(): void {
+  if (typeof globalThis.ResizeObserver === 'function') return;
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+}
+
 export function montarElPortal({ hash = '#/buscar', estado = {} }: ComoMontar = {}) {
   remendarMatchMedia();
   remendarRequest();
+  remendarResizeObserver();
   window.history.replaceState(null, '', `/${hash}`);
   const enrutador = crearEnrutador();
   montados.push(enrutador);

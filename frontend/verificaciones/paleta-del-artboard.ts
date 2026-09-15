@@ -1,3 +1,4 @@
+import { canalesDe } from './contraste.ts';
 import { reglasDe } from './tailwind.ts';
 
 /**
@@ -56,6 +57,11 @@ export interface SinToken {
    * calcula en la prueba en vez de creerse.
    */
   readonly noLlegaA?: { readonly contra: string; readonly umbral: number };
+  /**
+   * Si la razon es «es el mas cercano», se calcula: `seSustituyePor` tiene que estar entre los tokens
+   * opacos de la identidad a menor distancia del valor del artboard (`distanciaDeColor`).
+   */
+  readonly esElMasCercano?: true;
 }
 
 export interface Correspondencia {
@@ -208,4 +214,45 @@ export function discrepancias(
     }
   }
   return salida;
+}
+
+/**
+ * **La distancia entre dos colores como se VEN**: la euclidea en CIELAB (ΔE*76), sobre `#rrggbb`.
+ *
+ * No la de los canales RGB: esa mide cuanto se parecen los numeros, y dos colores a la misma
+ * distancia en RGB pueden verse muy distintos. Con ΔE*76 una diferencia de 2-3 apenas se nota y a
+ * partir de ~50 son colores distintos; basta para ordenar «cual se parece mas», que es lo que se pide.
+ */
+export function distanciaDeColor(uno: string, otro: string): number {
+  const [l1, a1, b1] = lab(uno);
+  const [l2, a2, b2] = lab(otro);
+  return Math.hypot(l1 - l2, a1 - a2, b1 - b2);
+}
+
+/** sRGB (D65) -> CIELAB. */
+function lab(color: string): readonly [number, number, number] {
+  const [r, g, b] = canalesDe(color).map((canal) => {
+    const c = canal / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  }) as [number, number, number];
+  const x = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047;
+  const y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  const z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883;
+  const f = (t: number) => (t > 216 / 24389 ? Math.cbrt(t) : (24389 / 27 * t + 16) / 116);
+  return [116 * f(y) - 16, 500 * (f(x) - f(y)), 200 * (f(y) - f(z))];
+}
+
+/**
+ * Los tokens OPACOS de la paleta mas cercanos a `valor`, con su distancia. Varios si empatan: `clasico`
+ * repite valores (`--mal-tinta` y `--mal-borde` son el mismo `#a94442`).
+ */
+export function masCercanos(
+  valor: string,
+  paleta: ReadonlyMap<string, string>,
+): { readonly tokens: readonly string[]; readonly distancia: number } {
+  const opacos = [...paleta]
+    .filter(([nombre, v]) => nombre.startsWith('--color-') && /^#[0-9a-f]{6}$/.test(normalizar(v)))
+    .map(([nombre, v]) => [nombre, distanciaDeColor(normalizar(valor), normalizar(v))] as const);
+  const distancia = Math.min(...opacos.map(([, d]) => d));
+  return { tokens: opacos.filter(([, d]) => d === distancia).map(([n]) => n), distancia };
 }
