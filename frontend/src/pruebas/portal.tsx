@@ -1,7 +1,9 @@
 import { avisar } from '@kamayuk/ui';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
 
 import { Aplicacion } from '../aplicacion.tsx';
+import { FuenteActiva, type FuenteDelPortal, fuenteDeDemostracion } from '../datos/fuente.ts';
 import { type Enrutador, crearEnrutador } from '../enrutador.tsx';
 import i18n, { ABRE, CIERRA, IDIOMA_POR_OMISION } from '../i18n/i18n.ts';
 import { ESTADO_INICIAL, type EstadoDelRecorrido } from '../recorrido/recorrido.ts';
@@ -21,6 +23,8 @@ const montados: Enrutador[] = [];
 export interface ComoMontar {
   readonly hash?: string;
   readonly estado?: Partial<EstadoDelRecorrido>;
+  /** De donde leen las pantallas (issue 10). Por omision, la de demostracion, como en `main.tsx`. */
+  readonly fuente?: FuenteDelPortal;
 }
 
 /**
@@ -85,14 +89,26 @@ function remendarResizeObserver(): void {
   } as unknown as typeof ResizeObserver;
 }
 
-export function montarElPortal({ hash = '#/buscar', estado = {} }: ComoMontar = {}) {
+/**
+ * El portal, con su propio cliente de consultas (`main.tsx` pone uno; la prueba, el suyo). Uno NUEVO en
+ * cada montaje: con uno compartido, los pagos que una prueba leyo llegarian ya leidos a la siguiente, y
+ * «mientras llegan» y «si fallan» no se podrian medir.
+ */
+export function montarElPortal({ hash = '#/buscar', estado = {}, fuente = fuenteDeDemostracion }: ComoMontar = {}) {
   remendarMatchMedia();
   remendarRequest();
   remendarResizeObserver();
   window.history.replaceState(null, '', `/${hash}`);
   const enrutador = crearEnrutador();
   montados.push(enrutador);
-  const utilidades = render(<Aplicacion enrutador={enrutador} inicial={{ ...ESTADO_INICIAL, ...estado }} />);
+  const consultas = new QueryClient();
+  const utilidades = render(
+    <QueryClientProvider client={consultas}>
+      <FuenteActiva value={fuente}>
+        <Aplicacion enrutador={enrutador} inicial={{ ...ESTADO_INICIAL, ...estado }} />
+      </FuenteActiva>
+    </QueryClientProvider>,
+  );
   return { ...utilidades, enrutador };
 }
 

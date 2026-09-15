@@ -52,6 +52,16 @@ export function textosDelMedio(medio: MedioDePago): readonly string[] {
   ];
 }
 
+/**
+ * El rotulo de un medio por su id, SIN traducir: lo que dicen del medio de un pago sellado el
+ * comprobante y la fila del pago reciente del historial, que lo pasan por `t()`.
+ */
+export function rotuloDelMedio(id: MedioDePago['id']): string {
+  const medio = MEDIOS.find((m) => m.id === id);
+  if (medio === undefined) throw new Error(`MEDIOS no trae el medio «${id}».`);
+  return medio.rotulo;
+}
+
 /** Todas las claves de los cuatro medios, sin repetidos. Las lee `el-locale-esta-completo.test.ts`. */
 export function clavesDeLosMedios(): readonly string[] {
   return [...new Set(MEDIOS.flatMap(textosDelMedio))];

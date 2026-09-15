@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { clavesDelHistorial } from '../src/pasos/historial/textosDelHistorial.ts';
 import { clavesDeLosMedios } from '../src/pasos/pagar/textosDeLosMedios.ts';
 import { RAIZ } from './artboards.ts';
 
@@ -113,8 +114,8 @@ const LITERALES = [
   // El rotulo accesible de la region de avisos. No esta en el artboard (alli el aviso es un
   // `role="status"` sin nombre); es la palabra de `TEXTOS_DE_LA_UI.avisos` de `@kamayuk/ui`, traducida.
   'Avisos',
-  // Los titulos de cada paso: lineas 126, 224, 314, 360, 1276 y 570. El primero es ya el `h1` de la
-  // pantalla de buscar (issue 5); los demas, de los marcadores hasta que lleguen las suyas (6-10).
+  // Los titulos de cada paso: lineas 126, 224, 314, 360, 1276 y 570. Cada uno es el `h1` de su pantalla
+  // (issues 5-10); «Mis pagos», el del historial, ya esta arriba.
   'Consulte y pague sus tributos',
   'Lo que debe, por concepto',
   '¿A dónde le enviamos el comprobante?',
@@ -282,6 +283,41 @@ const LITERALES = [
   'Si crea una cuenta con {{correo}}, este comprobante y los anteriores quedan guardados: no tendrá que volver a buscarlos.',
   'Crear mi cuenta',
 
+  // ── Mis pagos (issue 10) ────────────────────────────────────────────────────────────────────
+  // Linea 571: la entrada bajo el titulo («Mis pagos» ya esta arriba, en el menu).
+  'Todos sus pagos, con sus comprobantes. Abajo está lo que le queda pendiente.',
+  // Lineas 1332-1335: la banda del pago reciente. El importe, el medio y los numeros son del sello y
+  // entran por su hueco; sin correo, «su correo».
+  'Pago de {{importe}} registrado hoy',
+  'Operación {{operacion}} · {{medio}} · comprobante {{numero}}, enviado a {{destino}}',
+  'Ver el comprobante',
+  // Lineas 586 y 1338-1344: «Pagos realizados», sus columnas («Concepto», «Comprobante» e «Importe S/» ya
+  // estan en el paso 5), el boton de cada fila con su nombre accesible y su aviso, y la nota (610).
+  'Pagos realizados',
+  'Fecha',
+  'Medio',
+  'Comprobante {{numero}}',
+  'Se descargaría el comprobante {{numero}}.',
+  'Un pago aplicado ya descontó la cuota. Si pagó y la deuda sigue apareciendo, traiga el comprobante: se resuelve el mismo día.',
+  // No esta en el artboard: la fuente de los pagos o de las unidades no contesta.
+  'No pudimos traer sus pagos. Vuelva a intentarlo en unos minutos.',
+  'No pudimos traer sus predios y vehículos. Vuelva a intentarlo en unos minutos.',
+  // Lineas 615-638 y 1349-1371: lo pendiente, sin deuda y con ella. El aviso de la constancia ya esta en
+  // el paso 2.
+  'Lo que queda pendiente',
+  'Sin deuda pendiente',
+  'No le queda nada pendiente',
+  'Puede pedir su constancia de no adeudo',
+  'Al día',
+  'Puede pagar todo o elegir solo algunos conceptos.',
+  'Pagar lo pendiente',
+  'No le queda nada pendiente. Puede pedir su constancia de no adeudo, que acredita que está al día.',
+  'Pedir mi constancia',
+  // Lineas 645-646 y 668: «De dónde sale lo que paga». Lo que dice cada unidad entra derivado, abajo.
+  'De dónde sale lo que paga',
+  'Sus predios y vehículos, con los datos sobre los que se calcula cada tributo. Si algo no coincide con la realidad, puede pedir que se rectifique.',
+  'El autovalúo lo determina Catastro con el arancel de su calle y los valores unitarios del año; la deuda y las cuotas las lleva Rentas; los pagos se registran en Caja.',
+
   // Los plurales: cada forma que i18next pide para `es` (`_one`, `_many`, `_other`). Lo que dice
   // cada una esta en `PLURALES`.
   ...Object.keys(PLURALES_DEL_PASO_2),
@@ -289,6 +325,8 @@ const LITERALES = [
 
   // Lo que dicen los cuatro medios de pago (issue 8), derivado del dato.
   ...clavesDeLosMedios(),
+  // Lo que dicen los pagos anteriores y las unidades del historial (issue 10), derivado del dato.
+  ...clavesDelHistorial(),
 ];
 
 /** Lo que tiene que decir cada forma plural, con el mecanismo de `rentas`. */
@@ -317,6 +355,10 @@ describe('el locale `es` esta completo y no se aparta', () => {
     // que el resto de la lista lo notara.
     expect(Object.keys(esperado), 'la lista no trae lo que dicen los medios de pago').toEqual(
       expect.arrayContaining(['Pagar con tarjeta', 'Los tres dígitos del reverso', 'Ya pagué en el banco']),
+    );
+    // Y la derivada de `HISTORIAL` y `UNIDADES` (issue 10), por lo mismo.
+    expect(Object.keys(esperado), 'la lista no trae lo que dicen los pagos y las unidades').toEqual(
+      expect.arrayContaining(['BCP con código', '8.20 m de frontis', 'Base imponible']),
     );
   });
 

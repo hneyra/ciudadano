@@ -8,6 +8,7 @@ import {
   avisar,
   cn,
 } from '@kamayuk/ui';
+import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import escudo from '../../diseno/escudo-catacaos.png';
@@ -43,12 +44,24 @@ import { inicio } from '../recorrido/recorrido.ts';
  * · El nombre y el documento del disparador, ocultos a ≤ 880 px en el artboard, pasan a `sr-only`:
  *   la vista es la misma y el boton no se queda con «MC» por todo nombre accesible.
  *
+ * <h2>«Mis predios y vehículos»</h2>
+ *
+ * Lleva al mismo `#/historial` que «Mis pagos», como el artboard (lineas 1052-1053), pero pidiendo al
+ * historial que deje el foco en «De dónde sale lo que paga» (`verPrediosYVehiculos`, issue 10).
+ *
+ * El pedido sale **cuando el menu ya se cerro** (`onCloseAutoFocus`), y no al elegir la opcion. Mientras
+ * esta abierto, el menu de Radix atrapa el foco: medido estando ya en el historial, el titulo enfocado
+ * al elegir lo perdia y el foco acababa en `body`. Y al cerrarse, Radix devuelve el foco a su disparador;
+ * esa vez no se le deja, o se lo quitaria a la seccion.
+ *
  * `max-[881px]` y no `max-[880px]`: Tailwind v4 lo emite como `width < 881px`, que es el
  * `max-width: 880px` del artboard.
  */
 export function Barra() {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
+  // Se lee cuando el menu ya se cerro: un `ref`, y no el estado de un dibujo que ya no es el ultimo.
+  const elFocoVaALasUnidades = useRef(false);
 
   return (
     <header data-noprint="1" className="relative z-[79] flex flex-wrap items-stretch bg-azul text-sobre-azul">
@@ -92,7 +105,15 @@ export function Barra() {
             </span>
             <Icono nombre="chevronAbajo" tamano={12} grosor={2.6} />
           </DisparadorDelMenu>
-          <ListaDelMenu className="w-[min(270px,calc(100vw-24px))]">
+          <ListaDelMenu
+            className="w-[min(270px,calc(100vw-24px))]"
+            onCloseAutoFocus={(evento) => {
+              if (!elFocoVaALasUnidades.current) return;
+              elFocoVaALasUnidades.current = false;
+              evento.preventDefault();
+              despachar({ tipo: 'verPrediosYVehiculos' });
+            }}
+          >
             <div className="border-b border-linea-2 px-4 py-3 text-left">
               <p className="m-0 text-[14px] font-bold text-tinta">{USUARIO.nombre}</p>
               <p className="mt-[3px] mb-0 text-[12.5px] text-tinta-3">
@@ -103,7 +124,13 @@ export function Barra() {
             <OpcionDelMenu className="px-4 py-3 text-[14.5px]" onSelect={() => despachar({ tipo: 'irA', paso: 'historial' })}>
               {t('Mis pagos')}
             </OpcionDelMenu>
-            <OpcionDelMenu className="px-4 py-3 text-[14.5px]" onSelect={() => despachar({ tipo: 'irA', paso: 'historial' })}>
+            <OpcionDelMenu
+              className="px-4 py-3 text-[14.5px]"
+              onSelect={() => {
+                elFocoVaALasUnidades.current = true;
+                despachar({ tipo: 'irA', paso: 'historial' });
+              }}
+            >
               {t('Mis predios y vehículos')}
             </OpcionDelMenu>
             <OpcionDelMenu className="px-4 py-3 text-[14.5px]" onSelect={() => avisar(t('Abriría el cambio de clave.'))}>

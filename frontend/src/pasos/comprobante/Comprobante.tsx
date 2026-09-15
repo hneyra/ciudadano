@@ -15,9 +15,10 @@ import { useTranslation } from 'react-i18next';
 
 import escudo from '../../../diseno/escudo-catacaos.png';
 import { cifraSinSimbolo, conAmnistiaDe } from '../../datos/cuentas.ts';
-import { CONTRIBUYENTE, MEDIOS, ORDENANZA } from '../../datos/demostracion.ts';
+import { CONTRIBUYENTE, ORDENANZA } from '../../datos/demostracion.ts';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
 import { type PagoSellado, conceptosDelPago, vivas } from '../../recorrido/recorrido.ts';
+import { rotuloDelMedio } from '../pagar/textosDeLosMedios.ts';
 
 /**
  * **Paso 5 · Comprobante** (`diseno/Ciudadano.dc.html`: plantilla 477-565, `@media` 29-44, `print`
@@ -87,9 +88,7 @@ function Meta({ rotulo, children }: { readonly rotulo: string; readonly children
 /** El rotulo con que se dice el medio del sello, traducido (los textos de `MEDIOS` son del locale). */
 function useRotuloDelMedio(pago: PagoSellado): string {
   const { t } = useTranslation();
-  const medio = MEDIOS.find((m) => m.id === pago.medio);
-  if (medio === undefined) throw new Error(`MEDIOS no trae el medio «${pago.medio}».`);
-  return t(medio.rotulo);
+  return t(rotuloDelMedio(pago.medio));
 }
 
 /** La banda verde de exito, que no se imprime (lineas 480-489 y 1276-1279). */
