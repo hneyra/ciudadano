@@ -244,10 +244,16 @@ test.describe('los puntos de corte del artboard', () => {
     await expect(botones).toHaveCount(3);
     const filas = () => botones.evaluateAll((nodos) => new Set(nodos.map((n) => Math.round(n.getBoundingClientRect().top))).size);
 
+    const direccion = () => acciones.evaluate((nodo) => getComputedStyle(nodo).flexDirection);
+
     await page.setViewportSize({ width: 701, height: 900 });
     expect(await filas(), 'a 701 px «Descargar comprobante» e «Imprimir» van en la misma fila').toBeLessThan(3);
+    expect(await direccion()).toBe('row');
 
     await page.setViewportSize({ width: 700, height: 900 });
+    // La regla del artboard es `flex-direction: column`, y se mide ELLA: los botones a lo ancho, que
+    // tambien pide, ya bajan de fila por si solos con `flex-wrap`, y con eso solo esta prueba seguia verde.
+    expect(await direccion(), 'a 700 px las acciones no van en columna').toBe('column');
     expect(await filas(), 'a 700 px cada accion va en su fila').toBe(3);
     const anchoDeLasAcciones = (await acciones.boundingBox())!.width;
     for (const boton of await botones.all()) {
