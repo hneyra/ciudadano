@@ -1,0 +1,554 @@
+{
+ "artboard-con-seleccion-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": 3,
+  "rejilla": {
+   "columnas": "501px 501px 0px",
+   "hueco": "18px"
+  },
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "parrafo": {
+   "texto": "Va a pagar S/ 3,149.92. Necesitamos un correo para enviarle el comprobante. Si tiene cuenta, entre y le guardamos el pago en su historial.",
+   "tam": "16px",
+   "color": "rgb(85, 85, 85)"
+  },
+  "tarjetaCorreo": {
+   "caja": "501x400.13",
+   "filo": "3px rgb(61, 126, 183)",
+   "relleno": "22px 22px 24px"
+  },
+  "tarjetaCuenta": {
+   "caja": "501x400.13",
+   "filo": "3px rgb(166, 9, 61)",
+   "relleno": "22px 22px 24px"
+  },
+  "campoCorreo": {
+   "caja": "455x44",
+   "filo": "rgb(204, 204, 204)",
+   "papel": "rgb(255, 255, 255)",
+   "tam": "15px"
+  },
+  "documento": {
+   "caja": "455x44",
+   "filo": "rgb(204, 204, 204)",
+   "papel": "rgb(255, 255, 255)"
+  },
+  "casilla": "19x19",
+  "continuar": {
+   "caja": "455x48",
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "entrar": {
+   "caja": "455x48",
+   "fondo": "rgb(255, 255, 255)",
+   "tinta": "rgb(13, 95, 168)",
+   "filo": "rgb(13, 95, 168)"
+  },
+  "errores": []
+ },
+ "portal-con-seleccion-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": 3,
+  "rejilla": {
+   "columnas": "501px 501px 0px",
+   "hueco": "18px"
+  },
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "parrafo": {
+   "texto": "Va a pagar S/ 3,149.92. Necesitamos un correo para enviarle el comprobante. Si tiene cuenta, entre y le guardamos el pago en su historial.",
+   "tam": "16px",
+   "color": "rgb(85, 85, 85)"
+  },
+  "tarjetaCorreo": {
+   "caja": "501x402.13",
+   "filo": "3px rgb(13, 95, 168)",
+   "relleno": "22px 22px 24px"
+  },
+  "tarjetaCuenta": {
+   "caja": "501x402.13",
+   "filo": "3px rgb(169, 68, 66)",
+   "relleno": "22px 22px 24px"
+  },
+  "campoCorreo": {
+   "caja": "455x44.5",
+   "filo": "rgb(204, 204, 204)",
+   "papel": "rgb(255, 255, 255)",
+   "tam": "15px"
+  },
+  "documento": {
+   "caja": "455x44.5",
+   "filo": "rgb(204, 204, 204)",
+   "papel": "rgb(255, 255, 255)"
+  },
+  "casilla": "19x19",
+  "continuar": {
+   "caja": "455x48",
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "entrar": {
+   "caja": "455x48",
+   "fondo": "rgb(255, 255, 255)",
+   "tinta": "rgb(13, 95, 168)",
+   "filo": "rgb(13, 95, 168)"
+  },
+  "errores": []
+ },
+ "artboard-con-errores-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": 3,
+  "rejilla": {
+   "columnas": "501px 501px 0px",
+   "hueco": "18px"
+  },
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "parrafo": {
+   "texto": "Va a pagar S/ 3,149.92. Necesitamos un correo para enviarle el comprobante. Si tiene cuenta, entre y le guardamos el pago en su historial.",
+   "tam": "16px",
+   "color": "rgb(85, 85, 85)"
+  },
+  "tarjetaCorreo": {
+   "caja": "501x428.38",
+   "filo": "3px rgb(61, 126, 183)",
+   "relleno": "22px 22px 24px"
+  },
+  "tarjetaCuenta": {
+   "caja": "501x428.38",
+   "filo": "3px rgb(166, 9, 61)",
+   "relleno": "22px 22px 24px"
+  },
+  "campoCorreo": {
+   "caja": "455x44",
+   "filo": "rgb(169, 68, 66)",
+   "papel": "rgb(255, 249, 249)",
+   "tam": "15px"
+  },
+  "documento": {
+   "caja": "455x44",
+   "filo": "rgb(204, 204, 204)",
+   "papel": "rgb(255, 255, 255)"
+  },
+  "casilla": "19x19",
+  "continuar": {
+   "caja": "455x48",
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "entrar": {
+   "caja": "455x48",
+   "fondo": "rgb(255, 255, 255)",
+   "tinta": "rgb(13, 95, 168)",
+   "filo": "rgb(13, 95, 168)"
+  },
+  "errores": [
+   {
+    "texto": "Ese correo no parece completo. Revíselo: le enviaremos el comprobante ahí.",
+    "color": "rgb(169, 68, 66)",
+    "tam": "13.5px"
+   },
+   {
+    "texto": "Escriba su documento y su clave para entrar.",
+    "color": "rgb(169, 68, 66)",
+    "tam": "13.5px"
+   }
+  ]
+ },
+ "portal-con-errores-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": 3,
+  "rejilla": {
+   "columnas": "501px 501px 0px",
+   "hueco": "18px"
+  },
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "parrafo": {
+   "texto": "Va a pagar S/ 3,149.92. Necesitamos un correo para enviarle el comprobante. Si tiene cuenta, entre y le guardamos el pago en su historial.",
+   "tam": "16px",
+   "color": "rgb(85, 85, 85)"
+  },
+  "tarjetaCorreo": {
+   "caja": "501x430.38",
+   "filo": "3px rgb(13, 95, 168)",
+   "relleno": "22px 22px 24px"
+  },
+  "tarjetaCuenta": {
+   "caja": "501x430.38",
+   "filo": "3px rgb(169, 68, 66)",
+   "relleno": "22px 22px 24px"
+  },
+  "campoCorreo": {
+   "caja": "455x44.5",
+   "filo": "rgb(169, 68, 66)",
+   "papel": "rgb(255, 249, 249)",
+   "tam": "15px"
+  },
+  "documento": {
+   "caja": "455x44.5",
+   "filo": "rgb(169, 68, 66)",
+   "papel": "rgb(255, 249, 249)"
+  },
+  "casilla": "19x19",
+  "continuar": {
+   "caja": "455x48",
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "entrar": {
+   "caja": "455x48",
+   "fondo": "rgb(255, 255, 255)",
+   "tinta": "rgb(13, 95, 168)",
+   "filo": "rgb(13, 95, 168)"
+  },
+  "errores": [
+   {
+    "texto": "Ese correo no parece completo. Revíselo: le enviaremos el comprobante ahí.",
+    "color": "rgb(169, 68, 66)",
+    "tam": "13.5px"
+   },
+   {
+    "texto": "Escriba su documento y su clave para entrar.",
+    "color": "rgb(169, 68, 66)",
+    "tam": "13.5px"
+   }
+  ]
+ },
+ "artboard-con-seleccion-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": 1,
+  "rejilla": {
+   "columnas": "364px",
+   "hueco": "18px"
+  },
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "parrafo": {
+   "texto": "Va a pagar S/ 3,149.92. Necesitamos un correo para enviarle el comprobante. Si tiene cuenta, entre y le guardamos el pago en su historial.",
+   "tam": "16px",
+   "color": "rgb(85, 85, 85)"
+  },
+  "tarjetaCorreo": {
+   "caja": "364x363.31",
+   "filo": "3px rgb(61, 126, 183)",
+   "relleno": "22px 22px 24px"
+  },
+  "tarjetaCuenta": {
+   "caja": "364x423.31",
+   "filo": "3px rgb(166, 9, 61)",
+   "relleno": "22px 22px 24px"
+  },
+  "campoCorreo": {
+   "caja": "318x44",
+   "filo": "rgb(204, 204, 204)",
+   "papel": "rgb(255, 255, 255)",
+   "tam": "15px"
+  },
+  "documento": {
+   "caja": "318x44",
+   "filo": "rgb(204, 204, 204)",
+   "papel": "rgb(255, 255, 255)"
+  },
+  "casilla": "19x19",
+  "continuar": {
+   "caja": "318x48",
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "entrar": {
+   "caja": "318x48",
+   "fondo": "rgb(255, 255, 255)",
+   "tinta": "rgb(13, 95, 168)",
+   "filo": "rgb(13, 95, 168)"
+  },
+  "errores": []
+ },
+ "portal-con-seleccion-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": 1,
+  "rejilla": {
+   "columnas": "364px",
+   "hueco": "18px"
+  },
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "parrafo": {
+   "texto": "Va a pagar S/ 3,149.92. Necesitamos un correo para enviarle el comprobante. Si tiene cuenta, entre y le guardamos el pago en su historial.",
+   "tam": "16px",
+   "color": "rgb(85, 85, 85)"
+  },
+  "tarjetaCorreo": {
+   "caja": "364x370.31",
+   "filo": "3px rgb(13, 95, 168)",
+   "relleno": "22px 22px 24px"
+  },
+  "tarjetaCuenta": {
+   "caja": "364x425.31",
+   "filo": "3px rgb(169, 68, 66)",
+   "relleno": "22px 22px 24px"
+  },
+  "campoCorreo": {
+   "caja": "318x44.5",
+   "filo": "rgb(204, 204, 204)",
+   "papel": "rgb(255, 255, 255)",
+   "tam": "15px"
+  },
+  "documento": {
+   "caja": "318x44.5",
+   "filo": "rgb(204, 204, 204)",
+   "papel": "rgb(255, 255, 255)"
+  },
+  "casilla": "19x19",
+  "continuar": {
+   "caja": "318x48",
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "entrar": {
+   "caja": "318x48",
+   "fondo": "rgb(255, 255, 255)",
+   "tinta": "rgb(13, 95, 168)",
+   "filo": "rgb(13, 95, 168)"
+  },
+  "errores": []
+ },
+ "artboard-con-errores-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": 1,
+  "rejilla": {
+   "columnas": "364px",
+   "hueco": "18px"
+  },
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "parrafo": {
+   "texto": "Va a pagar S/ 3,149.92. Necesitamos un correo para enviarle el comprobante. Si tiene cuenta, entre y le guardamos el pago en su historial.",
+   "tam": "16px",
+   "color": "rgb(85, 85, 85)"
+  },
+  "tarjetaCorreo": {
+   "caja": "364x411.81",
+   "filo": "3px rgb(61, 126, 183)",
+   "relleno": "22px 22px 24px"
+  },
+  "tarjetaCuenta": {
+   "caja": "364x451.56",
+   "filo": "3px rgb(166, 9, 61)",
+   "relleno": "22px 22px 24px"
+  },
+  "campoCorreo": {
+   "caja": "318x44",
+   "filo": "rgb(169, 68, 66)",
+   "papel": "rgb(255, 249, 249)",
+   "tam": "15px"
+  },
+  "documento": {
+   "caja": "318x44",
+   "filo": "rgb(204, 204, 204)",
+   "papel": "rgb(255, 255, 255)"
+  },
+  "casilla": "19x19",
+  "continuar": {
+   "caja": "318x48",
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "entrar": {
+   "caja": "318x48",
+   "fondo": "rgb(255, 255, 255)",
+   "tinta": "rgb(13, 95, 168)",
+   "filo": "rgb(13, 95, 168)"
+  },
+  "errores": [
+   {
+    "texto": "Ese correo no parece completo. Revíselo: le enviaremos el comprobante ahí.",
+    "color": "rgb(169, 68, 66)",
+    "tam": "13.5px"
+   },
+   {
+    "texto": "Escriba su documento y su clave para entrar.",
+    "color": "rgb(169, 68, 66)",
+    "tam": "13.5px"
+   }
+  ]
+ },
+ "portal-con-errores-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": 1,
+  "rejilla": {
+   "columnas": "364px",
+   "hueco": "18px"
+  },
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "parrafo": {
+   "texto": "Va a pagar S/ 3,149.92. Necesitamos un correo para enviarle el comprobante. Si tiene cuenta, entre y le guardamos el pago en su historial.",
+   "tam": "16px",
+   "color": "rgb(85, 85, 85)"
+  },
+  "tarjetaCorreo": {
+   "caja": "364x418.81",
+   "filo": "3px rgb(13, 95, 168)",
+   "relleno": "22px 22px 24px"
+  },
+  "tarjetaCuenta": {
+   "caja": "364x453.56",
+   "filo": "3px rgb(169, 68, 66)",
+   "relleno": "22px 22px 24px"
+  },
+  "campoCorreo": {
+   "caja": "318x44.5",
+   "filo": "rgb(169, 68, 66)",
+   "papel": "rgb(255, 249, 249)",
+   "tam": "15px"
+  },
+  "documento": {
+   "caja": "318x44.5",
+   "filo": "rgb(169, 68, 66)",
+   "papel": "rgb(255, 249, 249)"
+  },
+  "casilla": "19x19",
+  "continuar": {
+   "caja": "318x48",
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "entrar": {
+   "caja": "318x48",
+   "fondo": "rgb(255, 255, 255)",
+   "tinta": "rgb(13, 95, 168)",
+   "filo": "rgb(13, 95, 168)"
+  },
+  "errores": [
+   {
+    "texto": "Ese correo no parece completo. Revíselo: le enviaremos el comprobante ahí.",
+    "color": "rgb(169, 68, 66)",
+    "tam": "13.5px"
+   },
+   {
+    "texto": "Escriba su documento y su clave para entrar.",
+    "color": "rgb(169, 68, 66)",
+    "tam": "13.5px"
+   }
+  ]
+ },
+ "portal-sin-seleccion-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "columnas": 3,
+  "rejilla": {
+   "columnas": "501px 501px 0px",
+   "hueco": "18px"
+  },
+  "h1": {
+   "tam": "24px",
+   "peso": "700",
+   "color": "rgb(13, 95, 168)"
+  },
+  "parrafo": {
+   "texto": "Todavía no ha elegido qué pagar. Si tiene cuenta, entre para ver sus pagos y sus comprobantes.",
+   "tam": "16px",
+   "color": "rgb(85, 85, 85)"
+  },
+  "tarjetaCorreo": {
+   "caja": "501x402.13",
+   "filo": "3px rgb(13, 95, 168)",
+   "relleno": "22px 22px 24px"
+  },
+  "tarjetaCuenta": {
+   "caja": "501x402.13",
+   "filo": "3px rgb(169, 68, 66)",
+   "relleno": "22px 22px 24px"
+  },
+  "campoCorreo": {
+   "caja": "455x44.5",
+   "filo": "rgb(204, 204, 204)",
+   "papel": "rgb(255, 255, 255)",
+   "tam": "15px"
+  },
+  "documento": {
+   "caja": "455x44.5",
+   "filo": "rgb(204, 204, 204)",
+   "papel": "rgb(255, 255, 255)"
+  },
+  "casilla": "19x19",
+  "continuar": {
+   "caja": "455x48",
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "tam": "16px",
+   "peso": "700"
+  },
+  "entrar": {
+   "caja": "455x48",
+   "fondo": "rgb(255, 255, 255)",
+   "tinta": "rgb(13, 95, 168)",
+   "filo": "rgb(13, 95, 168)"
+  },
+  "errores": []
+ },
+ "portal-sin-seleccion-entro-1180": {
+  "hash": "#/historial",
+  "almacenamiento": "{}{}"
+ }
+}
