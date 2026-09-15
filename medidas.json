@@ -1,0 +1,466 @@
+{
+ "artboard-todo-marcado-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "banda": {
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "rotulo": "rgb(207, 227, 244)",
+   "rotuloTexto": "Deuda total al 13 de setiembre de 2026"
+  },
+  "total": {
+   "tam": "34px",
+   "peso": "700",
+   "color": "rgb(255, 255, 255)"
+  },
+  "casilla": "20x20",
+  "fila": {
+   "fondo": "rgb(247, 251, 254)",
+   "filoIzq": "4px rgb(13, 95, 168)"
+  },
+  "insignia": {
+   "fondo": "rgb(252, 248, 227)",
+   "tinta": "rgb(138, 109, 59)",
+   "tam": "12.5px",
+   "radio": "3px"
+  },
+  "noSoyYo": "102.94x40",
+  "marcarTodo": "106.73x38",
+  "verDetalle": "88.94x34",
+  "pagar": {
+   "tam": "169.08x52",
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "ariaDisabled": "false"
+  },
+  "tabla": null
+ },
+ "portal-todo-marcado-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "banda": {
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "rotulo": "rgb(207, 227, 244)",
+   "rotuloTexto": "Deuda total al 13 de setiembre de 2026"
+  },
+  "total": {
+   "tam": "34px",
+   "peso": "700",
+   "color": "rgb(255, 255, 255)"
+  },
+  "casilla": "20x20",
+  "fila": {
+   "fondo": "rgb(249, 251, 253)",
+   "filoIzq": "4px rgb(13, 95, 168)"
+  },
+  "insignia": {
+   "fondo": "rgb(252, 248, 227)",
+   "tinta": "rgb(138, 109, 59)",
+   "tam": "11.5px",
+   "radio": "3.35544e+07px"
+  },
+  "noSoyYo": "102.94x40",
+  "marcarTodo": "106.73x38",
+  "verDetalle": "88.94x34",
+  "pagar": {
+   "tam": "169.08x52",
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "ariaDisabled": "false"
+  },
+  "tabla": null
+ },
+ "artboard-detalle-abierto-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "banda": {
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "rotulo": "rgb(207, 227, 244)",
+   "rotuloTexto": "Deuda total al 13 de setiembre de 2026"
+  },
+  "total": {
+   "tam": "34px",
+   "peso": "700",
+   "color": "rgb(255, 255, 255)"
+  },
+  "casilla": "20x20",
+  "fila": {
+   "fondo": "rgb(247, 251, 254)",
+   "filoIzq": "4px rgb(13, 95, 168)"
+  },
+  "insignia": {
+   "fondo": "rgb(252, 248, 227)",
+   "tinta": "rgb(138, 109, 59)",
+   "tam": "12.5px",
+   "radio": "3px"
+  },
+  "noSoyYo": "102.94x40",
+  "marcarTodo": "106.73x38",
+  "verDetalle": "88.94x34",
+  "pagar": {
+   "tam": "169.08x52",
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "ariaDisabled": "false"
+  },
+  "tabla": {
+   "ancho": "972x222.75",
+   "contenedor": "974x224.75",
+   "contenedorDesplaza": false,
+   "overflowX": "auto"
+  }
+ },
+ "portal-detalle-abierto-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "banda": {
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "rotulo": "rgb(207, 227, 244)",
+   "rotuloTexto": "Deuda total al 13 de setiembre de 2026"
+  },
+  "total": {
+   "tam": "34px",
+   "peso": "700",
+   "color": "rgb(255, 255, 255)"
+  },
+  "casilla": "20x20",
+  "fila": {
+   "fondo": "rgb(249, 251, 253)",
+   "filoIzq": "4px rgb(13, 95, 168)"
+  },
+  "insignia": {
+   "fondo": "rgb(252, 248, 227)",
+   "tinta": "rgb(138, 109, 59)",
+   "tam": "11.5px",
+   "radio": "3.35544e+07px"
+  },
+  "noSoyYo": "102.94x40",
+  "marcarTodo": "106.73x38",
+  "verDetalle": "88.94x34",
+  "pagar": {
+   "tam": "169.08x52",
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "ariaDisabled": "false"
+  },
+  "tabla": {
+   "ancho": "972x213.25",
+   "contenedor": "974x215.25",
+   "contenedorDesplaza": false,
+   "overflowX": "auto"
+  }
+ },
+ "artboard-nada-marcado-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "banda": {
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "rotulo": "rgb(207, 227, 244)",
+   "rotuloTexto": "Deuda total al 13 de setiembre de 2026"
+  },
+  "total": {
+   "tam": "34px",
+   "peso": "700",
+   "color": "rgb(255, 255, 255)"
+  },
+  "casilla": "20x20",
+  "fila": {
+   "fondo": "rgb(255, 255, 255)",
+   "filoIzq": "4px rgba(0, 0, 0, 0)"
+  },
+  "insignia": {
+   "fondo": "rgb(252, 248, 227)",
+   "tinta": "rgb(138, 109, 59)",
+   "tam": "12.5px",
+   "radio": "3px"
+  },
+  "noSoyYo": "102.94x40",
+  "marcarTodo": "111.09x38",
+  "verDetalle": "88.94x34",
+  "pagar": {
+   "tam": "231.81x52",
+   "fondo": "rgb(187, 187, 187)",
+   "tinta": "rgb(255, 255, 255)",
+   "ariaDisabled": "true"
+  },
+  "tabla": null
+ },
+ "portal-nada-marcado-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "banda": {
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "rotulo": "rgb(207, 227, 244)",
+   "rotuloTexto": "Deuda total al 13 de setiembre de 2026"
+  },
+  "total": {
+   "tam": "34px",
+   "peso": "700",
+   "color": "rgb(255, 255, 255)"
+  },
+  "casilla": "20x20",
+  "fila": {
+   "fondo": "rgb(255, 255, 255)",
+   "filoIzq": "4px rgba(0, 0, 0, 0)"
+  },
+  "insignia": {
+   "fondo": "rgb(252, 248, 227)",
+   "tinta": "rgb(138, 109, 59)",
+   "tam": "11.5px",
+   "radio": "3.35544e+07px"
+  },
+  "noSoyYo": "102.94x40",
+  "marcarTodo": "111.09x38",
+  "verDetalle": "88.94x34",
+  "pagar": {
+   "tam": "231.81x52",
+   "fondo": "rgb(221, 221, 221)",
+   "tinta": "rgb(85, 85, 85)",
+   "ariaDisabled": "true"
+  },
+  "tabla": null
+ },
+ "artboard-todo-marcado-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "banda": {
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "rotulo": "rgb(207, 227, 244)",
+   "rotuloTexto": "Deuda total al 13 de setiembre de 2026"
+  },
+  "total": {
+   "tam": "34px",
+   "peso": "700",
+   "color": "rgb(255, 255, 255)"
+  },
+  "casilla": "20x20",
+  "fila": {
+   "fondo": "rgb(247, 251, 254)",
+   "filoIzq": "4px rgb(13, 95, 168)"
+  },
+  "insignia": {
+   "fondo": "rgb(252, 248, 227)",
+   "tinta": "rgb(138, 109, 59)",
+   "tam": "12.5px",
+   "radio": "3px"
+  },
+  "noSoyYo": "102.94x40",
+  "marcarTodo": "106.73x38",
+  "verDetalle": "88.94x34",
+  "pagar": {
+   "tam": "169.08x52",
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "ariaDisabled": "false"
+  },
+  "tabla": null
+ },
+ "portal-todo-marcado-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "banda": {
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "rotulo": "rgb(207, 227, 244)",
+   "rotuloTexto": "Deuda total al 13 de setiembre de 2026"
+  },
+  "total": {
+   "tam": "34px",
+   "peso": "700",
+   "color": "rgb(255, 255, 255)"
+  },
+  "casilla": "20x20",
+  "fila": {
+   "fondo": "rgb(249, 251, 253)",
+   "filoIzq": "4px rgb(13, 95, 168)"
+  },
+  "insignia": {
+   "fondo": "rgb(252, 248, 227)",
+   "tinta": "rgb(138, 109, 59)",
+   "tam": "11.5px",
+   "radio": "3.35544e+07px"
+  },
+  "noSoyYo": "102.94x40",
+  "marcarTodo": "106.73x38",
+  "verDetalle": "88.94x34",
+  "pagar": {
+   "tam": "169.08x52",
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "ariaDisabled": "false"
+  },
+  "tabla": null
+ },
+ "artboard-detalle-abierto-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "banda": {
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "rotulo": "rgb(207, 227, 244)",
+   "rotuloTexto": "Deuda total al 13 de setiembre de 2026"
+  },
+  "total": {
+   "tam": "34px",
+   "peso": "700",
+   "color": "rgb(255, 255, 255)"
+  },
+  "casilla": "20x20",
+  "fila": {
+   "fondo": "rgb(247, 251, 254)",
+   "filoIzq": "4px rgb(13, 95, 168)"
+  },
+  "insignia": {
+   "fondo": "rgb(252, 248, 227)",
+   "tinta": "rgb(138, 109, 59)",
+   "tam": "12.5px",
+   "radio": "3px"
+  },
+  "noSoyYo": "102.94x40",
+  "marcarTodo": "106.73x38",
+  "verDetalle": "88.94x34",
+  "pagar": {
+   "tam": "169.08x52",
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "ariaDisabled": "false"
+  },
+  "tabla": {
+   "ancho": "580x222.75",
+   "contenedor": "318x224.75",
+   "contenedorDesplaza": true,
+   "overflowX": "auto"
+  }
+ },
+ "portal-detalle-abierto-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "banda": {
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "rotulo": "rgb(207, 227, 244)",
+   "rotuloTexto": "Deuda total al 13 de setiembre de 2026"
+  },
+  "total": {
+   "tam": "34px",
+   "peso": "700",
+   "color": "rgb(255, 255, 255)"
+  },
+  "casilla": "20x20",
+  "fila": {
+   "fondo": "rgb(249, 251, 253)",
+   "filoIzq": "4px rgb(13, 95, 168)"
+  },
+  "insignia": {
+   "fondo": "rgb(252, 248, 227)",
+   "tinta": "rgb(138, 109, 59)",
+   "tam": "11.5px",
+   "radio": "3.35544e+07px"
+  },
+  "noSoyYo": "102.94x40",
+  "marcarTodo": "106.73x38",
+  "verDetalle": "88.94x34",
+  "pagar": {
+   "tam": "169.08x52",
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "ariaDisabled": "false"
+  },
+  "tabla": {
+   "ancho": "580x213.25",
+   "contenedor": "318x215.25",
+   "contenedorDesplaza": true,
+   "overflowX": "auto"
+  }
+ },
+ "artboard-nada-marcado-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "banda": {
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "rotulo": "rgb(207, 227, 244)",
+   "rotuloTexto": "Deuda total al 13 de setiembre de 2026"
+  },
+  "total": {
+   "tam": "34px",
+   "peso": "700",
+   "color": "rgb(255, 255, 255)"
+  },
+  "casilla": "20x20",
+  "fila": {
+   "fondo": "rgb(255, 255, 255)",
+   "filoIzq": "4px rgba(0, 0, 0, 0)"
+  },
+  "insignia": {
+   "fondo": "rgb(252, 248, 227)",
+   "tinta": "rgb(138, 109, 59)",
+   "tam": "12.5px",
+   "radio": "3px"
+  },
+  "noSoyYo": "102.94x40",
+  "marcarTodo": "111.09x38",
+  "verDetalle": "88.94x34",
+  "pagar": {
+   "tam": "231.81x52",
+   "fondo": "rgb(187, 187, 187)",
+   "tinta": "rgb(255, 255, 255)",
+   "ariaDisabled": "true"
+  },
+  "tabla": null
+ },
+ "portal-nada-marcado-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "banda": {
+   "fondo": "rgb(13, 95, 168)",
+   "tinta": "rgb(255, 255, 255)",
+   "rotulo": "rgb(207, 227, 244)",
+   "rotuloTexto": "Deuda total al 13 de setiembre de 2026"
+  },
+  "total": {
+   "tam": "34px",
+   "peso": "700",
+   "color": "rgb(255, 255, 255)"
+  },
+  "casilla": "20x20",
+  "fila": {
+   "fondo": "rgb(255, 255, 255)",
+   "filoIzq": "4px rgba(0, 0, 0, 0)"
+  },
+  "insignia": {
+   "fondo": "rgb(252, 248, 227)",
+   "tinta": "rgb(138, 109, 59)",
+   "tam": "11.5px",
+   "radio": "3.35544e+07px"
+  },
+  "noSoyYo": "102.94x40",
+  "marcarTodo": "111.09x38",
+  "verDetalle": "88.94x34",
+  "pagar": {
+   "tam": "231.81x52",
+   "fondo": "rgb(221, 221, 221)",
+   "tinta": "rgb(85, 85, 85)",
+   "ariaDisabled": "true"
+  },
+  "tabla": null
+ }
+}
