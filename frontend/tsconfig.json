@@ -5,6 +5,12 @@
     "src/**/*.tsx",
     "verificaciones/**/*.ts",
     "verificaciones/**/*.tsx",
+    // El arnes de Playwright (issue 11): sus especificaciones y su configuracion pasan por `tsc` como
+    // todo lo demas. Un error de tipos ahi solo aparecia al correr `yarn e2e`, que `yarn verificar` no
+    // corre.
+    "e2e/**/*.ts",
+    "puerto-del-arnes.mjs",
+    "trozos.ts",
     "eslint.prohibiciones.mjs",
     "vitest.setup.ts",
     "*.config.ts"

@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "version": "0.1.0",
-  "description": "ciudadano — el portal publico de pago de tributos. Issue 1: el andamiaje, sus reglas y su CI; ninguna pantalla todavia.",
+  "description": "ciudadano — el portal publico de pago de tributos, en modo demostracion: las seis pantallas del recorrido y el arnes de Playwright contra el bundle.",
   "engines": {
     "node": ">=22"
   },
@@ -17,7 +17,9 @@
     "test:watch": "vitest",
     "verificar": "yarn lint && yarn typecheck && yarn i18n && yarn test",
     "i18n": "i18next-cli status",
-    "i18n:regenerar": "KAMAYUK_REGENERAR=1 vitest run verificaciones/el-locale-esta-completo.test.ts"
+    "i18n:regenerar": "KAMAYUK_REGENERAR=1 vitest run verificaciones/el-locale-esta-completo.test.ts",
+    "e2e": "node puerto-del-arnes.mjs && playwright test",
+    "e2e:navegador": "playwright install chromium"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.0",
@@ -42,6 +44,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.0",
     "@kamayuk/verificaciones": "link:../../kamayuk-lib/paquetes/verificaciones",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.9.0",
