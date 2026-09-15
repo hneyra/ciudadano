@@ -32,9 +32,12 @@ import {
  *
  * El artboard escribe `@media (max-width: 880px)`: a 880 px aplica y a 881 no. Tailwind v4 emite
  * `max-[880px]:` como `width < 880px`, que a 880 px NO aplica. Por eso se mide en el pixel exacto:
- * midiendo a 400 y a 1180 los dos se ven iguales. **Este arnes lo destapo** en pagar (`max-[820px]`,
- * `max-[520px]`) y en elegir qué pago (`max-[520px]`): a 820 px el resumen seguia a la derecha y a 520
- * los medios en dos columnas. Corregido en su componente (`max-[821px]`, `max-[521px]`).
+ * midiendo a 400 y a 1180 los dos se ven iguales. **Este arnes lo destapo en pagar**: con `max-[820px]`,
+ * a 820 px el resumen seguia a la derecha («a 820 px el resumen tiene que ir ENCIMA de los medios»,
+ * Expected <= 129, Received 725), y con `max-[520px]`, a 520 px los medios iban en dos columnas.
+ * Corregido en su componente (`max-[821px]`, `max-[521px]`). Las cifras de elegir qué pago tenian el
+ * mismo `max-[520px]` y se corrigieron igual, pero ahi el corte no se ve a 520 px —el `auto-fit` ya da
+ * dos columnas— y se mide a 360.
  */
 test.use({ colorScheme: 'light' });
 
