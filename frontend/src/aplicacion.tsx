@@ -35,7 +35,7 @@ const TEMA: ConfiguracionDeTema = {
  * · **El enrutador llega hecho**, como el cliente de consultas: se crea una vez fuera del render
  *   (`main.tsx`), y cada prueba crea el suyo (`crearEnrutador`, en `src/enrutador.tsx`).
  *
- * La barra, la franja y el pie son `src/marco/`; cada paso, por ahora, un marcador con su titulo.
+ * La barra, la franja y el pie son `src/marco/`; cada paso, su pantalla en `src/pasos/`.
  * `inicial` es para las pruebas: empezar con sesion o en un paso dado sin recorrerlo entero.
  */
 export interface AplicacionProps {

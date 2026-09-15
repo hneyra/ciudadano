@@ -957,6 +957,272 @@ const TABLA: readonly Correspondencia[] = [
     leer: enElMarcado(/style-hover="background:(#[0-9A-Fa-f]{3,6})">Crear mi cuenta/),
     decision: { tipo: 'igual', token: '--color-azul-suave' },
   },
+
+  // ── Mis pagos (issue 10) ──────────────────────────────────────────────────────────────────
+  {
+    delArtboard: 'titulo «Mis pagos»',
+    donde: 'linea 570',
+    leer: enElMarcado(/font-size:24px; font-weight:700; color:(#[0-9A-Fa-f]{3,6})">Mis pagos/),
+    decision: { tipo: 'igual', token: '--color-azul' },
+  },
+  {
+    delArtboard: 'la entrada bajo «Mis pagos»',
+    donde: 'linea 571',
+    leer: enElMarcado(/line-height:1\.6; color:(#[0-9A-Fa-f]{3,6}); max-width:68ch; text-wrap:pretty">Todos sus pagos/),
+    decision: { tipo: 'igual', token: '--color-tinta-2' },
+  },
+  {
+    delArtboard: 'papel de la banda del pago reciente',
+    donde: 'linea 574',
+    leer: enElMarcado(/<div style="background:(#[0-9A-Fa-f]{3,6}); border:1px solid #[0-9A-Fa-f]{3,6}; border-left:5px solid #[0-9A-Fa-f]{3,6}; padding:16px 18px/),
+    decision: { tipo: 'igual', token: '--color-ok-fondo' },
+  },
+  {
+    delArtboard: 'filo tenue de la banda del pago reciente',
+    donde: 'linea 574',
+    leer: enElMarcado(/<div style="background:#DFF0D8; border:1px solid (#[0-9A-Fa-f]{3,6}); border-left:5px solid #[0-9A-Fa-f]{3,6}; padding:16px 18px/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#D6E9C6',
+      seSustituyePor: '--color-ok-tinta',
+      porQue:
+        'El mismo filo que la banda de exito del comprobante y «No le queda nada por pagar», con la misma decision: ' +
+        '`--ok-tinta` al 25 %. Lo pinta `src/pasos/historial/Historial.tsx`.',
+    },
+  },
+  {
+    delArtboard: 'filo izquierdo de la banda del pago reciente',
+    donde: 'linea 574',
+    leer: enElMarcado(/<div style="background:#DFF0D8; border:1px solid #[0-9A-Fa-f]{3,6}; border-left:5px solid (#[0-9A-Fa-f]{3,6}); padding:16px 18px/),
+    decision: { tipo: 'igual', token: '--color-ok-tinta' },
+  },
+  {
+    delArtboard: 'titulo de la banda del pago reciente',
+    donde: 'linea 576: «Pago de S/ … registrado hoy»',
+    leer: enElMarcado(/font-weight:700; color:(#[0-9A-Fa-f]{3,6})">\{\{ reciente\.titulo \}\}/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#2D5A2E',
+      seSustituyePor: '--color-ok-tinta',
+      porQue:
+        'Como el titulo de la banda de exito del comprobante: `clasico` no tiene un verde mas oscuro que `--ok-tinta`, ' +
+        'y el titulo se distingue del detalle por su negrita y sus 15 px, que se conservan.',
+    },
+  },
+  {
+    delArtboard: 'detalle de la banda del pago reciente',
+    donde: 'linea 577',
+    leer: enElMarcado(/font-size:13\.5px; color:(#[0-9A-Fa-f]{3,6}); margin-top:3px; text-wrap:pretty">\{\{ reciente\.detalle \}\}/),
+    decision: { tipo: 'igual', token: '--color-ok-tinta' },
+  },
+  {
+    delArtboard: '«Ver el comprobante»',
+    donde: 'linea 579: filo y texto del boton',
+    leer: enElMarcado(/border:1px solid (#[0-9A-Fa-f]{3,6}); border-radius:3px; padding:0 16px; background:#fff; color:#3C763D/),
+    decision: { tipo: 'igual', token: '--color-ok-tinta' },
+  },
+  {
+    delArtboard: '«Ver el comprobante» con hover',
+    donde: 'linea 579: `style-hover` del boton',
+    leer: enElMarcado(/style-hover="background:(#[0-9A-Fa-f]{3,6})">Ver el comprobante/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#EFF7EC',
+      seSustituyePor: '--color-ok-fondo',
+      porQue: 'El hover de «Pedir mi constancia de no adeudo» (paso 2), con su misma decision: `--ok-fondo`.',
+    },
+  },
+  {
+    delArtboard: 'filo de las secciones del historial',
+    donde: 'lineas 583, 613 y 643',
+    leer: enElMarcado(/<div style="background:#fff; border:1px solid (#[0-9A-Fa-f]{3,6}); margin-bottom:18px">\s*<div style="padding:14px 20px; border-bottom:1px solid #EEE">\s*<h2[^>]*>Pagos realizados/),
+    decision: { tipo: 'igual', token: '--color-linea' },
+  },
+  {
+    delArtboard: 'filo bajo la cabecera de cada seccion del historial',
+    donde: 'lineas 584, 614 y 644',
+    leer: enElMarcado(/<div style="padding:14px 20px; border-bottom:1px solid (#[0-9A-Fa-f]{3,6})">\s*<h2[^>]*>Pagos realizados/),
+    decision: { tipo: 'igual', token: '--color-linea-2' },
+  },
+  {
+    delArtboard: 'papel de la fila del pago reciente',
+    donde: 'linea 1344: `filaStyle` de la primera fila con `recienPagado`',
+    leer: enElMarcado(/\(i === 0 && s\.recienPagado \? '(#[0-9A-Fa-f]{3,6})' : '#fff'\)/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#F5FBF3',
+      seSustituyePor: '--color-ok-fondo',
+      porQue:
+        '`clasico` no tiene ese verde tenue; lo mas cercano son el blanco y los papeles, que no dirian «este es el ' +
+        'pago de hoy». `src/pasos/historial/Historial.tsx` pinta `--ok-fondo` al 40 % (sobre blanco, `#f2f9ef`): ' +
+        'la opacidad de Tailwind sobre el token, sin escribir un color.',
+    },
+  },
+  {
+    delArtboard: 'filo del boton «Comprobante» de cada fila',
+    donde: 'linea 600',
+    leer: enElMarcado(/border:1px solid (#[0-9A-Fa-f]{3,6}); border-radius:3px; padding:0 13px; background:#fff; font-size:13px/),
+    decision: { tipo: 'igual', token: '--color-borde-boton' },
+  },
+  {
+    delArtboard: 'boton «Comprobante» de cada fila con hover',
+    donde: 'linea 600: `style-hover` del boton',
+    leer: enElMarcado(/style-hover="border-color:(#[0-9A-Fa-f]{3,6})">Comprobante<\/button>/),
+    decision: { tipo: 'igual', token: '--color-borde-hover' },
+  },
+  {
+    delArtboard: 'nota de «Pagos realizados»',
+    donde: 'linea 610: papel',
+    leer: enElMarcado(/padding:12px 20px; background:(#[0-9A-Fa-f]{3,6}); border-top:1px solid #EEE; font-size:13\.5px; line-height:1\.55; color:#666; text-wrap:pretty">Un pago aplicado/),
+    decision: { tipo: 'igual', token: '--color-sup' },
+  },
+  {
+    delArtboard: 'texto de la nota de «Pagos realizados»',
+    donde: 'linea 610',
+    leer: enElMarcado(/line-height:1\.55; color:(#[0-9A-Fa-f]{3,6}); text-wrap:pretty">Un pago aplicado/),
+    decision: { tipo: 'igual', token: '--color-tinta-3' },
+  },
+  {
+    delArtboard: 'total de lo pendiente',
+    donde: 'linea 616',
+    leer: enElMarcado(/font-weight:700; color:(#[0-9A-Fa-f]{3,6}); font-variant-numeric:tabular-nums">\{\{ pendiente\.total \}\}/),
+    decision: { tipo: 'igual', token: '--color-mal-tinta' },
+  },
+  {
+    delArtboard: 'filo de cada fila de lo pendiente y de cada unidad',
+    donde: 'lineas 620 y 650',
+    leer: enElMarcado(/padding:13px 20px; border-bottom:1px solid (#[0-9A-Fa-f]{3,6})">/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#F0F0F0',
+      seSustituyePor: '--color-linea-2',
+      esElMasCercano: true,
+      porQue: 'Como el filo de cada concepto del resumen (paso 4): `--linea-2`, el mas cercano, calculado abajo.',
+    },
+  },
+  {
+    delArtboard: 'vencimiento de cada fila de lo pendiente',
+    donde: 'linea 623',
+    leer: enElMarcado(/font-size:13\.5px; color:(#[0-9A-Fa-f]{3,6}); margin-top:2px">\{\{ p\.vence \}\}/),
+    decision: { tipo: 'igual', token: '--color-tinta-3' },
+  },
+  {
+    delArtboard: 'pie de lo pendiente con deuda',
+    donde: 'linea 630: papel',
+    leer: enElMarcado(/padding:16px 20px; background:(#[0-9A-Fa-f]{3,6})">\s*<p[^>]*>Puede pagar todo/),
+    decision: { tipo: 'igual', token: '--color-sup' },
+  },
+  {
+    delArtboard: '«Pagar lo pendiente»',
+    donde: 'linea 632: fondo del boton, con texto blanco',
+    leer: enElMarcado(/padding:0 24px; background:(#[0-9A-Fa-f]{3,6}); color:#fff; font-size:15\.5px/),
+    decision: { tipo: 'igual', token: '--color-azul' },
+  },
+  {
+    delArtboard: '«Pagar lo pendiente» con hover',
+    donde: 'linea 632: `style-hover` del boton',
+    leer: enElMarcado(/style-hover="background:(#[0-9A-Fa-f]{3,6})">Pagar lo pendiente/),
+    decision: { tipo: 'igual', token: '--color-azul-hover' },
+  },
+  {
+    delArtboard: 'pie de lo pendiente sin deuda',
+    donde: 'linea 636: papel',
+    leer: enElMarcado(/padding:16px 20px; background:(#[0-9A-Fa-f]{3,6})">\s*<p[^>]*>No le queda nada pendiente\./),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#F5FBF3',
+      seSustituyePor: '--color-ok-fondo',
+      porQue: 'El verde tenue de la fila del pago reciente (fila de arriba), con su misma decision: `--ok-fondo` al 40 %.',
+    },
+  },
+  {
+    delArtboard: 'texto y boton del pie sin deuda',
+    donde: 'lineas 637-638',
+    leer: enElMarcado(/font-size:13\.5px; color:(#[0-9A-Fa-f]{3,6}); text-wrap:pretty">No le queda nada pendiente\./),
+    decision: { tipo: 'igual', token: '--color-ok-tinta' },
+  },
+  {
+    delArtboard: '«Pedir mi constancia» con hover',
+    donde: 'linea 638: `style-hover` del boton',
+    leer: enElMarcado(/style-hover="background:(#[0-9A-Fa-f]{3,6})">Pedir mi constancia<\/button>/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#EFF7EC',
+      seSustituyePor: '--color-ok-fondo',
+      porQue: 'El hover de «Pedir mi constancia de no adeudo» (paso 2), con su misma decision: `--ok-fondo`.',
+    },
+  },
+  {
+    delArtboard: 'la entrada de «De dónde sale lo que paga» y el detalle de cada unidad',
+    donde: 'lineas 646 y 654',
+    leer: enElMarcado(/line-height:1\.55; color:(#[0-9A-Fa-f]{3,6}); max-width:72ch; text-wrap:pretty">Sus predios y vehículos/),
+    decision: { tipo: 'igual', token: '--color-tinta-3' },
+  },
+  {
+    delArtboard: 'de que es la base de una unidad',
+    donde: 'linea 657: «Autovalúo 2026», «Base imponible»',
+    leer: enElMarcado(/letter-spacing:\.07em; color:(#[0-9A-Fa-f]{3,6})">\{\{ u\.baseEtiqueta \}\}/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#888',
+      seSustituyePor: '--color-tinta-3',
+      porQue: 'El gris de nota `#888` (fila de arriba), con su misma decision: `--tinta-3`.',
+      noLlegaA: { contra: '--color-superficie', umbral: UMBRAL_DE_TEXTO },
+    },
+  },
+  {
+    delArtboard: 'texto de un dato de una unidad',
+    donde: 'linea 663',
+    leer: enElMarcado(/font-size:12\.5px; color:(#[0-9A-Fa-f]{3,6}); background:#[0-9A-Fa-f]{3,6}; border:1px solid #[0-9A-Fa-f]{3,6}; border-radius:3px; padding:4px 9px">\{\{ d\.texto \}\}/),
+    decision: { tipo: 'igual', token: '--color-tinta-2' },
+  },
+  {
+    delArtboard: 'papel de un dato de una unidad',
+    donde: 'linea 663',
+    leer: enElMarcado(/font-size:12\.5px; color:#[0-9A-Fa-f]{3,6}; background:(#[0-9A-Fa-f]{3,6}); border:1px solid #[0-9A-Fa-f]{3,6}; border-radius:3px; padding:4px 9px">\{\{ d\.texto \}\}/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#F2F6FA',
+      seSustituyePor: '--color-info-fondo',
+      esElMasCercano: true,
+      porQue:
+        '`clasico` no tiene ese papel. Aqui no hay fila de total con que ir a juego (la razon del `--sup` del resumen ' +
+        'del paso 4): `src/pasos/historial/Historial.tsx` usa `--info-fondo`, el mas cercano (calculado abajo), que ' +
+        'con el filo azul tenue deja el dato leyendose como una etiqueta y no como una celda.',
+    },
+  },
+  {
+    delArtboard: 'filo de un dato de una unidad',
+    donde: 'linea 663',
+    leer: enElMarcado(/font-size:12\.5px; color:#[0-9A-Fa-f]{3,6}; background:#[0-9A-Fa-f]{3,6}; border:1px solid (#[0-9A-Fa-f]{3,6}); border-radius:3px; padding:4px 9px">\{\{ d\.texto \}\}/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#E1E9F0',
+      seSustituyePor: '--color-azul-suave',
+      esElMasCercano: true,
+      porQue:
+        '`clasico` no tiene ese filo azulado. `--azul-suave` es el mas cercano (calculado abajo); `--linea-2` lo ' +
+        'dejaria gris sobre un papel azul.',
+    },
+  },
+  {
+    delArtboard: 'origen de una unidad',
+    donde: 'linea 666',
+    leer: enElMarcado(/font-size:13px; color:(#[0-9A-Fa-f]{3,6}); text-wrap:pretty">\{\{ u\.origen \}\}/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#888',
+      seSustituyePor: '--color-tinta-3',
+      porQue: 'El gris de nota `#888` (fila de arriba), con su misma decision: `--tinta-3`.',
+      noLlegaA: { contra: '--color-superficie', umbral: UMBRAL_DE_TEXTO },
+    },
+  },
+  {
+    delArtboard: 'nota final de «De dónde sale lo que paga»',
+    donde: 'linea 668: papel',
+    leer: enElMarcado(/padding:13px 20px; background:(#[0-9A-Fa-f]{3,6}); font-size:13\.5px; line-height:1\.55; color:#666; text-wrap:pretty">El autovalúo/),
+    decision: { tipo: 'igual', token: '--color-sup' },
+  },
 ];
 
 /**

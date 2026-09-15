@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Navigate, type RouteObject, createHashRouter, useNavigate } from 'react-router-dom';
 
 import { Marco } from './marco/Marco.tsx';
 import { Buscar } from './pasos/buscar/Buscar.tsx';
 import { Comprobante } from './pasos/comprobante/Comprobante.tsx';
 import { Deudas } from './pasos/deudas/Deudas.tsx';
+import { Historial } from './pasos/historial/Historial.tsx';
 import { Identificar } from './pasos/identificar/Identificar.tsx';
 import { Pagar } from './pasos/pagar/Pagar.tsx';
 import { useRecorrido } from './recorrido/ProveedorDelRecorrido.tsx';
@@ -20,36 +20,10 @@ import { RUTA_DEL_PASO } from './recorrido/rutas.ts';
  * importaciones darian la vuelta.
  */
 
-/**
- * El titulo de cada paso, para el marcador que lo ocupa hasta que llegue su pantalla (issue 10).
- * Son los encabezados del artboard: lineas 126, 224, 314, 360, 1276 y 570. El de `buscar` ya no lo
- * dibuja ningun marcador —su pantalla lleva el mismo `h1`— y sigue aqui para que el `switch` cubra
- * todos los pasos. Los de `deudas`, `identificar`, `pagar` y `comprobante` tampoco: son el `h1` de su pantalla
- * (issues 6-9).
- */
-function useTituloDelPaso(paso: Paso): string {
-  const { t } = useTranslation();
-  switch (paso) {
-    case 'buscar':
-      return t('Consulte y pague sus tributos');
-    case 'deudas':
-      return t('Lo que debe, por concepto');
-    case 'identificar':
-      return t('¿A dónde le enviamos el comprobante?');
-    case 'pagar':
-      return t('¿Cómo quiere pagar?');
-    case 'comprobante':
-      return t('Su pago se registró');
-    case 'historial':
-      return t('Mis pagos');
-  }
-}
-
 /** (2) Cuando la URL nombra un paso: si es alcanzable el estado la sigue; si no, se redirige. */
 function PantallaDelPaso({ paso }: { readonly paso: Paso }) {
   const { estado, despachar } = useRecorrido();
   const navegar = useNavigate();
-  const titulo = useTituloDelPaso(paso);
   const alcanzable = pasoAlcanzable(estado, paso);
   const visto = useRef<Paso | null>(null);
 
@@ -63,18 +37,21 @@ function PantallaDelPaso({ paso }: { readonly paso: Paso }) {
   // Mientras se redirige no se dibuja el paso: ni un cuadro de una pantalla a la que no se puede ir.
   if (!alcanzable) return null;
 
-  // Las pantallas que ya llegaron (issues 5-9); el historial sigue con su marcador.
-  if (paso === 'buscar') return <Buscar />;
-  if (paso === 'deudas') return <Deudas />;
-  if (paso === 'identificar') return <Identificar />;
-  if (paso === 'pagar') return <Pagar />;
-  if (paso === 'comprobante') return <Comprobante />;
-
-  return (
-    <h1 className="m-0 text-[27px] font-bold text-azul" data-paso={paso}>
-      {titulo}
-    </h1>
-  );
+  // Una pantalla por paso (issues 5-10). Ya no queda ningun marcador.
+  switch (paso) {
+    case 'buscar':
+      return <Buscar />;
+    case 'deudas':
+      return <Deudas />;
+    case 'identificar':
+      return <Identificar />;
+    case 'pagar':
+      return <Pagar />;
+    case 'comprobante':
+      return <Comprobante />;
+    case 'historial':
+      return <Historial />;
+  }
 }
 
 /** La raiz y lo que no es ninguna ruta: al paso en que esta el recorrido. */

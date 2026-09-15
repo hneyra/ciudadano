@@ -83,6 +83,12 @@ export interface EstadoDelRecorrido {
   readonly valores: Readonly<Record<string, string>>;
   /** Hay un pago de esta visita, que el historial pone el primero. */
   readonly recienPagado: boolean;
+  /**
+   * «Mis predios y vehículos» pidio llevar la vista a «De dónde sale lo que paga» (issue 10). No es del
+   * artboard, donde las dos opciones del menu abren el historial igual (lineas 1052-1053): la pantalla
+   * lo cumple una vez —foco y desplazamiento— y despacha `unidadesEnfocadas`.
+   */
+  readonly enfocarUnidades: boolean;
 }
 
 /** El estado con que se abre el portal. Artboard, lineas 927-940. */
@@ -100,6 +106,7 @@ export const ESTADO_INICIAL: EstadoDelRecorrido = {
   medio: 'tarjeta',
   valores: {},
   recienPagado: false,
+  enfocarUnidades: false,
 };
 
 export type AccionDelRecorrido =
@@ -124,7 +131,11 @@ export type AccionDelRecorrido =
   /** «Cerrar sesión» del menu (artboard, 1055). Olvida tambien el pago sellado: ver el reductor. */
   | { readonly tipo: 'cerrarSesion' }
   /** «Consultar otra deuda» del comprobante sin sesion (artboard, 1281). */
-  | { readonly tipo: 'consultarOtra' };
+  | { readonly tipo: 'consultarOtra' }
+  /** «Mis predios y vehículos» del menu: al historial, con la vista en sus unidades (issue 10). */
+  | { readonly tipo: 'verPrediosYVehiculos' }
+  /** El historial ya llevo la vista a las unidades: no se vuelve a hacer en cada dibujo. */
+  | { readonly tipo: 'unidadesEnfocadas' };
 
 // ── Selectores ─────────────────────────────────────────────────────────────────────────────────
 
@@ -154,6 +165,15 @@ export function pendientes(estado: EstadoDelRecorrido): readonly Deuda[] {
 }
 
 /**
+ * La cuenta de lo pendiente: su `total` es la cifra en rojo de «Lo que queda pendiente» (artboard,
+ * lineas 1351-1356, que suman insoluto + interes + gastos de cada concepto vivo). Sin deuda viva,
+ * `'0.00'`: el «S/ 0.00» de la fila «No le queda nada pendiente».
+ */
+export function cuentaPendiente(estado: EstadoDelRecorrido): Cuenta {
+  return cuentaDe(pendientes(estado));
+}
+
+/**
  * Los conceptos de un pago sellado, en el orden de `DEUDAS`: las filas del comprobante (artboard,
  * linea 1283 y 1302-1310). Salen de `pago.ids` y de nada mas: ni de `marcadas` ni de la deuda viva.
  */
@@ -167,13 +187,18 @@ export function destinoAlPagar(estado: EstadoDelRecorrido): 'identificar' | 'pag
 }
 
 /**
- * Si hay algo que pagar: se busco la deuda y la seleccion viva no esta vacia.
+ * Si hay algo que pagar: **se busco la deuda o hay sesion**, y la seleccion viva no esta vacia.
  *
- * `numero` vacio es «no se busco»: al abrir el portal y tras «Consultar otra deuda». Sin busqueda
- * `marcadas` trae lo marcado por omision, que no es una seleccion de nadie.
+ * `numero` vacio es «no se busco»: al abrir el portal y tras «Consultar otra deuda». Sin busqueda ni
+ * sesion, `marcadas` trae lo marcado por omision, que no es una seleccion de nadie.
+ *
+ * **Con sesion el contribuyente ya es conocido** (nota del revisor del issue 10): quien entra desde la
+ * barra sin buscar llega al historial, y desde alli «Pagar lo pendiente» → «Elegir qué pago» → «Pagar»
+ * tiene que poder pagar lo que elija. Exigir `numero` tambien entonces dejaba ese «Pagar» en «No hay
+ * nada que pagar.».
  */
 export function hayQuePagar(estado: EstadoDelRecorrido): boolean {
-  return estado.numero !== '' && seleccion(estado).length > 0;
+  return (estado.numero !== '' || estado.autenticado) && seleccion(estado).length > 0;
 }
 
 /**
@@ -198,6 +223,10 @@ export function cuentaPorPagar(estado: EstadoDelRecorrido): Cuenta {
  * A donde lleva entrar con la cuenta. El artboard siempre va a `pagar` (linea 1200); la nota del
  * revisor del issue 7 lo corrige: «Iniciar sesión» abre «Mis datos» aunque no se haya buscado, y
  * sin nada que pagar ese «Pagar» quedaria vacio. Entonces se va al historial.
+ *
+ * Se pregunta sobre el estado de ANTES de entrar, sin sesion todavia: si no se busco, lo marcado por
+ * omision no es un pago elegido y se va al historial, aunque con la sesion ya puesta `hayQuePagar` lo
+ * daria por bueno (issue 10). Desde el historial, pagar es elegirlo en «Pagar lo pendiente».
  */
 export function destinoAlEntrar(estado: EstadoDelRecorrido): 'pagar' | 'historial' {
   return hayQuePagar(estado) ? 'pagar' : 'historial';
@@ -279,6 +308,7 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
       };
 
     case 'entrar':
+      // `destinoAlEntrar` sobre `estado`, que aun no tiene sesion: ver su comentario.
       return { ...estado, autenticado: true, paso: destinoAlEntrar(estado) };
 
     case 'elegirMedio':
@@ -315,9 +345,22 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
       // cambia `autenticado` y `paso`, linea 1055). En un equipo compartido, tras «Cerrar sesión» el
       // recibo sellado —nombre, correo de la cuenta, numero de operacion— no puede seguir a un clic:
       // sin `ultimo`, `#/comprobante` deja de ser alcanzable y redirige como cualquier otro paso.
-      return { ...estado, autenticado: false, paso: 'buscar', ultimo: null, recienPagado: false };
+      return {
+        ...estado,
+        autenticado: false,
+        paso: 'buscar',
+        ultimo: null,
+        recienPagado: false,
+        enfocarUnidades: false,
+      };
 
     case 'consultarOtra':
       return { ...estado, paso: 'buscar', numero: '' };
+
+    case 'verPrediosYVehiculos':
+      return { ...estado, paso: 'historial', enfocarUnidades: true };
+
+    case 'unidadesEnfocadas':
+      return estado.enfocarUnidades ? { ...estado, enfocarUnidades: false } : estado;
   }
 }

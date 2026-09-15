@@ -8,6 +8,7 @@ import {
   PASOS_NUMERADOS,
   cuenta,
   conceptosDelPago,
+  cuentaPendiente,
   cuentaPorPagar,
   destinoAlEntrar,
   destinoAlPagar,
@@ -57,6 +58,8 @@ describe('el estado inicial', () => {
       medio: 'tarjeta',
       valores: {},
       recienPagado: false,
+      // No es del artboard: lo pide «Mis predios y vehículos» (issue 10).
+      enfocarUnidades: false,
     });
   });
 
@@ -136,6 +139,35 @@ describe('confirmarPago', () => {
     expect(porPagar(sinBuscar)).toEqual([]);
     expect(cuentaPorPagar(sinBuscar).conAmnistia).toBe('0.00');
     expect(recorrido(sinBuscar, { tipo: 'confirmarPago' })).toBe(sinBuscar);
+  });
+
+  it('CON SESION y sin buscar, `hayQuePagar` mira la seleccion viva y `confirmarPago` sella (nota del revisor, #10)', () => {
+    // «Iniciar sesión» → entrar sin buscar → el historial → «Pagar lo pendiente» → dejar solo el predial 2026.
+    const conSesion = tras([
+      { tipo: 'irA', paso: 'identificar' },
+      { tipo: 'entrar' },
+      { tipo: 'irA', paso: 'deudas' },
+      { tipo: 'alternar', id: 'arb26' },
+      { tipo: 'alternar', id: 'pred24' },
+      { tipo: 'alternar', id: 'veh24' },
+      { tipo: 'irA', paso: 'pagar' },
+    ]);
+    expect([conSesion.numero, conSesion.autenticado]).toEqual(['', true]);
+    expect(hayQuePagar(conSesion)).toBe(true);
+    expect(ids(porPagar(conSesion))).toEqual(['pred26']);
+    expect(cuentaPorPagar(conSesion).conAmnistia).toBe('293.72');
+
+    const pagado = recorrido(conSesion, { tipo: 'confirmarPago' });
+    expect(pagado.paso).toBe('comprobante');
+    expect(pagado.ultimo?.ids).toEqual(['pred26']);
+    expect(pagado.pagadas).toStrictEqual({ pred26: true });
+
+    // Con sesion pero la seleccion viva vacia, no hay nada que pagar.
+    const nadaMarcado = recorrido(conSesion, { tipo: 'alternar', id: 'pred26' });
+    expect(hayQuePagar(nadaMarcado)).toBe(false);
+    expect(recorrido(nadaMarcado, { tipo: 'confirmarPago' })).toBe(nadaMarcado);
+    // Y sin sesion ni busqueda, lo marcado por omision sigue sin ser un pago (issue 8).
+    expect(hayQuePagar(recorrido(conSesion, { tipo: 'cerrarSesion' }))).toBe(false);
   });
 
   it('`porPagar` es la seleccion viva cuando se busco, y `cuentaPorPagar` su cuenta', () => {
@@ -222,6 +254,13 @@ describe('`vivas` es la base de todo lo demas', () => {
     expect(pendientes(todoPagado)).toEqual([]);
     expect(resumen(todoPagado).conceptos).toBe(0);
   });
+
+  it('`cuentaPendiente`: 310.04 + 2067.04 + 892.44 = 3269.52 con el predial 2026 pagado; 0.00 sin deuda viva (issue 10)', () => {
+    expect(cuentaPendiente(conUnPago).total).toBe('3269.52');
+    expect(cuentaPendiente(ESTADO_INICIAL).total).toBe('3563.24');
+    const todoPagado = tras([{ tipo: 'marcarTodo' }, { tipo: 'confirmarPago' }], conUnPago);
+    expect(cuentaPendiente(todoPagado).total).toBe('0.00');
+  });
 });
 
 describe('a donde lleva cada cosa', () => {
@@ -295,6 +334,19 @@ describe('a donde lleva cada cosa', () => {
     expect(ultimoAlcanzable(cerrada)).toBe('buscar');
     // Lo pagado sigue pagado: se olvida el recibo a la vista, no la deuda que ya se cobro.
     expect(cerrada.pagadas).toStrictEqual(pagadoConSesion.pagadas);
+  });
+
+  it('«Mis predios y vehículos» lleva al historial pidiendo enfocar las unidades, una vez (issue 10)', () => {
+    const conSesion = tras([{ tipo: 'entrar' }, { tipo: 'irA', paso: 'pagar' }]);
+    const aLasUnidades = recorrido(conSesion, { tipo: 'verPrediosYVehiculos' });
+    expect([aLasUnidades.paso, aLasUnidades.enfocarUnidades]).toEqual(['historial', true]);
+
+    const enfocadas = recorrido(aLasUnidades, { tipo: 'unidadesEnfocadas' });
+    expect([enfocadas.paso, enfocadas.enfocarUnidades]).toEqual(['historial', false]);
+    // Sin nada pendiente de enfocar, no cambia nada: el mismo objeto, y nadie vuelve a dibujar.
+    expect(recorrido(enfocadas, { tipo: 'unidadesEnfocadas' })).toBe(enfocadas);
+    // Y cerrar sesion lo olvida, como el resto de la visita.
+    expect(recorrido(aLasUnidades, { tipo: 'cerrarSesion' }).enfocarUnidades).toBe(false);
   });
 
   it('`consultarOtra` vuelve a buscar con el numero vacio', () => {
