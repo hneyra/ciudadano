@@ -35,6 +35,35 @@ import { RAIZ } from './artboards.ts';
 
 const LOCALE = join(RAIZ, 'src/i18n/locales/es.json');
 
+/**
+ * Las formas plurales del paso 2 (issue 6). `es` tiene tres categorias (`one`, `many` y `other`); la
+ * `many` es la de los millones y dice lo mismo que `other`.
+ */
+const PLURALES_DEL_PASO_2: Readonly<Record<string, string>> = {
+  // Linea 1105: «2 predios y 1 vehículo».
+  '{{count}} predio_one': '{{count}} predio',
+  '{{count}} predio_many': '{{count}} predios',
+  '{{count}} predio_other': '{{count}} predios',
+  '{{count}} vehículo_one': '{{count}} vehículo',
+  '{{count}} vehículo_many': '{{count}} vehículos',
+  '{{count}} vehículo_other': '{{count}} vehículos',
+  // Linea 1116: la nota de la banda. El plural lo decide cuantos estan vencidos, que es el sujeto.
+  '{{count}} de {{conceptos}} conceptos están vencidos. El interés corre cada día que pasa._one':
+    '{{count}} de {{conceptos}} conceptos está vencido. El interés corre cada día que pasa.',
+  '{{count}} de {{conceptos}} conceptos están vencidos. El interés corre cada día que pasa._many':
+    '{{count}} de {{conceptos}} conceptos están vencidos. El interés corre cada día que pasa.',
+  '{{count}} de {{conceptos}} conceptos están vencidos. El interés corre cada día que pasa._other':
+    '{{count}} de {{conceptos}} conceptos están vencidos. El interés corre cada día que pasa.',
+  // Lineas 1158-1162: lo que se va a pagar. Con todo marcado, «los 4 conceptos»; con uno solo vivo,
+  // «1 concepto» y no «los 1 conceptos» del artboard.
+  'Va a pagar los {{count}} conceptos_one': 'Va a pagar {{count}} concepto',
+  'Va a pagar los {{count}} conceptos_many': 'Va a pagar los {{count}} conceptos',
+  'Va a pagar los {{count}} conceptos_other': 'Va a pagar los {{count}} conceptos',
+  'Va a pagar {{count}} concepto de {{total}}_one': 'Va a pagar {{count}} concepto de {{total}}',
+  'Va a pagar {{count}} concepto de {{total}}_many': 'Va a pagar {{count}} conceptos de {{total}}',
+  'Va a pagar {{count}} concepto de {{total}}_other': 'Va a pagar {{count}} conceptos de {{total}}',
+};
+
 /** Las claves que el codigo escribe como `t('…')`. Los textos son los del artboard, tal cual. */
 const LITERALES = [
   // `diseno/Ciudadano.dc.html`, linea 65: el titulo de la barra.
@@ -109,10 +138,54 @@ const LITERALES = [
   // Linea 177: la amnistia. La norma es dato (`ORDENANZA`, de `src/datos/`) y entra por su hueco.
   'Amnistía vigente hasta el 31 de diciembre.',
   'La {{ordenanza}} condona el 100 % del interés moratorio. Al pagar ahora, el descuento se aplica solo: no hay que solicitarlo.',
+
+  // ── Paso 2 · Elegir qué pago (issue 6) ──────────────────────────────────────────────────────
+  // Lineas 187-191 y 1105: quien es. El nombre, el codigo y el documento son dato y entran por su
+  // hueco; los predios y los vehiculos son plurales (abajo) y entran ya dichos.
+  'Contribuyente',
+  'Código {{codigo}} · {{tipoDeDocumento}} {{numeroDeDocumento}} · {{predios}} y {{vehiculos}}',
+  'No soy yo',
+  // Lineas 199-206 y 1116: la banda del total. La fecha la dice `fechaEnPalabras`, con año y
+  // «setiembre» (nota del revisor), y el importe `formatearImporte`: los dos entran por su hueco.
+  'Deuda total al {{fecha}}',
+  'Con la amnistía',
+  'se descuenta {{importe}} de interés',
+  // Lineas 1119-1122: las cuatro cifras, con su nota.
+  'Impuesto y arbitrios',
+  'Lo que no se condona',
+  'Interés moratorio',
+  'La amnistía lo condona entero',
+  'Gastos y costas',
+  'Emisión y cobranza coactiva',
+  'Conceptos',
+  'Predial, arbitrios y vehicular',
+  // Linea 224 (el titulo, arriba) y 1152: «Marcar todo» / «Quitar todo».
+  'Marcar todo',
+  'Quitar todo',
+  // Lineas 1132-1145: cada concepto. El concepto es dato y entra por su hueco.
+  'Pagar {{concepto}}',
+  'incluye {{importe}} de recargo',
+  'Ver el detalle',
+  'Ocultar el detalle',
+  // Lineas 1158-1173: la barra de pago, el aviso sin nada marcado y la ayuda de la linea 298.
+  'No ha marcado ningún concepto',
+  'Con la amnistía paga {{conAmnistia}}: se descuentan {{interes}} de interés',
+  'Pagar todo',
+  'Pagar lo marcado',
+  'Marque al menos un concepto para poder pagar.',
+  'Marque al menos un concepto para continuar. Puede pagar todo de una vez o solo lo que le venza primero.',
+  // Lineas 303-305 y 1368: sin deuda viva.
+  'No le queda nada por pagar',
+  'Pagó todos sus conceptos pendientes. Puede pedir su constancia de no adeudo, que acredita que está al día.',
+  'Pedir mi constancia de no adeudo',
+  'Se emitiría su constancia de no adeudo al día de hoy.',
+  // Los plurales: cada forma que i18next pide para `es` (`_one`, `_many`, `_other`). Lo que dice
+  // cada una esta en `PLURALES`.
+  ...Object.keys(PLURALES_DEL_PASO_2),
 ] as const;
 
-/** Lo que tiene que decir cada forma plural. Hoy no hay ninguna; el mecanismo es el de `rentas`. */
-const PLURALES: Readonly<Record<string, string>> = {};
+/** Lo que tiene que decir cada forma plural, con el mecanismo de `rentas`. */
+const PLURALES: Readonly<Record<string, string>> = PLURALES_DEL_PASO_2;
 
 function elQueDeberiaSer(): Readonly<Record<string, string>> {
   const claves = [...new Set(LITERALES)].sort((a, b) => a.localeCompare(b, 'es'));

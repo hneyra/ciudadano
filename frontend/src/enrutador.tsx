@@ -4,6 +4,7 @@ import { Navigate, type RouteObject, createHashRouter, useNavigate } from 'react
 
 import { Marco } from './marco/Marco.tsx';
 import { Buscar } from './pasos/buscar/Buscar.tsx';
+import { Deudas } from './pasos/deudas/Deudas.tsx';
 import { useRecorrido } from './recorrido/ProveedorDelRecorrido.tsx';
 import { type Paso, pasoAlcanzable, ultimoAlcanzable } from './recorrido/recorrido.ts';
 import { RUTA_DEL_PASO } from './recorrido/rutas.ts';
@@ -20,7 +21,7 @@ import { RUTA_DEL_PASO } from './recorrido/rutas.ts';
  * El titulo de cada paso, para el marcador que lo ocupa hasta que llegue su pantalla (issues 6-10).
  * Son los encabezados del artboard: lineas 126, 224, 314, 360, 1276 y 570. El de `buscar` ya no lo
  * dibuja ningun marcador —su pantalla lleva el mismo `h1`— y sigue aqui para que el `switch` cubra
- * todos los pasos.
+ * todos los pasos. El de `deudas` tampoco: es el `h1` de su pantalla (issue 6).
  */
 function useTituloDelPaso(paso: Paso): string {
   const { t } = useTranslation();
@@ -58,8 +59,9 @@ function PantallaDelPaso({ paso }: { readonly paso: Paso }) {
   // Mientras se redirige no se dibuja el paso: ni un cuadro de una pantalla a la que no se puede ir.
   if (!alcanzable) return null;
 
-  // Las pantallas que ya llegaron (issue 5); los demas pasos siguen con su marcador.
+  // Las pantallas que ya llegaron (issues 5 y 6); los demas pasos siguen con su marcador.
   if (paso === 'buscar') return <Buscar />;
+  if (paso === 'deudas') return <Deudas />;
 
   return (
     <h1 className="m-0 text-[27px] font-bold text-azul" data-paso={paso}>

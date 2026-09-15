@@ -425,6 +425,137 @@ const TABLA: readonly Correspondencia[] = [
     leer: enElMarcado(/<div style="margin-top:18px; border:1px solid #[0-9A-Fa-f]{3,6}; border-left:4px solid (#[0-9A-Fa-f]{3,6})/),
     decision: { tipo: 'igual', token: '--color-atencion-tinta' },
   },
+
+  // ── Paso 2 · Elegir qué pago (issue 6) ────────────────────────────────────────────────────
+  {
+    delArtboard: 'lo secundario sobre la banda del total',
+    donde: 'lineas 199-206: «Deuda total al …», la nota, «Con la amnistía» y el descuento',
+    leer: enElMarcado(/letter-spacing:\.09em; color:(#[0-9A-Fa-f]{3,6})">Deuda total al/),
+    decision: { tipo: 'igual', token: '--color-sobre-barra-2' },
+  },
+  {
+    delArtboard: 'recargo de un concepto',
+    donde: 'linea 245: «incluye S/ … de recargo»',
+    leer: enElMarcado(/color:(#[0-9A-Fa-f]{3,6}); margin-top:3px">\{\{ d\.recargo \}\}/),
+    decision: { tipo: 'igual', token: '--color-mal-tinta' },
+  },
+  {
+    delArtboard: 'vencimiento de un concepto sin tono',
+    donde: 'linea 1140: `venceColor` cuando el tono no es `mal` ni `atencion`',
+    leer: enElMarcado(/\(d\.tono === 'atencion' \? AMBAR_FG : '(#[0-9A-Fa-f]{3,6})'\)/),
+    decision: { tipo: 'igual', token: '--color-tinta-3' },
+  },
+  {
+    delArtboard: 'papel de la fila marcada',
+    donde: 'linea 1147: `marcoStyle` de un concepto marcado',
+    leer: enElMarcado(/\(marcada \? '(#[0-9A-Fa-f]{3,6})' : '#fff'\)/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#F7FBFE',
+      seSustituyePor: '--color-sup',
+      porQue:
+        '`clasico` no tiene ese papel. `src/pasos/deudas/Deudas.tsx` usa `--sup` (`#f9fbfd`), el papel ' +
+        'secundario mas cercano, que es el que pide el issue 6 («Fila marcada: fondo `sup`»).',
+    },
+  },
+  {
+    delArtboard: 'filo izquierdo de la fila marcada',
+    donde: 'linea 1148: `marcoStyle` de un concepto marcado',
+    // Como `IN_MAL`: la linea concatena una constante. Se lee cual, y luego su valor.
+    leer: (artboard) => {
+      const nombre = enElMarcado(/border-left:4px solid ' \+ \(marcada \? ([A-Z_]+) : 'transparent'\)/)(artboard);
+      return nombre === null ? null : constante(nombre)(artboard);
+    },
+    decision: { tipo: 'igual', token: '--color-azul' },
+  },
+  {
+    delArtboard: 'papel del desglose',
+    donde: 'linea 252',
+    leer: enElMarcado(/border-top:1px solid #EEE; background:(#[0-9A-Fa-f]{3,6}); padding:4px 20px 16px/),
+    decision: { tipo: 'igual', token: '--color-sup' },
+  },
+  {
+    delArtboard: 'filo del contenedor de la tabla del desglose',
+    donde: 'linea 254',
+    leer: enElMarcado(/<div style="overflow-x:auto; background:#fff; border:1px solid (#[0-9A-Fa-f]{3,6})">/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#E4E4E4',
+      seSustituyePor: '--color-linea',
+      porQue: 'El mismo gris que el filo de cada capacidad (fila de arriba), con la misma decision: `--linea`.',
+    },
+  },
+  {
+    delArtboard: 'papel del rotulo de la tabla del desglose',
+    donde: 'linea 721: `TH`',
+    leer: enElMarcado(/const TH = '[^']*background:(#[0-9A-Fa-f]{3,6})/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#F2F2F2',
+      seSustituyePor: '--color-sup',
+      porQue:
+        'La tabla del desglose es `Tabla` de `@kamayuk/ui`, y su `TablaRotulo` pinta la cabecera del ' +
+        'producto: versalitas de 11.5 px en `--tinta-3` sobre `--sup`. `clasico` no tiene el `#F2F2F2`.',
+    },
+  },
+  {
+    delArtboard: 'ahorro de lo marcado',
+    donde: 'linea 290: «Con la amnistía paga …»',
+    leer: enElMarcado(/color:(#[0-9A-Fa-f]{3,6}); margin-top:3px">\{\{ seleccion\.ahorro \}\}/),
+    decision: { tipo: 'igual', token: '--color-ok-tinta' },
+  },
+  {
+    delArtboard: 'boton de pagar sin nada marcado',
+    donde: 'linea 1169: `botonStyle` con la seleccion vacia, con texto blanco',
+    leer: enElMarcado(/\(c\.sel\.length === 0 \? '(#[0-9A-Fa-f]{3,6})' : AZUL\)/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#BBB',
+      seSustituyePor: '--color-linea',
+      porQue:
+        'Blanco sobre `#BBB` no llega a AA (calculado abajo), y el boton sigue siendo pulsable: avisa ' +
+        '«Marque al menos un concepto para poder pagar.», asi que lo que dice se tiene que leer. ' +
+        '`src/pasos/deudas/Deudas.tsx` lo pinta en `--tinta-2` sobre `--linea` (5.49:1).',
+      noLlegaA: { contra: '--color-sobre-azul', umbral: UMBRAL_DE_TEXTO },
+    },
+  },
+  {
+    delArtboard: 'filo tenue de «No le queda nada por pagar»',
+    donde: 'linea 302',
+    leer: enElMarcado(/<div style="background:#DFF0D8; border:1px solid (#[0-9A-Fa-f]{3,6}); border-left:5px solid/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#D6E9C6',
+      seSustituyePor: '--color-ok-tinta',
+      porQue:
+        '`clasico` no tiene filo para el tono `ok`. Se pinta con `--ok-tinta` al 25 %, que es lo que hace ' +
+        '`Alerta` de `@kamayuk/ui` con ese tono (y `AvisoConFilo` con `atencion`).',
+    },
+  },
+  {
+    delArtboard: 'titulo de «No le queda nada por pagar»',
+    donde: 'linea 303',
+    leer: enElMarcado(/color:(#[0-9A-Fa-f]{3,6})">No le queda nada por pagar/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#2D5A2E',
+      seSustituyePor: '--color-ok-tinta',
+      porQue:
+        '`clasico` no tiene un verde mas oscuro que `--ok-tinta`. El titulo se distingue del texto por ' +
+        'su tamano (18 px) y su negrita, que se conservan.',
+    },
+  },
+  {
+    delArtboard: '«Pedir mi constancia de no adeudo» con hover',
+    donde: 'linea 305: `style-hover` del boton',
+    leer: enElMarcado(/style-hover="background:(#[0-9A-Fa-f]{3,6})">Pedir mi constancia de no adeudo<\/button>\s*<\/div>\s*<\/sc-if>\s*<\/div>\s*<\/sc-if>/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#EFF7EC',
+      seSustituyePor: '--color-ok-fondo',
+      porQue: '`clasico` no tiene ese papel; `--ok-fondo` es el verde claro de la identidad.',
+    },
+  },
 ];
 
 describe('la identidad `clasico` es la paleta del artboard', () => {
