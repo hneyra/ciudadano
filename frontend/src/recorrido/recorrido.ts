@@ -169,6 +169,24 @@ export function hayQuePagar(estado: EstadoDelRecorrido): boolean {
 }
 
 /**
+ * **Lo que el paso 4 cobra**: la seleccion viva, pero solo si `hayQuePagar`.
+ *
+ * No es `seleccion` a secas porque «Pagar» se alcanza tambien sin haber buscado: «Iniciar sesión»
+ * abre «Mis datos» y «Solo con mi correo» lleva a pagar (issue 8). Ahi `marcadas` trae lo marcado por
+ * omision, que no eligio nadie, y `seleccion` daria los cuatro conceptos: el resumen diria
+ * `S/ 3,149.92` y confirmar sellaria un pago que nadie pidio. De aqui cuelgan el resumen, las
+ * instrucciones de cada medio y lo que `confirmarPago` sella, asi que no pueden discrepar.
+ */
+export function porPagar(estado: EstadoDelRecorrido): readonly Deuda[] {
+  return hayQuePagar(estado) ? seleccion(estado) : [];
+}
+
+/** La cuenta de `porPagar`: el resumen y el `{{TOTAL}}` de las instrucciones del paso 4. */
+export function cuentaPorPagar(estado: EstadoDelRecorrido): Cuenta {
+  return cuentaDe(porPagar(estado));
+}
+
+/**
  * A donde lleva entrar con la cuenta. El artboard siempre va a `pagar` (linea 1200); la nota del
  * revisor del issue 7 lo corrige: «Iniciar sesión» abre «Mis datos» aunque no se haya buscado, y
  * sin nada que pagar ese «Pagar» quedaria vacio. Entonces se va al historial.
@@ -258,7 +276,8 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
       return { ...estado, valores: { ...estado.valores, [accion.clave]: accion.valor } };
 
     case 'confirmarPago': {
-      const pagado = seleccion(estado);
+      // `porPagar` y no `seleccion`: sin busqueda, lo marcado por omision no es un pago (issue 8).
+      const pagado = porPagar(estado);
       // Sin nada que pagar no se sella nada. El aviso «No hay nada que pagar.» es de la pantalla.
       if (pagado.length === 0) return estado;
       return {

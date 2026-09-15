@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { clavesDeLosMedios } from '../src/pasos/pagar/textosDeLosMedios.ts';
 import { RAIZ } from './artboards.ts';
 
 /**
@@ -26,6 +27,10 @@ import { RAIZ } from './artboards.ts';
  * las que el codigo escribe como `t('…')`. Que el codigo no use una clave que esta lista no tiene lo
  * dice `i18next-cli status` —`yarn i18n`, dentro de `yarn verificar`—; que la lista y el locale
  * cuadren, esta guarda. Cuando lleguen las pantallas con sus datos, la lista se derivara como alli.
+ *
+ * Y la primera ya llego (issue 8): los textos de los cuatro medios de pago viven en `MEDIOS` y la
+ * pantalla los traduce con una variable, que `i18next-cli` no ve. Entran DERIVADOS de
+ * `clavesDeLosMedios()` (`src/pasos/pagar/textosDeLosMedios.ts`), no copiados aqui.
  *
  * <h2>Y por que el locale se REGENERA en vez de escribirse</h2>
  *
@@ -211,10 +216,33 @@ const LITERALES = [
   'Abriría la recuperación de su clave.',
   'Abriría el registro de una cuenta nueva.',
 
+  // ── Paso 4 · Pagar (issue 8) ────────────────────────────────────────────────────────────────
+  // Linea 361: la entrada bajo el titulo (que ya esta arriba, «¿Cómo quiere pagar?»). Lo que dice cada
+  // medio no se escribe aqui: entra derivado de `MEDIOS`, abajo.
+  'Elija un medio de pago. Con tarjeta, Yape o pagalo.pe el pago se aplica al instante; con código de banco se aplica al día siguiente hábil.',
+  // Linea 431: el rotulo de los bancos.
+  'Dónde puede pagarlo',
+  // Lineas 449-471 y 1235-1240: el resumen. «Impuesto y arbitrios» y «Gastos y costas» ya estan en el
+  // paso 2. El destino entra por su hueco: el correo es dato, y sin correo es «su correo» (1027).
+  'Lo que va a pagar',
+  'Interés condonado',
+  'Total a pagar',
+  'El comprobante se enviará a {{destino}}.',
+  'su correo',
+  'Cambiar lo que voy a pagar',
+  // Linea 1255: confirmar sin nada que pagar; y 1270, el aviso del pago registrado.
+  'No hay nada que pagar.',
+  'Pago registrado. Le enviamos el comprobante a {{destino}}.',
+  // Sin nada que pagar, volver a elegir: son los rotulos de la franja («Buscar mi deuda», «Elegir qué
+  // pago»), que ya estan arriba.
+
   // Los plurales: cada forma que i18next pide para `es` (`_one`, `_many`, `_other`). Lo que dice
   // cada una esta en `PLURALES`.
   ...Object.keys(PLURALES_DEL_PASO_2),
-] as const;
+
+  // Lo que dicen los cuatro medios de pago (issue 8), derivado del dato.
+  ...clavesDeLosMedios(),
+];
 
 /** Lo que tiene que decir cada forma plural, con el mecanismo de `rentas`. */
 const PLURALES: Readonly<Record<string, string>> = PLURALES_DEL_PASO_2;
@@ -237,6 +265,11 @@ describe('el locale `es` esta completo y no se aparta', () => {
     // Sin esto, una lista vaciada haria que «no falta ninguna» pasara en verde sobre la nada.
     expect(Object.keys(esperado), 'la lista de claves vino corta').toEqual(
       expect.arrayContaining(['Pago de tributos en línea', 'Municipalidad Distrital de Catacaos']),
+    );
+    // Y la parte derivada de `MEDIOS`: si la derivacion se vaciara, sus claves faltarian del locale sin
+    // que el resto de la lista lo notara.
+    expect(Object.keys(esperado), 'la lista no trae lo que dicen los medios de pago').toEqual(
+      expect.arrayContaining(['Pagar con tarjeta', 'Los tres dígitos del reverso', 'Ya pagué en el banco']),
     );
   });
 

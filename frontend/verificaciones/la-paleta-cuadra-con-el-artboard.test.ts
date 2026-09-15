@@ -622,7 +622,170 @@ const TABLA: readonly Correspondencia[] = [
     leer: enElMarcado(/style-hover="background:(#[0-9A-Fa-f]{3,6})">Entrar y pagar/),
     decision: { tipo: 'igual', token: '--color-info-fondo' },
   },
+
+  // ── Paso 4 · Pagar (issue 8) ──────────────────────────────────────────────────────────────
+  {
+    delArtboard: 'nota de un medio de pago',
+    donde: 'linea 376',
+    leer: enElMarcado(/line-height:1\.5; color:(#[0-9A-Fa-f]{3,6}); margin-top:7px; text-align:left/),
+    decision: { tipo: 'igual', token: '--color-tinta-3' },
+  },
+  {
+    delArtboard: 'caja del icono de un medio no elegido',
+    donde: 'linea 1210: `iconStyle`',
+    leer: enElMarcado(/\(on \? AZUL : '(#[0-9A-Fa-f]{3,6})'\) \+ '; color:'/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#F0F2F4',
+      seSustituyePor: '--color-fondo',
+      esElMasCercano: true,
+      porQue:
+        '`clasico` no tiene ese gris. `src/pasos/pagar/Pagar.tsx` pinta la caja con `--fondo`, el mas cercano ' +
+        '(calculado abajo), y el icono con `--tinta-3` (el `#777` del artboard, fila «gris de nota»).',
+    },
+  },
+  {
+    delArtboard: 'filo del medio elegido',
+    donde: 'linea 1212: `style` del boton del medio',
+    // Como `IN_MAL`: la linea concatena una constante. Se lee cual, y luego su valor.
+    leer: (artboard) => {
+      const nombre = enElMarcado(/\(on \? '2px solid ' \+ ([A-Z_]+) : '1px solid/)(artboard);
+      return nombre === null ? null : constante(nombre)(artboard);
+    },
+    decision: { tipo: 'igual', token: '--color-azul' },
+  },
+  {
+    delArtboard: 'papel del medio elegido',
+    donde: 'linea 1213: `style` del boton del medio',
+    leer: enElMarcado(/cursor:pointer; background:' \+ \(on \? '(#[0-9A-Fa-f]{3,6})' : '#fff'\)/),
+    decision: {
+      tipo: 'desviacion',
+      token: '--color-azul-suave',
+      elArtboardDice: '#F0F6FB',
+      laLibreriaDice: '#e8f1f9',
+      porQue:
+        'El issue 8 lo pide asi («activo con borde 2 px `azul` y fondo `azul-suave`»). `#F0F6FB` es ' +
+        '`--info-fondo`, el papel de los avisos informativos y del bloque del codigo de pago (fila de abajo): ' +
+        'con el, el medio elegido y el codigo que se lleva al banco serian el mismo papel. `--azul-suave` es ' +
+        'el realce azul de la identidad, un punto mas marcado.',
+    },
+  },
+  {
+    delArtboard: 'filo discontinuo del codigo de pago',
+    donde: 'linea 414',
+    leer: enElMarcado(/border:1px dashed (#[0-9A-Fa-f]{3,6}); background:/),
+    decision: { tipo: 'igual', token: '--color-azul' },
+  },
+  {
+    delArtboard: 'papel del codigo de pago',
+    donde: 'linea 414',
+    leer: enElMarcado(/border:1px dashed #[0-9A-Fa-f]{3,6}; background:(#[0-9A-Fa-f]{3,6}); padding:18px/),
+    decision: { tipo: 'igual', token: '--color-info-fondo' },
+  },
+  {
+    delArtboard: 'filo de la rejilla de bancos',
+    donde: 'linea 432',
+    leer: enElMarcado(/data-bancos="1" style="[^"]*border:1px solid (#[0-9A-Fa-f]{3,6})"/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#E4E4E4',
+      seSustituyePor: '--color-linea',
+      porQue: 'El mismo gris que el filo de cada capacidad (paso 1), con la misma decision: `--linea`.',
+    },
+  },
+  {
+    delArtboard: 'papel del pie del panel del medio',
+    donde: 'linea 444',
+    leer: enElMarcado(/border-top:1px solid #EEE; background:(#[0-9A-Fa-f]{3,6})">\s*<p[^>]*>\{\{ medio\.aviso \}\}/),
+    decision: { tipo: 'igual', token: '--color-sup' },
+  },
+  {
+    delArtboard: 'boton verde de confirmar',
+    donde: 'linea 446: fondo del boton, con texto blanco',
+    leer: enElMarcado(/padding:0 28px; background:(#[0-9A-Fa-f]{3,6}); color:#fff; font-size:16px/),
+    // Que el texto encima se lee lo calcula la prueba de abajo, en claro y en oscuro.
+    decision: { tipo: 'igual', token: '--color-ok-tinta' },
+  },
+  {
+    delArtboard: 'boton verde de confirmar con hover',
+    donde: 'linea 446: `style-hover` del boton',
+    leer: enElMarcado(/style-hover="background:(#[0-9A-Fa-f]{3,6})">\{\{ medio\.boton \}\}/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#326032',
+      seSustituyePor: '--color-ok-tinta',
+      esElMasCercano: true,
+      porQue:
+        '`clasico` no tiene un verde mas oscuro que `--ok-tinta` (el mas cercano, calculado abajo). ' +
+        '`src/pasos/pagar/Pagar.tsx` deja el fondo en `--ok-tinta` y lo oscurece con `hover:brightness-90`: ' +
+        'un filtro, no un color, que en claro sube el contraste del texto en vez de bajarlo.',
+    },
+  },
+  {
+    delArtboard: 'cabecera del resumen «Lo que va a pagar»',
+    donde: 'linea 451',
+    leer: enElMarcado(/border-bottom:1px solid #EEE; background:(#[0-9A-Fa-f]{3,6})">\s*<h2[^>]*>Lo que va a pagar/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#F2F6FA',
+      seSustituyePor: '--color-sup',
+      porQue:
+        '`clasico` no tiene ese papel. El mas cercano es `--info-fondo`, que es el papel de los avisos y ' +
+        'aqui el del codigo de pago; el issue 8 pide `sup` para la fila del total, que el artboard pinta con ' +
+        'el mismo `#F2F6FA`, y la cabecera va con ella: `--sup` es la cabecera de `Tabla` y el pie del panel.',
+    },
+  },
+  {
+    delArtboard: 'papel de «Total a pagar»',
+    donde: 'linea 1241: `filaStyle` de la cuarta fila de los totales',
+    leer: enElMarcado(/background:' \+ \(i === 3 \? '(#[0-9A-Fa-f]{3,6})' : '#fff'\)/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#F2F6FA',
+      seSustituyePor: '--color-sup',
+      porQue: 'El issue 8 lo pide («fondo `sup`»). Es el papel de la cabecera del resumen (fila de arriba).',
+    },
+  },
+  {
+    delArtboard: 'filo de «Total a pagar»',
+    donde: 'linea 1241: `filaStyle` de la cuarta fila de los totales',
+    leer: enElMarcado(/border-top:' \+ \(i === 3 \? '2px solid (#[0-9A-Fa-f]{3,6})'/),
+    decision: { tipo: 'igual', token: '--color-linea' },
+  },
+  {
+    delArtboard: 'filo de las demas filas de los totales',
+    donde: 'linea 1241: `filaStyle`',
+    leer: enElMarcado(/'2px solid #[0-9A-Fa-f]{3,6}' : '1px solid (#[0-9A-Fa-f]{3,6})'\)/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#F6F6F6',
+      seSustituyePor: '--color-linea-2',
+      porQue:
+        'Es un filo, y `--linea-2` es el filo mas tenue de `clasico`. Lo mas cercano son `--fondo` y `--sup`, ' +
+        'que son papeles: sobre el blanco del resumen apenas separan, y el modo oscuro los deriva como papel.',
+    },
+  },
+  {
+    delArtboard: 'filo de cada concepto del resumen',
+    donde: 'linea 454',
+    leer: enElMarcado(/padding:12px 18px; border-bottom:1px solid (#[0-9A-Fa-f]{3,6})">/),
+    decision: {
+      tipo: 'sin-token',
+      elArtboardDice: '#F0F0F0',
+      seSustituyePor: '--color-linea-2',
+      esElMasCercano: true,
+      porQue: '`clasico` no tiene ese gris; `--linea-2` (`#eee`) es el mas cercano, calculado abajo.',
+    },
+  },
 ];
+
+/**
+ * El boton verde de confirmar del paso 4 (issue 8): el fondo y el texto que `src/pasos/pagar/Pagar.tsx`
+ * le pone. El artboard escribe blanco sobre `#3C763D`; aqui es `--sobre-azul` —el texto del `Boton`
+ * primario— sobre `--ok-tinta`, y se mide en los DOS modos, porque en oscuro `--ok-tinta` es un verde
+ * claro y el texto que se lee encima es el oscuro.
+ */
+const BOTON_VERDE = { fondo: '--color-ok-tinta', texto: '--color-sobre-azul' } as const;
 
 describe('la identidad `clasico` es la paleta del artboard', () => {
   it('EL CENTINELA: las dos lecturas traen algo, y la tabla cubre cada constante de color', () => {
@@ -708,6 +871,35 @@ describe('la identidad `clasico` es la paleta del artboard', () => {
     expect(
       lejos,
       'La tabla dice «el mas cercano» de un token que no lo es:\n' + `${lejos.join('\n')}\n\n  Revisa la fila.`,
+    ).toEqual([]);
+  });
+
+  it('el boton verde de confirmar se lee: su texto sobre `--ok-tinta` llega a AA en claro y en oscuro', () => {
+    const temas = reglasDe(readFileSync(temasDeUi(), 'utf8'));
+    const oscuro = new Map<string, string>();
+    for (const regla of temas) {
+      if (regla.dentroDe.length > 0 || !regla.selectores.includes("[data-tema='clasico'][data-modo='oscuro']")) continue;
+      for (const [propiedad, valor] of regla.declaraciones) oscuro.set(propiedad, valor);
+    }
+    expect(oscuro.size, "`temas.css` no trae `[data-tema='clasico'][data-modo='oscuro']`").toBeGreaterThan(0);
+
+    const medidas = (
+      [
+        ['claro', CLASICO],
+        ['oscuro', oscuro],
+      ] as const
+    ).map(([modo, paleta]) => {
+      const fondo = paleta.get(BOTON_VERDE.fondo);
+      const texto = paleta.get(BOTON_VERDE.texto);
+      if (fondo === undefined || texto === undefined) return { modo, razon: 0, dice: 'la identidad no declara el par' };
+      const razon = contraste(normalizar(fondo), normalizar(texto));
+      return { modo, razon, dice: `${BOTON_VERDE.texto} (${texto}) sobre ${BOTON_VERDE.fondo} (${fondo}): ${conDosDecimales(razon)}:1` };
+    });
+    const noLlegan = medidas.filter((m) => m.razon < UMBRAL_DE_TEXTO).map((m) => `  ${m.modo}: ${m.dice}`);
+    expect(
+      noLlegan,
+      `El texto del boton verde de confirmar no llega a ${UMBRAL_DE_TEXTO}:1:\n${noLlegan.join('\n')}\n\n` +
+        '  Busca otro par de tokens y escribe aqui su porque.',
     ).toEqual([]);
   });
 
