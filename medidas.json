@@ -1,0 +1,1732 @@
+{
+ "artboard-sin-sesion-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "lienzo": "rgb(244, 246, 248)",
+  "fueraDelRecibo": [
+   "BUTTON: Pago de tributos en línea\n        Munici",
+   "IMG: ",
+   "SPAN: Pago de tributos en línea",
+   "SPAN: Municipalidad Distrital de Catacaos",
+   "BUTTON: Iniciar sesión",
+   "svg: ",
+   "BUTTON: 1\n            Buscar mi deuda",
+   "SPAN: 1",
+   "SPAN: Buscar mi deuda",
+   "BUTTON: 2\n            Elegir qué pago",
+   "SPAN: 2",
+   "SPAN: Elegir qué pago",
+   "BUTTON: 3\n            Mis datos",
+   "SPAN: 3",
+   "SPAN: Mis datos",
+   "BUTTON: 4\n            Pagar",
+   "SPAN: 4",
+   "SPAN: Pagar",
+   "BUTTON: 5\n            Comprobante",
+   "SPAN: 5",
+   "SPAN: Comprobante",
+   "svg: ",
+   "SPAN: Su pago se registró",
+   "SPAN: Pagó S/ 3,149.92 con tarjeta. Le enviamo",
+   "BUTTON: Descargar comprobante",
+   "BUTTON: Imprimir",
+   "BUTTON: Consultar otra deuda",
+   "P: Guarde este pago en una cuenta",
+   "P: Si crea una cuenta con maria@correo.com,",
+   "BUTTON: Crear mi cuenta",
+   "P: Municipalidad Distrital de Catacaos — Pa",
+   "A: Preguntas frecuentes",
+   "A: Reclamos",
+   "A: Términos"
+  ],
+  "recibo": {
+   "caja": {
+    "x": 80,
+    "y": 274.5,
+    "ancho": 1020,
+    "alto": 726.55
+   },
+   "filo": "1px solid rgb(221, 221, 221)",
+   "sombra": "rgba(0, 0, 0, 0.04) 0px 1px 2px 0px",
+   "papel": "rgb(255, 255, 255)"
+  },
+  "cabecera": {
+   "filoInferior": "2px rgb(13, 95, 168)",
+   "escudo": {
+    "x": 105,
+    "y": 297.5,
+    "ancho": 38.33,
+    "alto": 46
+   }
+  },
+  "meta": {
+   "columnas": "254.5px 254.5px 254.5px 254.5px",
+   "celdas": [
+    "Número de operación 86 4418 2026 0913",
+    "Fecha y hora 13/09/2026 · 10:42",
+    "Medio de pago Tarjeta",
+    "Contribuyente Suc. Rufina Medina Medina",
+    "Código 00000025673",
+    "Enviado a maria@correo.com"
+   ]
+  },
+  "tabla": {
+   "minWidth": "660px",
+   "ancho": 1018,
+   "anchoDelMarco": 1018,
+   "filas": [
+    [
+     "Impuesto predial 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 3 y 4 de 4",
+     "293.72"
+    ],
+    [
+     "Arbitrios municipales 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 8 de 12",
+     "291.60"
+    ],
+    [
+     "Impuesto predial 2024",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 4 de 4",
+     "1,854.60"
+    ],
+    [
+     "Impuesto vehicular 2024",
+     "Automóvil Toyota Yaris GLI 2018 · placa T2G-418",
+     "Cuota 1 de 4",
+     "710.00"
+    ],
+    [
+     "Interés condonado por la Ordenanza 012-2026-MPS",
+     "− 413.32"
+    ],
+    [
+     "Total pagado",
+     "3,149.92"
+    ]
+   ],
+   "rellenoTh": "18px",
+   "pie": [
+    {
+     "color": "rgb(60, 118, 61)",
+     "papel": "rgba(0, 0, 0, 0)",
+     "peso": "400"
+    },
+    {
+     "color": "rgb(51, 51, 51)",
+     "papel": "rgb(246, 246, 246)",
+     "peso": "700"
+    }
+   ]
+  },
+  "acciones": {
+   "direccion": "row",
+   "visible": true,
+   "botones": [
+    {
+     "texto": "Descargar comprobante",
+     "caja": {
+      "x": 80,
+      "y": 1019.05,
+      "ancho": 258.39,
+      "alto": 46
+     }
+    },
+    {
+     "texto": "Imprimir",
+     "caja": {
+      "x": 349.39,
+      "y": 1019.05,
+      "ancho": 111.97,
+      "alto": 46
+     }
+    },
+    {
+     "texto": "Consultar otra deuda",
+     "caja": {
+      "x": 889.89,
+      "y": 1019.05,
+      "ancho": 210.11,
+      "alto": 46
+     }
+    }
+   ]
+  }
+ },
+ "portal-sin-sesion-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "lienzo": "rgb(244, 246, 248)",
+  "fueraDelRecibo": [
+   "BUTTON: Pago de tributos en líneaMunicipalidad D",
+   "IMG: ",
+   "SPAN: Pago de tributos en línea",
+   "SPAN: Municipalidad Distrital de Catacaos",
+   "BUTTON: Iniciar sesión",
+   "svg: ",
+   "BUTTON: 1Buscar mi deuda",
+   "SPAN: 1",
+   "SPAN: Buscar mi deuda",
+   "BUTTON: 2Elegir qué pago",
+   "SPAN: 2",
+   "SPAN: Elegir qué pago",
+   "BUTTON: 3Mis datos",
+   "SPAN: 3",
+   "SPAN: Mis datos",
+   "BUTTON: 4Pagar",
+   "SPAN: 4",
+   "SPAN: Pagar",
+   "BUTTON: 5Comprobante",
+   "SPAN: 5",
+   "SPAN: Comprobante",
+   "svg: ",
+   "H1: Su pago se registró",
+   "P: Pagó S/ 3,149.92 con tarjeta. Le enviamo",
+   "BUTTON: Descargar comprobante",
+   "BUTTON: Imprimir",
+   "BUTTON: Consultar otra deuda",
+   "H2: Guarde este pago en una cuenta",
+   "P: Si crea una cuenta con maria@correo.com,",
+   "BUTTON: Crear mi cuenta",
+   "P: Municipalidad Distrital de Catacaos — Pa",
+   "A: Preguntas frecuentes",
+   "A: Reclamos",
+   "A: Términos"
+  ],
+  "recibo": {
+   "caja": {
+    "x": 80,
+    "y": 274.5,
+    "ancho": 1020,
+    "alto": 657.05
+   },
+   "filo": "1px solid rgb(221, 221, 221)",
+   "sombra": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(22, 35, 44, 0.06) 0px 1px 2px 0px",
+   "papel": "rgb(255, 255, 255)"
+  },
+  "cabecera": {
+   "filoInferior": "2px rgb(13, 95, 168)",
+   "escudo": {
+    "x": 105,
+    "y": 297.5,
+    "ancho": 38.33,
+    "alto": 46
+   }
+  },
+  "meta": {
+   "columnas": "254.5px 254.5px 254.5px 254.5px",
+   "celdas": [
+    "Número de operación86 4418 2026 0913",
+    "Fecha y hora13/09/2026 · 10:42",
+    "Medio de pagoTarjeta",
+    "ContribuyenteSuc. Rufina Medina Medina",
+    "Código00000025673",
+    "Enviado amaria@correo.com"
+   ]
+  },
+  "tabla": {
+   "minWidth": "660px",
+   "ancho": 1018,
+   "anchoDelMarco": 1018,
+   "filas": [
+    [
+     "Impuesto predial 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 3 y 4 de 4",
+     "293.72"
+    ],
+    [
+     "Arbitrios municipales 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 8 de 12",
+     "291.60"
+    ],
+    [
+     "Impuesto predial 2024",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 4 de 4",
+     "1,854.60"
+    ],
+    [
+     "Impuesto vehicular 2024",
+     "Automóvil Toyota Yaris GLI 2018 · placa T2G-418",
+     "Cuota 1 de 4",
+     "710.00"
+    ],
+    [
+     "Interés condonado por la Ordenanza 012-2026-MPS",
+     "− 413.32"
+    ],
+    [
+     "Total pagado",
+     "3,149.92"
+    ]
+   ],
+   "rellenoTh": "18px",
+   "pie": [
+    {
+     "color": "rgb(60, 118, 61)",
+     "papel": "rgba(0, 0, 0, 0)",
+     "peso": "400"
+    },
+    {
+     "color": "rgb(51, 51, 51)",
+     "papel": "rgba(0, 0, 0, 0)",
+     "peso": "700"
+    }
+   ]
+  },
+  "acciones": {
+   "direccion": "row",
+   "visible": true,
+   "botones": [
+    {
+     "texto": "Descargar comprobante",
+     "caja": {
+      "x": 80,
+      "y": 949.55,
+      "ancho": 258.39,
+      "alto": 46
+     }
+    },
+    {
+     "texto": "Imprimir",
+     "caja": {
+      "x": 349.39,
+      "y": 949.55,
+      "ancho": 111.97,
+      "alto": 46
+     }
+    },
+    {
+     "texto": "Consultar otra deuda",
+     "caja": {
+      "x": 889.89,
+      "y": 949.55,
+      "ancho": 210.11,
+      "alto": 46
+     }
+    }
+   ]
+  }
+ },
+ "artboard-sin-sesion-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "lienzo": "rgb(244, 246, 248)",
+  "fueraDelRecibo": [
+   "BUTTON: Pago de tributos en línea\n        Munici",
+   "IMG: ",
+   "SPAN: Pago de tributos en línea",
+   "SPAN: Municipalidad Distrital de Catacaos",
+   "BUTTON: 1\n            Buscar mi deuda",
+   "SPAN: 1",
+   "BUTTON: 2\n            Elegir qué pago",
+   "SPAN: 2",
+   "BUTTON: 3\n            Mis datos",
+   "SPAN: 3",
+   "BUTTON: 4\n            Pagar",
+   "SPAN: 4",
+   "BUTTON: 5\n            Comprobante",
+   "SPAN: 5",
+   "svg: ",
+   "SPAN: Su pago se registró",
+   "SPAN: Pagó S/ 3,149.92 con tarjeta. Le enviamo",
+   "BUTTON: Descargar comprobante",
+   "BUTTON: Imprimir",
+   "BUTTON: Consultar otra deuda",
+   "P: Guarde este pago en una cuenta",
+   "P: Si crea una cuenta con maria@correo.com,",
+   "BUTTON: Crear mi cuenta",
+   "P: Municipalidad Distrital de Catacaos — Pa",
+   "A: Preguntas frecuentes",
+   "A: Reclamos",
+   "A: Términos"
+  ],
+  "recibo": {
+   "caja": {
+    "x": 18,
+    "y": 370.5,
+    "ancho": 364,
+    "alto": 1544.09
+   },
+   "filo": "1px solid rgb(221, 221, 221)",
+   "sombra": "rgba(0, 0, 0, 0.04) 0px 1px 2px 0px",
+   "papel": "rgb(255, 255, 255)"
+  },
+  "cabecera": {
+   "filoInferior": "2px rgb(13, 95, 168)",
+   "escudo": {
+    "x": 43,
+    "y": 393.5,
+    "ancho": 38.33,
+    "alto": 46
+   }
+  },
+  "meta": {
+   "columnas": "362px",
+   "celdas": [
+    "Número de operación 86 4418 2026 0913",
+    "Fecha y hora 13/09/2026 · 10:42",
+    "Medio de pago Tarjeta",
+    "Contribuyente Suc. Rufina Medina Medina",
+    "Código 00000025673",
+    "Enviado a maria@correo.com"
+   ]
+  },
+  "tabla": {
+   "minWidth": "0px",
+   "ancho": 366.45,
+   "anchoDelMarco": 362,
+   "filas": [
+    [
+     "Impuesto predial 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 3 y 4 de 4",
+     "293.72"
+    ],
+    [
+     "Arbitrios municipales 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 8 de 12",
+     "291.60"
+    ],
+    [
+     "Impuesto predial 2024",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 4 de 4",
+     "1,854.60"
+    ],
+    [
+     "Impuesto vehicular 2024",
+     "Automóvil Toyota Yaris GLI 2018 · placa T2G-418",
+     "Cuota 1 de 4",
+     "710.00"
+    ],
+    [
+     "Interés condonado por la Ordenanza 012-2026-MPS",
+     "− 413.32"
+    ],
+    [
+     "Total pagado",
+     "3,149.92"
+    ]
+   ],
+   "rellenoTh": "12px",
+   "pie": [
+    {
+     "color": "rgb(60, 118, 61)",
+     "papel": "rgba(0, 0, 0, 0)",
+     "peso": "400"
+    },
+    {
+     "color": "rgb(51, 51, 51)",
+     "papel": "rgb(246, 246, 246)",
+     "peso": "700"
+    }
+   ]
+  },
+  "acciones": {
+   "direccion": "column",
+   "visible": true,
+   "botones": [
+    {
+     "texto": "Descargar comprobante",
+     "caja": {
+      "x": 18,
+      "y": 1932.59,
+      "ancho": 364,
+      "alto": 46
+     }
+    },
+    {
+     "texto": "Imprimir",
+     "caja": {
+      "x": 18,
+      "y": 1989.59,
+      "ancho": 364,
+      "alto": 46
+     }
+    },
+    {
+     "texto": "Consultar otra deuda",
+     "caja": {
+      "x": 18,
+      "y": 2046.59,
+      "ancho": 364,
+      "alto": 46
+     }
+    }
+   ]
+  }
+ },
+ "portal-sin-sesion-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "lienzo": "rgb(244, 246, 248)",
+  "fueraDelRecibo": [
+   "BUTTON: Pago de tributos en líneaMunicipalidad D",
+   "IMG: ",
+   "SPAN: Pago de tributos en línea",
+   "SPAN: Municipalidad Distrital de Catacaos",
+   "BUTTON: 1Buscar mi deuda",
+   "SPAN: 1",
+   "BUTTON: 2Elegir qué pago",
+   "SPAN: 2",
+   "BUTTON: 3Mis datos",
+   "SPAN: 3",
+   "BUTTON: 4Pagar",
+   "SPAN: 4",
+   "BUTTON: 5Comprobante",
+   "SPAN: 5",
+   "svg: ",
+   "H1: Su pago se registró",
+   "P: Pagó S/ 3,149.92 con tarjeta. Le enviamo",
+   "BUTTON: Descargar comprobante",
+   "BUTTON: Imprimir",
+   "BUTTON: Consultar otra deuda",
+   "H2: Guarde este pago en una cuenta",
+   "P: Si crea una cuenta con maria@correo.com,",
+   "BUTTON: Crear mi cuenta",
+   "P: Municipalidad Distrital de Catacaos — Pa",
+   "A: Preguntas frecuentes",
+   "A: Reclamos",
+   "A: Términos"
+  ],
+  "recibo": {
+   "caja": {
+    "x": 18,
+    "y": 370.5,
+    "ancho": 364,
+    "alto": 1440.09
+   },
+   "filo": "1px solid rgb(221, 221, 221)",
+   "sombra": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(22, 35, 44, 0.06) 0px 1px 2px 0px",
+   "papel": "rgb(255, 255, 255)"
+  },
+  "cabecera": {
+   "filoInferior": "2px rgb(13, 95, 168)",
+   "escudo": {
+    "x": 43,
+    "y": 393.5,
+    "ancho": 38.33,
+    "alto": 46
+   }
+  },
+  "meta": {
+   "columnas": "362px",
+   "celdas": [
+    "Número de operación86 4418 2026 0913",
+    "Fecha y hora13/09/2026 · 10:42",
+    "Medio de pagoTarjeta",
+    "ContribuyenteSuc. Rufina Medina Medina",
+    "Código00000025673",
+    "Enviado amaria@correo.com"
+   ]
+  },
+  "tabla": {
+   "minWidth": "0px",
+   "ancho": 371.14,
+   "anchoDelMarco": 362,
+   "filas": [
+    [
+     "Impuesto predial 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 3 y 4 de 4",
+     "293.72"
+    ],
+    [
+     "Arbitrios municipales 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 8 de 12",
+     "291.60"
+    ],
+    [
+     "Impuesto predial 2024",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 4 de 4",
+     "1,854.60"
+    ],
+    [
+     "Impuesto vehicular 2024",
+     "Automóvil Toyota Yaris GLI 2018 · placa T2G-418",
+     "Cuota 1 de 4",
+     "710.00"
+    ],
+    [
+     "Interés condonado por la Ordenanza 012-2026-MPS",
+     "− 413.32"
+    ],
+    [
+     "Total pagado",
+     "3,149.92"
+    ]
+   ],
+   "rellenoTh": "12px",
+   "pie": [
+    {
+     "color": "rgb(60, 118, 61)",
+     "papel": "rgba(0, 0, 0, 0)",
+     "peso": "400"
+    },
+    {
+     "color": "rgb(51, 51, 51)",
+     "papel": "rgba(0, 0, 0, 0)",
+     "peso": "700"
+    }
+   ]
+  },
+  "acciones": {
+   "direccion": "column",
+   "visible": true,
+   "botones": [
+    {
+     "texto": "Descargar comprobante",
+     "caja": {
+      "x": 18,
+      "y": 1828.59,
+      "ancho": 364,
+      "alto": 46
+     }
+    },
+    {
+     "texto": "Imprimir",
+     "caja": {
+      "x": 18,
+      "y": 1885.59,
+      "ancho": 364,
+      "alto": 46
+     }
+    },
+    {
+     "texto": "Consultar otra deuda",
+     "caja": {
+      "x": 18,
+      "y": 1942.59,
+      "ancho": 364,
+      "alto": 46
+     }
+    }
+   ]
+  }
+ },
+ "artboard-sin-sesion-impresion": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "lienzo": "rgb(255, 255, 255)",
+  "fueraDelRecibo": [],
+  "recibo": {
+   "caja": {
+    "x": 80,
+    "y": 24,
+    "ancho": 1020,
+    "alto": 724.55
+   },
+   "filo": "0px none rgb(51, 51, 51)",
+   "sombra": "none",
+   "papel": "rgb(255, 255, 255)"
+  },
+  "cabecera": {
+   "filoInferior": "2px rgb(13, 95, 168)",
+   "escudo": {
+    "x": 104,
+    "y": 46,
+    "ancho": 38.33,
+    "alto": 46
+   }
+  },
+  "meta": {
+   "columnas": "255px 255px 255px 255px",
+   "celdas": [
+    "Número de operación 86 4418 2026 0913",
+    "Fecha y hora 13/09/2026 · 10:42",
+    "Medio de pago Tarjeta",
+    "Contribuyente Suc. Rufina Medina Medina",
+    "Código 00000025673",
+    "Enviado a maria@correo.com"
+   ]
+  },
+  "tabla": {
+   "minWidth": "660px",
+   "ancho": 1020,
+   "anchoDelMarco": 1020,
+   "filas": [
+    [
+     "Impuesto predial 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 3 y 4 de 4",
+     "293.72"
+    ],
+    [
+     "Arbitrios municipales 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 8 de 12",
+     "291.60"
+    ],
+    [
+     "Impuesto predial 2024",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 4 de 4",
+     "1,854.60"
+    ],
+    [
+     "Impuesto vehicular 2024",
+     "Automóvil Toyota Yaris GLI 2018 · placa T2G-418",
+     "Cuota 1 de 4",
+     "710.00"
+    ],
+    [
+     "Interés condonado por la Ordenanza 012-2026-MPS",
+     "− 413.32"
+    ],
+    [
+     "Total pagado",
+     "3,149.92"
+    ]
+   ],
+   "rellenoTh": "18px",
+   "pie": [
+    {
+     "color": "rgb(60, 118, 61)",
+     "papel": "rgba(0, 0, 0, 0)",
+     "peso": "400"
+    },
+    {
+     "color": "rgb(51, 51, 51)",
+     "papel": "rgb(246, 246, 246)",
+     "peso": "700"
+    }
+   ]
+  },
+  "acciones": {
+   "direccion": "row",
+   "visible": false,
+   "botones": [
+    {
+     "texto": "Descargar comprobante",
+     "caja": {
+      "x": 0,
+      "y": 0,
+      "ancho": 0,
+      "alto": 0
+     }
+    },
+    {
+     "texto": "Imprimir",
+     "caja": {
+      "x": 0,
+      "y": 0,
+      "ancho": 0,
+      "alto": 0
+     }
+    },
+    {
+     "texto": "Consultar otra deuda",
+     "caja": {
+      "x": 0,
+      "y": 0,
+      "ancho": 0,
+      "alto": 0
+     }
+    }
+   ]
+  }
+ },
+ "portal-sin-sesion-impresion": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "lienzo": "rgb(255, 255, 255)",
+  "fueraDelRecibo": [],
+  "recibo": {
+   "caja": {
+    "x": 80,
+    "y": 24,
+    "ancho": 1020,
+    "alto": 655.05
+   },
+   "filo": "0px none rgb(51, 51, 51)",
+   "sombra": "none",
+   "papel": "rgb(255, 255, 255)"
+  },
+  "cabecera": {
+   "filoInferior": "2px rgb(13, 95, 168)",
+   "escudo": {
+    "x": 104,
+    "y": 46,
+    "ancho": 38.33,
+    "alto": 46
+   }
+  },
+  "meta": {
+   "columnas": "255px 255px 255px 255px",
+   "celdas": [
+    "Número de operación86 4418 2026 0913",
+    "Fecha y hora13/09/2026 · 10:42",
+    "Medio de pagoTarjeta",
+    "ContribuyenteSuc. Rufina Medina Medina",
+    "Código00000025673",
+    "Enviado amaria@correo.com"
+   ]
+  },
+  "tabla": {
+   "minWidth": "660px",
+   "ancho": 1020,
+   "anchoDelMarco": 1020,
+   "filas": [
+    [
+     "Impuesto predial 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 3 y 4 de 4",
+     "293.72"
+    ],
+    [
+     "Arbitrios municipales 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 8 de 12",
+     "291.60"
+    ],
+    [
+     "Impuesto predial 2024",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 4 de 4",
+     "1,854.60"
+    ],
+    [
+     "Impuesto vehicular 2024",
+     "Automóvil Toyota Yaris GLI 2018 · placa T2G-418",
+     "Cuota 1 de 4",
+     "710.00"
+    ],
+    [
+     "Interés condonado por la Ordenanza 012-2026-MPS",
+     "− 413.32"
+    ],
+    [
+     "Total pagado",
+     "3,149.92"
+    ]
+   ],
+   "rellenoTh": "18px",
+   "pie": [
+    {
+     "color": "rgb(60, 118, 61)",
+     "papel": "rgba(0, 0, 0, 0)",
+     "peso": "400"
+    },
+    {
+     "color": "rgb(51, 51, 51)",
+     "papel": "rgba(0, 0, 0, 0)",
+     "peso": "700"
+    }
+   ]
+  },
+  "acciones": {
+   "direccion": "row",
+   "visible": false,
+   "botones": [
+    {
+     "texto": "Descargar comprobante",
+     "caja": {
+      "x": 0,
+      "y": 0,
+      "ancho": 0,
+      "alto": 0
+     }
+    },
+    {
+     "texto": "Imprimir",
+     "caja": {
+      "x": 0,
+      "y": 0,
+      "ancho": 0,
+      "alto": 0
+     }
+    },
+    {
+     "texto": "Consultar otra deuda",
+     "caja": {
+      "x": 0,
+      "y": 0,
+      "ancho": 0,
+      "alto": 0
+     }
+    }
+   ]
+  }
+ },
+ "artboard-con-sesion-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "lienzo": "rgb(244, 246, 248)",
+  "fueraDelRecibo": [
+   "BUTTON: Pago de tributos en línea\n        Munici",
+   "IMG: ",
+   "SPAN: Pago de tributos en línea",
+   "SPAN: Municipalidad Distrital de Catacaos",
+   "BUTTON: MC\n          \n            María E. Casti",
+   "SPAN: MC",
+   "SPAN: María E. Castillo",
+   "SPAN: DNI 44218937",
+   "svg: ",
+   "BUTTON: 1\n            Buscar mi deuda",
+   "SPAN: 1",
+   "SPAN: Buscar mi deuda",
+   "BUTTON: 2\n            Elegir qué pago",
+   "SPAN: 2",
+   "SPAN: Elegir qué pago",
+   "BUTTON: 3\n            Mis datos",
+   "SPAN: 3",
+   "SPAN: Mis datos",
+   "BUTTON: 4\n            Pagar",
+   "SPAN: 4",
+   "SPAN: Pagar",
+   "BUTTON: 5\n            Comprobante",
+   "SPAN: 5",
+   "SPAN: Comprobante",
+   "svg: ",
+   "SPAN: Su pago se registró",
+   "SPAN: Pagó S/ 3,149.92 con tarjeta. Le enviamo",
+   "BUTTON: Descargar comprobante",
+   "BUTTON: Imprimir",
+   "BUTTON: Ver mis pagos",
+   "P: Municipalidad Distrital de Catacaos — Pa",
+   "A: Preguntas frecuentes",
+   "A: Reclamos",
+   "A: Términos"
+  ],
+  "recibo": {
+   "caja": {
+    "x": 80,
+    "y": 274.5,
+    "ancho": 1020,
+    "alto": 726.55
+   },
+   "filo": "1px solid rgb(221, 221, 221)",
+   "sombra": "rgba(0, 0, 0, 0.04) 0px 1px 2px 0px",
+   "papel": "rgb(255, 255, 255)"
+  },
+  "cabecera": {
+   "filoInferior": "2px rgb(13, 95, 168)",
+   "escudo": {
+    "x": 105,
+    "y": 297.5,
+    "ancho": 38.33,
+    "alto": 46
+   }
+  },
+  "meta": {
+   "columnas": "254.5px 254.5px 254.5px 254.5px",
+   "celdas": [
+    "Número de operación 86 4418 2026 0913",
+    "Fecha y hora 13/09/2026 · 10:42",
+    "Medio de pago Tarjeta",
+    "Contribuyente Suc. Rufina Medina Medina",
+    "Código 00000025673",
+    "Enviado a fruiz159@gmail.com"
+   ]
+  },
+  "tabla": {
+   "minWidth": "660px",
+   "ancho": 1018,
+   "anchoDelMarco": 1018,
+   "filas": [
+    [
+     "Impuesto predial 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 3 y 4 de 4",
+     "293.72"
+    ],
+    [
+     "Arbitrios municipales 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 8 de 12",
+     "291.60"
+    ],
+    [
+     "Impuesto predial 2024",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 4 de 4",
+     "1,854.60"
+    ],
+    [
+     "Impuesto vehicular 2024",
+     "Automóvil Toyota Yaris GLI 2018 · placa T2G-418",
+     "Cuota 1 de 4",
+     "710.00"
+    ],
+    [
+     "Interés condonado por la Ordenanza 012-2026-MPS",
+     "− 413.32"
+    ],
+    [
+     "Total pagado",
+     "3,149.92"
+    ]
+   ],
+   "rellenoTh": "18px",
+   "pie": [
+    {
+     "color": "rgb(60, 118, 61)",
+     "papel": "rgba(0, 0, 0, 0)",
+     "peso": "400"
+    },
+    {
+     "color": "rgb(51, 51, 51)",
+     "papel": "rgb(246, 246, 246)",
+     "peso": "700"
+    }
+   ]
+  },
+  "acciones": {
+   "direccion": "row",
+   "visible": true,
+   "botones": [
+    {
+     "texto": "Descargar comprobante",
+     "caja": {
+      "x": 80,
+      "y": 1019.05,
+      "ancho": 258.39,
+      "alto": 46
+     }
+    },
+    {
+     "texto": "Imprimir",
+     "caja": {
+      "x": 349.39,
+      "y": 1019.05,
+      "ancho": 111.97,
+      "alto": 46
+     }
+    },
+    {
+     "texto": "Ver mis pagos",
+     "caja": {
+      "x": 932.69,
+      "y": 1019.05,
+      "ancho": 167.31,
+      "alto": 46
+     }
+    }
+   ]
+  }
+ },
+ "portal-con-sesion-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "lienzo": "rgb(244, 246, 248)",
+  "fueraDelRecibo": [
+   "BUTTON: Pago de tributos en líneaMunicipalidad D",
+   "IMG: ",
+   "SPAN: Pago de tributos en línea",
+   "SPAN: Municipalidad Distrital de Catacaos",
+   "BUTTON: MCMaría E. CastilloDNI 44218937",
+   "SPAN: MC",
+   "SPAN: María E. Castillo",
+   "SPAN: DNI 44218937",
+   "svg: ",
+   "BUTTON: 1Buscar mi deuda",
+   "SPAN: 1",
+   "SPAN: Buscar mi deuda",
+   "BUTTON: 2Elegir qué pago",
+   "SPAN: 2",
+   "SPAN: Elegir qué pago",
+   "BUTTON: 3Mis datos",
+   "SPAN: 3",
+   "SPAN: Mis datos",
+   "BUTTON: 4Pagar",
+   "SPAN: 4",
+   "SPAN: Pagar",
+   "BUTTON: 5Comprobante",
+   "SPAN: 5",
+   "SPAN: Comprobante",
+   "svg: ",
+   "H1: Su pago se registró",
+   "P: Pagó S/ 3,149.92 con tarjeta. Le enviamo",
+   "BUTTON: Descargar comprobante",
+   "BUTTON: Imprimir",
+   "BUTTON: Ver mis pagos",
+   "P: Municipalidad Distrital de Catacaos — Pa",
+   "A: Preguntas frecuentes",
+   "A: Reclamos",
+   "A: Términos"
+  ],
+  "recibo": {
+   "caja": {
+    "x": 80,
+    "y": 274.5,
+    "ancho": 1020,
+    "alto": 657.05
+   },
+   "filo": "1px solid rgb(221, 221, 221)",
+   "sombra": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(22, 35, 44, 0.06) 0px 1px 2px 0px",
+   "papel": "rgb(255, 255, 255)"
+  },
+  "cabecera": {
+   "filoInferior": "2px rgb(13, 95, 168)",
+   "escudo": {
+    "x": 105,
+    "y": 297.5,
+    "ancho": 38.33,
+    "alto": 46
+   }
+  },
+  "meta": {
+   "columnas": "254.5px 254.5px 254.5px 254.5px",
+   "celdas": [
+    "Número de operación86 4418 2026 0913",
+    "Fecha y hora13/09/2026 · 10:42",
+    "Medio de pagoTarjeta",
+    "ContribuyenteSuc. Rufina Medina Medina",
+    "Código00000025673",
+    "Enviado afruiz159@gmail.com"
+   ]
+  },
+  "tabla": {
+   "minWidth": "660px",
+   "ancho": 1018,
+   "anchoDelMarco": 1018,
+   "filas": [
+    [
+     "Impuesto predial 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 3 y 4 de 4",
+     "293.72"
+    ],
+    [
+     "Arbitrios municipales 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 8 de 12",
+     "291.60"
+    ],
+    [
+     "Impuesto predial 2024",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 4 de 4",
+     "1,854.60"
+    ],
+    [
+     "Impuesto vehicular 2024",
+     "Automóvil Toyota Yaris GLI 2018 · placa T2G-418",
+     "Cuota 1 de 4",
+     "710.00"
+    ],
+    [
+     "Interés condonado por la Ordenanza 012-2026-MPS",
+     "− 413.32"
+    ],
+    [
+     "Total pagado",
+     "3,149.92"
+    ]
+   ],
+   "rellenoTh": "18px",
+   "pie": [
+    {
+     "color": "rgb(60, 118, 61)",
+     "papel": "rgba(0, 0, 0, 0)",
+     "peso": "400"
+    },
+    {
+     "color": "rgb(51, 51, 51)",
+     "papel": "rgba(0, 0, 0, 0)",
+     "peso": "700"
+    }
+   ]
+  },
+  "acciones": {
+   "direccion": "row",
+   "visible": true,
+   "botones": [
+    {
+     "texto": "Descargar comprobante",
+     "caja": {
+      "x": 80,
+      "y": 949.55,
+      "ancho": 258.39,
+      "alto": 46
+     }
+    },
+    {
+     "texto": "Imprimir",
+     "caja": {
+      "x": 349.39,
+      "y": 949.55,
+      "ancho": 111.97,
+      "alto": 46
+     }
+    },
+    {
+     "texto": "Ver mis pagos",
+     "caja": {
+      "x": 932.69,
+      "y": 949.55,
+      "ancho": 167.31,
+      "alto": 46
+     }
+    }
+   ]
+  }
+ },
+ "artboard-con-sesion-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "lienzo": "rgb(244, 246, 248)",
+  "fueraDelRecibo": [
+   "BUTTON: Pago de tributos en línea\n        Munici",
+   "IMG: ",
+   "SPAN: Pago de tributos en línea",
+   "SPAN: Municipalidad Distrital de Catacaos",
+   "BUTTON: MC\n          \n            María E. Casti",
+   "SPAN: MC",
+   "svg: ",
+   "BUTTON: 1\n            Buscar mi deuda",
+   "SPAN: 1",
+   "BUTTON: 2\n            Elegir qué pago",
+   "SPAN: 2",
+   "BUTTON: 3\n            Mis datos",
+   "SPAN: 3",
+   "BUTTON: 4\n            Pagar",
+   "SPAN: 4",
+   "BUTTON: 5\n            Comprobante",
+   "SPAN: 5",
+   "svg: ",
+   "SPAN: Su pago se registró",
+   "SPAN: Pagó S/ 3,149.92 con tarjeta. Le enviamo",
+   "BUTTON: Descargar comprobante",
+   "BUTTON: Imprimir",
+   "BUTTON: Ver mis pagos",
+   "P: Municipalidad Distrital de Catacaos — Pa",
+   "A: Preguntas frecuentes",
+   "A: Reclamos",
+   "A: Términos"
+  ],
+  "recibo": {
+   "caja": {
+    "x": 18,
+    "y": 416.5,
+    "ancho": 364,
+    "alto": 1544.09
+   },
+   "filo": "1px solid rgb(221, 221, 221)",
+   "sombra": "rgba(0, 0, 0, 0.04) 0px 1px 2px 0px",
+   "papel": "rgb(255, 255, 255)"
+  },
+  "cabecera": {
+   "filoInferior": "2px rgb(13, 95, 168)",
+   "escudo": {
+    "x": 43,
+    "y": 439.5,
+    "ancho": 38.33,
+    "alto": 46
+   }
+  },
+  "meta": {
+   "columnas": "362px",
+   "celdas": [
+    "Número de operación 86 4418 2026 0913",
+    "Fecha y hora 13/09/2026 · 10:42",
+    "Medio de pago Tarjeta",
+    "Contribuyente Suc. Rufina Medina Medina",
+    "Código 00000025673",
+    "Enviado a fruiz159@gmail.com"
+   ]
+  },
+  "tabla": {
+   "minWidth": "0px",
+   "ancho": 366.45,
+   "anchoDelMarco": 362,
+   "filas": [
+    [
+     "Impuesto predial 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 3 y 4 de 4",
+     "293.72"
+    ],
+    [
+     "Arbitrios municipales 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 8 de 12",
+     "291.60"
+    ],
+    [
+     "Impuesto predial 2024",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 4 de 4",
+     "1,854.60"
+    ],
+    [
+     "Impuesto vehicular 2024",
+     "Automóvil Toyota Yaris GLI 2018 · placa T2G-418",
+     "Cuota 1 de 4",
+     "710.00"
+    ],
+    [
+     "Interés condonado por la Ordenanza 012-2026-MPS",
+     "− 413.32"
+    ],
+    [
+     "Total pagado",
+     "3,149.92"
+    ]
+   ],
+   "rellenoTh": "12px",
+   "pie": [
+    {
+     "color": "rgb(60, 118, 61)",
+     "papel": "rgba(0, 0, 0, 0)",
+     "peso": "400"
+    },
+    {
+     "color": "rgb(51, 51, 51)",
+     "papel": "rgb(246, 246, 246)",
+     "peso": "700"
+    }
+   ]
+  },
+  "acciones": {
+   "direccion": "column",
+   "visible": true,
+   "botones": [
+    {
+     "texto": "Descargar comprobante",
+     "caja": {
+      "x": 18,
+      "y": 1978.59,
+      "ancho": 364,
+      "alto": 46
+     }
+    },
+    {
+     "texto": "Imprimir",
+     "caja": {
+      "x": 18,
+      "y": 2035.59,
+      "ancho": 364,
+      "alto": 46
+     }
+    },
+    {
+     "texto": "Ver mis pagos",
+     "caja": {
+      "x": 18,
+      "y": 2092.59,
+      "ancho": 364,
+      "alto": 46
+     }
+    }
+   ]
+  }
+ },
+ "portal-con-sesion-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "lienzo": "rgb(244, 246, 248)",
+  "fueraDelRecibo": [
+   "BUTTON: Pago de tributos en líneaMunicipalidad D",
+   "IMG: ",
+   "SPAN: Pago de tributos en línea",
+   "SPAN: Municipalidad Distrital de Catacaos",
+   "BUTTON: MCMaría E. CastilloDNI 44218937",
+   "SPAN: MC",
+   "SPAN: María E. Castillo",
+   "SPAN: DNI 44218937",
+   "svg: ",
+   "BUTTON: 1Buscar mi deuda",
+   "SPAN: 1",
+   "BUTTON: 2Elegir qué pago",
+   "SPAN: 2",
+   "BUTTON: 3Mis datos",
+   "SPAN: 3",
+   "BUTTON: 4Pagar",
+   "SPAN: 4",
+   "BUTTON: 5Comprobante",
+   "SPAN: 5",
+   "svg: ",
+   "H1: Su pago se registró",
+   "P: Pagó S/ 3,149.92 con tarjeta. Le enviamo",
+   "BUTTON: Descargar comprobante",
+   "BUTTON: Imprimir",
+   "BUTTON: Ver mis pagos",
+   "P: Municipalidad Distrital de Catacaos — Pa",
+   "A: Preguntas frecuentes",
+   "A: Reclamos",
+   "A: Términos"
+  ],
+  "recibo": {
+   "caja": {
+    "x": 18,
+    "y": 416.5,
+    "ancho": 364,
+    "alto": 1440.09
+   },
+   "filo": "1px solid rgb(221, 221, 221)",
+   "sombra": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(22, 35, 44, 0.06) 0px 1px 2px 0px",
+   "papel": "rgb(255, 255, 255)"
+  },
+  "cabecera": {
+   "filoInferior": "2px rgb(13, 95, 168)",
+   "escudo": {
+    "x": 43,
+    "y": 439.5,
+    "ancho": 38.33,
+    "alto": 46
+   }
+  },
+  "meta": {
+   "columnas": "362px",
+   "celdas": [
+    "Número de operación86 4418 2026 0913",
+    "Fecha y hora13/09/2026 · 10:42",
+    "Medio de pagoTarjeta",
+    "ContribuyenteSuc. Rufina Medina Medina",
+    "Código00000025673",
+    "Enviado afruiz159@gmail.com"
+   ]
+  },
+  "tabla": {
+   "minWidth": "0px",
+   "ancho": 371.14,
+   "anchoDelMarco": 362,
+   "filas": [
+    [
+     "Impuesto predial 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 3 y 4 de 4",
+     "293.72"
+    ],
+    [
+     "Arbitrios municipales 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 8 de 12",
+     "291.60"
+    ],
+    [
+     "Impuesto predial 2024",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 4 de 4",
+     "1,854.60"
+    ],
+    [
+     "Impuesto vehicular 2024",
+     "Automóvil Toyota Yaris GLI 2018 · placa T2G-418",
+     "Cuota 1 de 4",
+     "710.00"
+    ],
+    [
+     "Interés condonado por la Ordenanza 012-2026-MPS",
+     "− 413.32"
+    ],
+    [
+     "Total pagado",
+     "3,149.92"
+    ]
+   ],
+   "rellenoTh": "12px",
+   "pie": [
+    {
+     "color": "rgb(60, 118, 61)",
+     "papel": "rgba(0, 0, 0, 0)",
+     "peso": "400"
+    },
+    {
+     "color": "rgb(51, 51, 51)",
+     "papel": "rgba(0, 0, 0, 0)",
+     "peso": "700"
+    }
+   ]
+  },
+  "acciones": {
+   "direccion": "column",
+   "visible": true,
+   "botones": [
+    {
+     "texto": "Descargar comprobante",
+     "caja": {
+      "x": 18,
+      "y": 1874.59,
+      "ancho": 364,
+      "alto": 46
+     }
+    },
+    {
+     "texto": "Imprimir",
+     "caja": {
+      "x": 18,
+      "y": 1931.59,
+      "ancho": 364,
+      "alto": 46
+     }
+    },
+    {
+     "texto": "Ver mis pagos",
+     "caja": {
+      "x": 18,
+      "y": 1988.59,
+      "ancho": 364,
+      "alto": 46
+     }
+    }
+   ]
+  }
+ },
+ "artboard-con-sesion-impresion": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "lienzo": "rgb(255, 255, 255)",
+  "fueraDelRecibo": [],
+  "recibo": {
+   "caja": {
+    "x": 80,
+    "y": 24,
+    "ancho": 1020,
+    "alto": 724.55
+   },
+   "filo": "0px none rgb(51, 51, 51)",
+   "sombra": "none",
+   "papel": "rgb(255, 255, 255)"
+  },
+  "cabecera": {
+   "filoInferior": "2px rgb(13, 95, 168)",
+   "escudo": {
+    "x": 104,
+    "y": 46,
+    "ancho": 38.33,
+    "alto": 46
+   }
+  },
+  "meta": {
+   "columnas": "255px 255px 255px 255px",
+   "celdas": [
+    "Número de operación 86 4418 2026 0913",
+    "Fecha y hora 13/09/2026 · 10:42",
+    "Medio de pago Tarjeta",
+    "Contribuyente Suc. Rufina Medina Medina",
+    "Código 00000025673",
+    "Enviado a fruiz159@gmail.com"
+   ]
+  },
+  "tabla": {
+   "minWidth": "660px",
+   "ancho": 1020,
+   "anchoDelMarco": 1020,
+   "filas": [
+    [
+     "Impuesto predial 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 3 y 4 de 4",
+     "293.72"
+    ],
+    [
+     "Arbitrios municipales 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 8 de 12",
+     "291.60"
+    ],
+    [
+     "Impuesto predial 2024",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 4 de 4",
+     "1,854.60"
+    ],
+    [
+     "Impuesto vehicular 2024",
+     "Automóvil Toyota Yaris GLI 2018 · placa T2G-418",
+     "Cuota 1 de 4",
+     "710.00"
+    ],
+    [
+     "Interés condonado por la Ordenanza 012-2026-MPS",
+     "− 413.32"
+    ],
+    [
+     "Total pagado",
+     "3,149.92"
+    ]
+   ],
+   "rellenoTh": "18px",
+   "pie": [
+    {
+     "color": "rgb(60, 118, 61)",
+     "papel": "rgba(0, 0, 0, 0)",
+     "peso": "400"
+    },
+    {
+     "color": "rgb(51, 51, 51)",
+     "papel": "rgb(246, 246, 246)",
+     "peso": "700"
+    }
+   ]
+  },
+  "acciones": {
+   "direccion": "row",
+   "visible": false,
+   "botones": [
+    {
+     "texto": "Descargar comprobante",
+     "caja": {
+      "x": 0,
+      "y": 0,
+      "ancho": 0,
+      "alto": 0
+     }
+    },
+    {
+     "texto": "Imprimir",
+     "caja": {
+      "x": 0,
+      "y": 0,
+      "ancho": 0,
+      "alto": 0
+     }
+    },
+    {
+     "texto": "Ver mis pagos",
+     "caja": {
+      "x": 0,
+      "y": 0,
+      "ancho": 0,
+      "alto": 0
+     }
+    }
+   ]
+  }
+ },
+ "portal-con-sesion-impresion": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "lienzo": "rgb(255, 255, 255)",
+  "fueraDelRecibo": [],
+  "recibo": {
+   "caja": {
+    "x": 80,
+    "y": 24,
+    "ancho": 1020,
+    "alto": 655.05
+   },
+   "filo": "0px none rgb(51, 51, 51)",
+   "sombra": "none",
+   "papel": "rgb(255, 255, 255)"
+  },
+  "cabecera": {
+   "filoInferior": "2px rgb(13, 95, 168)",
+   "escudo": {
+    "x": 104,
+    "y": 46,
+    "ancho": 38.33,
+    "alto": 46
+   }
+  },
+  "meta": {
+   "columnas": "255px 255px 255px 255px",
+   "celdas": [
+    "Número de operación86 4418 2026 0913",
+    "Fecha y hora13/09/2026 · 10:42",
+    "Medio de pagoTarjeta",
+    "ContribuyenteSuc. Rufina Medina Medina",
+    "Código00000025673",
+    "Enviado afruiz159@gmail.com"
+   ]
+  },
+  "tabla": {
+   "minWidth": "660px",
+   "ancho": 1020,
+   "anchoDelMarco": 1020,
+   "filas": [
+    [
+     "Impuesto predial 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 3 y 4 de 4",
+     "293.72"
+    ],
+    [
+     "Arbitrios municipales 2026",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 8 de 12",
+     "291.60"
+    ],
+    [
+     "Impuesto predial 2024",
+     "Casa habitación · Calle Santa Rosa 116",
+     "Cuotas 1 a 4 de 4",
+     "1,854.60"
+    ],
+    [
+     "Impuesto vehicular 2024",
+     "Automóvil Toyota Yaris GLI 2018 · placa T2G-418",
+     "Cuota 1 de 4",
+     "710.00"
+    ],
+    [
+     "Interés condonado por la Ordenanza 012-2026-MPS",
+     "− 413.32"
+    ],
+    [
+     "Total pagado",
+     "3,149.92"
+    ]
+   ],
+   "rellenoTh": "18px",
+   "pie": [
+    {
+     "color": "rgb(60, 118, 61)",
+     "papel": "rgba(0, 0, 0, 0)",
+     "peso": "400"
+    },
+    {
+     "color": "rgb(51, 51, 51)",
+     "papel": "rgba(0, 0, 0, 0)",
+     "peso": "700"
+    }
+   ]
+  },
+  "acciones": {
+   "direccion": "row",
+   "visible": false,
+   "botones": [
+    {
+     "texto": "Descargar comprobante",
+     "caja": {
+      "x": 0,
+      "y": 0,
+      "ancho": 0,
+      "alto": 0
+     }
+    },
+    {
+     "texto": "Imprimir",
+     "caja": {
+      "x": 0,
+      "y": 0,
+      "ancho": 0,
+      "alto": 0
+     }
+    },
+    {
+     "texto": "Ver mis pagos",
+     "caja": {
+      "x": 0,
+      "y": 0,
+      "ancho": 0,
+      "alto": 0
+     }
+    }
+   ]
+  }
+ }
+}
