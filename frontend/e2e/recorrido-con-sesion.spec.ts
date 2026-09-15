@@ -93,8 +93,8 @@ test('a 400 px se entra a la cuenta desde la barra: «Iniciar sesión» es un ic
   const iniciarSesion = barra(page).getByRole('button', { name: 'Iniciar sesión' });
 
   await test.step('el boton se ve, con su nombre accesible, y el texto no', async () => {
-    await expect(iniciarSesion).toBeVisible();
-    await expect(iniciarSesion.locator('svg')).toBeVisible();
+    await expect(iniciarSesion, 'a 400 px «Iniciar sesión» no esta: en un celular no hay forma de entrar a la cuenta').toBeVisible();
+    await expect(iniciarSesion.locator('svg'), 'a 400 px «Iniciar sesión» no ensena su icono').toBeVisible();
 
     const medido = await iniciarSesion.evaluate((boton) => {
       const caja = boton.getBoundingClientRect();

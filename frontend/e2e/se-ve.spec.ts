@@ -159,7 +159,8 @@ test.describe('los puntos de corte del artboard', () => {
   test('880: la franja se queda con los numeros y «Iniciar sesión» con su icono', async ({ page }) => {
     const franja = () => page.getByRole('navigation');
     const etiquetas = () => franja().getByRole('button').locator('span:not([aria-hidden])');
-    const textoDeIniciarSesion = () => page.getByRole('banner').getByRole('button', { name: 'Iniciar sesión' }).locator('span');
+    const iniciarSesion = () => page.getByRole('banner').getByRole('button', { name: 'Iniciar sesión' });
+    const textoDeIniciarSesion = () => iniciarSesion().locator('span');
 
     await page.setViewportSize({ width: 881, height: 900 });
     await abrirElPortal(page);
@@ -168,11 +169,12 @@ test.describe('los puntos de corte del artboard', () => {
     expect(await noSeVe(textoDeIniciarSesion()), 'a 881 px «Iniciar sesión» tiene que decirlo').toBe(false);
 
     await page.setViewportSize({ width: 880, height: 900 });
-    for (const etiqueta of await etiquetas().all()) await expect(etiqueta).toBeHidden();
+    for (const etiqueta of await etiquetas().all()) await expect(etiqueta, 'a 880 px la etiqueta del paso sigue a la vista').toBeHidden();
     // Los numeros siguen, y cada boton se sigue llamando como su paso.
     await expect(franja().getByRole('button', { name: 'Elegir qué pago' })).toBeVisible();
+    // El boton SIGUE (nota del revisor): el artboard lo oculta y en un celular no quedaria forma de entrar.
+    await expect(iniciarSesion(), 'a 880 px «Iniciar sesión» desaparecio entero').toBeVisible();
     expect(await noSeVe(textoDeIniciarSesion()), 'a 880 px el texto de «Iniciar sesión» sigue ocupando sitio').toBe(true);
-    await expect(page.getByRole('banner').getByRole('button', { name: 'Iniciar sesión' })).toBeVisible();
   });
 
   test('820: el resumen de pagar pasa arriba y el codigo baja a 24 px; 520: medios y bancos en una columna', async ({ page }) => {
