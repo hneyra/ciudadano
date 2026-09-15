@@ -98,6 +98,46 @@ for (const ancho of ANCHURAS) {
   });
 }
 
+/**
+ * **Las clases de `@kamayuk/ui` generan regla, y el navegador la aplica** (rentas#107).
+ *
+ * `@kamayuk/ui` llega por `link:` y vive en `node_modules`, que Tailwind no lee: sin el `@source` de
+ * `src/estilos.css` el portal sigue dibujandose —el complemento de Vite ve las clases de los modulos
+ * que atraviesan el empaquetado—, pero **medido al quitarlo, el CSS emitido baja de 49.1 a 39.1 kB y
+ * 161 clases de la libreria dejan de generar regla**. Entre ellas estas dos, que se ven:
+ *
+ * · el contorno de foco sobre la barra (`CONTORNO_DE_FOCO_EN_LA_BARRA`): sin su regla cae en el
+ *   contorno global, `--azul` sobre la barra `--azul`, y quien navega con teclado no ve donde esta;
+ * · el hover del boton primario (`hover:bg-azul-hover`).
+ */
+test('las clases de `@kamayuk/ui` llegan al navegador: el foco sobre la barra y el hover del boton primario', async ({ page }) => {
+  await page.setViewportSize({ width: 1180, height: 900 });
+  await abrirElPortal(page);
+
+  const contornoDelFoco = () =>
+    page.evaluate(() => {
+      const enfocado = document.activeElement;
+      if (enfocado === null || enfocado.closest('header') === null) return '(el foco no esta en la barra)';
+      const estilo = getComputedStyle(enfocado);
+      return `${estilo.outlineStyle} ${estilo.outlineWidth} ${estilo.outlineColor}`;
+    });
+
+  // Con el teclado: el foco que se pinta es el de `:focus-visible`, no el de un clic.
+  await page.keyboard.press('Tab');
+  expect(await contornoDelFoco(), 'el contorno de foco de la marca, sobre la barra azul').toBe('solid 2px rgb(255, 255, 255)');
+  await page.keyboard.press('Tab');
+  expect(await contornoDelFoco(), 'el contorno de foco de «Iniciar sesión», sobre la barra azul').toBe(
+    'solid 2px rgb(255, 255, 255)',
+  );
+
+  const buscar = principal(page).getByRole('button', { name: 'Buscar mi deuda' });
+  const papel = () => buscar.evaluate((boton) => getComputedStyle(boton).backgroundColor);
+  expect(await papel()).toBe('rgb(13, 95, 168)');
+  await buscar.hover();
+  // `--azul-hover` de `clasico` en claro: #0A4C86.
+  await expect.poll(papel, { message: 'el boton primario no cambia al pasar por encima' }).toBe('rgb(10, 76, 134)');
+});
+
 /** Cuantas columnas ocupan unos elementos, por su borde izquierdo. */
 async function columnasDe(elementos: Locator): Promise<number> {
   const izquierdas = await elementos.evaluateAll((nodos) => nodos.map((n) => Math.round(n.getBoundingClientRect().left)));
