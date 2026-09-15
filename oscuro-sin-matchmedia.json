@@ -1,0 +1,78 @@
+{
+ "sistema-oscuro": {
+  "pantalla": {
+   "modo": "(ausente)",
+   "body": "rgb(15, 16, 16)",
+   "recibo": "rgb(27, 27, 27)",
+   "tintaDelRecibo": "rgb(242, 242, 242)",
+   "print": false
+  },
+  "emulada": {
+   "modo": "(ausente)",
+   "body": "rgb(27, 27, 27)",
+   "recibo": "rgb(27, 27, 27)",
+   "tintaDelRecibo": "rgb(242, 242, 242)",
+   "print": true
+  },
+  "trasEmular": {
+   "modo": "(ausente)",
+   "body": "rgb(15, 16, 16)",
+   "recibo": "rgb(27, 27, 27)",
+   "tintaDelRecibo": "rgb(242, 242, 242)",
+   "print": false
+  },
+  "pdfEnBeforeprint": {
+   "modo": "claro",
+   "body": "rgb(244, 246, 248)",
+   "recibo": "rgb(255, 255, 255)",
+   "tintaDelRecibo": "rgb(51, 51, 51)",
+   "print": false
+  },
+  "trasElPdf": {
+   "modo": "(ausente)",
+   "body": "rgb(15, 16, 16)",
+   "recibo": "rgb(27, 27, 27)",
+   "tintaDelRecibo": "rgb(242, 242, 242)",
+   "print": false
+  },
+  "preferenciaGuardada": null
+ },
+ "modo-oscuro-elegido": {
+  "pantalla": {
+   "modo": "oscuro",
+   "body": "rgb(15, 16, 16)",
+   "recibo": "rgb(27, 27, 27)",
+   "tintaDelRecibo": "rgb(242, 242, 242)",
+   "print": false
+  },
+  "emulada": {
+   "modo": "oscuro",
+   "body": "rgb(27, 27, 27)",
+   "recibo": "rgb(27, 27, 27)",
+   "tintaDelRecibo": "rgb(242, 242, 242)",
+   "print": true
+  },
+  "trasEmular": {
+   "modo": "oscuro",
+   "body": "rgb(15, 16, 16)",
+   "recibo": "rgb(27, 27, 27)",
+   "tintaDelRecibo": "rgb(242, 242, 242)",
+   "print": false
+  },
+  "pdfEnBeforeprint": {
+   "modo": "claro",
+   "body": "rgb(244, 246, 248)",
+   "recibo": "rgb(255, 255, 255)",
+   "tintaDelRecibo": "rgb(51, 51, 51)",
+   "print": false
+  },
+  "trasElPdf": {
+   "modo": "oscuro",
+   "body": "rgb(15, 16, 16)",
+   "recibo": "rgb(27, 27, 27)",
+   "tintaDelRecibo": "rgb(242, 242, 242)",
+   "print": false
+  },
+  "preferenciaGuardada": "oscuro"
+ }
+}
