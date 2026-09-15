@@ -1,0 +1,1792 @@
+{
+ "artboard-con-pago-sin-deuda-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "titulo": {
+   "tamano": "24px",
+   "color": "rgb(13, 95, 168)"
+  },
+  "reciente": {
+   "texto": "Pago de S/ 3,149.92 registrado hoy",
+   "color": "rgb(45, 90, 46)"
+  },
+  "tabla": {
+   "minWidth": "760px",
+   "ancho": 1018,
+   "anchoDelMarco": 1018,
+   "overflowX": "auto",
+   "desplazamientoPropio": 0,
+   "filas": [
+    {
+     "celdas": [
+      "13/09/2026",
+      "Impuesto predial 2026 · Arbitrios municipales 2026 · Impuesto predial 2024 · Impuesto vehicular 2024",
+      "Tarjeta",
+      "0003-0041418",
+      "3,149.92",
+      "Comprobante"
+     ],
+     "papel": "rgb(245, 251, 243)"
+    },
+    {
+     "celdas": [
+      "12/08/2026",
+      "Impuesto predial 2026 — cuotas 1 y 2",
+      "Tarjeta",
+      "0003-0041182",
+      "294.84",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "28/05/2026",
+      "Arbitrios 2025 — cuotas 1 a 12",
+      "Yape",
+      "0003-0038944",
+      "412.00",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "18/02/2025",
+      "Impuesto predial 2025 — cuotas 1 a 4",
+      "BCP con código",
+      "0003-0034118",
+      "578.20",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "04/12/2024",
+      "Arbitrios 2024 — cuotas 9 a 12",
+      "Ventanilla",
+      "0003-0031044",
+      "148.60",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "22/02/2024",
+      "Impuesto predial 2024 — cuota 1",
+      "pagalo.pe",
+      "0003-0028801",
+      "460.65",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    }
+   ]
+  },
+  "pendiente": {
+   "total": {
+    "texto": "Sin deuda pendiente",
+    "color": "rgb(169, 68, 66)"
+   },
+   "botones": [
+    {
+     "texto": "Pedir mi constancia",
+     "alto": 46
+    }
+   ]
+  },
+  "unidades": {
+   "bases": [
+    "S/ 132,196.75",
+    "S/ 38,420.00",
+    "S/ 61,400.00"
+   ],
+   "chip": {
+    "papel": "rgb(242, 246, 250)",
+    "filo": "rgb(225, 233, 240)",
+    "tinta": "rgb(85, 85, 85)",
+    "caja": {
+     "x": 434.47,
+     "y": 1222.34,
+     "ancho": 127.28,
+     "alto": 28.75
+    }
+   }
+  }
+ },
+ "portal-con-pago-sin-deuda-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "titulo": {
+   "tamano": "24px",
+   "color": "rgb(13, 95, 168)"
+  },
+  "reciente": {
+   "texto": "Pago de S/ 3,149.92 registrado hoy",
+   "color": "rgb(60, 118, 61)"
+  },
+  "tabla": {
+   "minWidth": "760px",
+   "ancho": 1018,
+   "anchoDelMarco": 1018,
+   "overflowX": "auto",
+   "desplazamientoPropio": 0,
+   "filas": [
+    {
+     "celdas": [
+      "13/09/2026",
+      "Impuesto predial 2026 · Arbitrios municipales 2026 · Impuesto predial 2024 · Impuesto vehicular 2024",
+      "Tarjeta",
+      "0003-0041418",
+      "3,149.92",
+      "Comprobante"
+     ],
+     "papel": "oklab(0.93603 -0.0265009 0.0252516 / 0.4)"
+    },
+    {
+     "celdas": [
+      "12/08/2026",
+      "Impuesto predial 2026 — cuotas 1 y 2",
+      "Tarjeta",
+      "0003-0041182",
+      "294.84",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "28/05/2026",
+      "Arbitrios 2025 — cuotas 1 a 12",
+      "Yape",
+      "0003-0038944",
+      "412.00",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "18/02/2025",
+      "Impuesto predial 2025 — cuotas 1 a 4",
+      "BCP con código",
+      "0003-0034118",
+      "578.20",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "04/12/2024",
+      "Arbitrios 2024 — cuotas 9 a 12",
+      "Ventanilla",
+      "0003-0031044",
+      "148.60",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "22/02/2024",
+      "Impuesto predial 2024 — cuota 1",
+      "pagalo.pe",
+      "0003-0028801",
+      "460.65",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    }
+   ]
+  },
+  "pendiente": {
+   "total": {
+    "texto": "Sin deuda pendiente",
+    "color": "rgb(169, 68, 66)"
+   },
+   "botones": [
+    {
+     "texto": "Pedir mi constancia",
+     "alto": 46
+    }
+   ]
+  },
+  "unidades": {
+   "bases": [
+    "S/ 132,196.75",
+    "S/ 38,420.00",
+    "S/ 61,400.00"
+   ],
+   "chip": {
+    "papel": "rgb(240, 246, 251)",
+    "filo": "rgb(232, 241, 249)",
+    "tinta": "rgb(85, 85, 85)",
+    "caja": {
+     "x": 434.47,
+     "y": 1186.84,
+     "ancho": 127.28,
+     "alto": 28.75
+    }
+   }
+  }
+ },
+ "artboard-con-pago-sin-deuda-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "titulo": {
+   "tamano": "24px",
+   "color": "rgb(13, 95, 168)"
+  },
+  "reciente": {
+   "texto": "Pago de S/ 3,149.92 registrado hoy",
+   "color": "rgb(45, 90, 46)"
+  },
+  "tabla": {
+   "minWidth": "760px",
+   "ancho": 760,
+   "anchoDelMarco": 362,
+   "overflowX": "auto",
+   "desplazamientoPropio": 398,
+   "filas": [
+    {
+     "celdas": [
+      "13/09/2026",
+      "Impuesto predial 2026 · Arbitrios municipales 2026 · Impuesto predial 2024 · Impuesto vehicular 2024",
+      "Tarjeta",
+      "0003-0041418",
+      "3,149.92",
+      "Comprobante"
+     ],
+     "papel": "rgb(245, 251, 243)"
+    },
+    {
+     "celdas": [
+      "12/08/2026",
+      "Impuesto predial 2026 — cuotas 1 y 2",
+      "Tarjeta",
+      "0003-0041182",
+      "294.84",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "28/05/2026",
+      "Arbitrios 2025 — cuotas 1 a 12",
+      "Yape",
+      "0003-0038944",
+      "412.00",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "18/02/2025",
+      "Impuesto predial 2025 — cuotas 1 a 4",
+      "BCP con código",
+      "0003-0034118",
+      "578.20",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "04/12/2024",
+      "Arbitrios 2024 — cuotas 9 a 12",
+      "Ventanilla",
+      "0003-0031044",
+      "148.60",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "22/02/2024",
+      "Impuesto predial 2024 — cuota 1",
+      "pagalo.pe",
+      "0003-0028801",
+      "460.65",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    }
+   ]
+  },
+  "pendiente": {
+   "total": {
+    "texto": "Sin deuda pendiente",
+    "color": "rgb(169, 68, 66)"
+   },
+   "botones": [
+    {
+     "texto": "Pedir mi constancia",
+     "alto": 46
+    }
+   ]
+  },
+  "unidades": {
+   "bases": [
+    "S/ 132,196.75",
+    "S/ 38,420.00",
+    "S/ 61,400.00"
+   ],
+   "chip": {
+    "papel": "rgb(242, 246, 250)",
+    "filo": "rgb(225, 233, 240)",
+    "tinta": "rgb(85, 85, 85)",
+    "caja": {
+     "x": 209.36,
+     "y": 2008.61,
+     "ancho": 127.28,
+     "alto": 28.75
+    }
+   }
+  }
+ },
+ "portal-con-pago-sin-deuda-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "titulo": {
+   "tamano": "24px",
+   "color": "rgb(13, 95, 168)"
+  },
+  "reciente": {
+   "texto": "Pago de S/ 3,149.92 registrado hoy",
+   "color": "rgb(60, 118, 61)"
+  },
+  "tabla": {
+   "minWidth": "760px",
+   "ancho": 760,
+   "anchoDelMarco": 362,
+   "overflowX": "auto",
+   "desplazamientoPropio": 398,
+   "filas": [
+    {
+     "celdas": [
+      "13/09/2026",
+      "Impuesto predial 2026 · Arbitrios municipales 2026 · Impuesto predial 2024 · Impuesto vehicular 2024",
+      "Tarjeta",
+      "0003-0041418",
+      "3,149.92",
+      "Comprobante"
+     ],
+     "papel": "oklab(0.93603 -0.0265009 0.0252516 / 0.4)"
+    },
+    {
+     "celdas": [
+      "12/08/2026",
+      "Impuesto predial 2026 — cuotas 1 y 2",
+      "Tarjeta",
+      "0003-0041182",
+      "294.84",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "28/05/2026",
+      "Arbitrios 2025 — cuotas 1 a 12",
+      "Yape",
+      "0003-0038944",
+      "412.00",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "18/02/2025",
+      "Impuesto predial 2025 — cuotas 1 a 4",
+      "BCP con código",
+      "0003-0034118",
+      "578.20",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "04/12/2024",
+      "Arbitrios 2024 — cuotas 9 a 12",
+      "Ventanilla",
+      "0003-0031044",
+      "148.60",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "22/02/2024",
+      "Impuesto predial 2024 — cuota 1",
+      "pagalo.pe",
+      "0003-0028801",
+      "460.65",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    }
+   ]
+  },
+  "pendiente": {
+   "total": {
+    "texto": "Sin deuda pendiente",
+    "color": "rgb(169, 68, 66)"
+   },
+   "botones": [
+    {
+     "texto": "Pedir mi constancia",
+     "alto": 46
+    }
+   ]
+  },
+  "unidades": {
+   "bases": [
+    "S/ 132,196.75",
+    "S/ 38,420.00",
+    "S/ 61,400.00"
+   ],
+   "chip": {
+    "papel": "rgb(240, 246, 251)",
+    "filo": "rgb(232, 241, 249)",
+    "tinta": "rgb(85, 85, 85)",
+    "caja": {
+     "x": 209.36,
+     "y": 2110.11,
+     "ancho": 127.28,
+     "alto": 28.75
+    }
+   }
+  }
+ },
+ "artboard-con-pago-con-deuda-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "titulo": {
+   "tamano": "24px",
+   "color": "rgb(13, 95, 168)"
+  },
+  "reciente": {
+   "texto": "Pago de S/ 293.72 registrado hoy",
+   "color": "rgb(45, 90, 46)"
+  },
+  "tabla": {
+   "minWidth": "760px",
+   "ancho": 1018,
+   "anchoDelMarco": 1018,
+   "overflowX": "auto",
+   "desplazamientoPropio": 0,
+   "filas": [
+    {
+     "celdas": [
+      "13/09/2026",
+      "Impuesto predial 2026",
+      "Tarjeta",
+      "0003-0041418",
+      "293.72",
+      "Comprobante"
+     ],
+     "papel": "rgb(245, 251, 243)"
+    },
+    {
+     "celdas": [
+      "12/08/2026",
+      "Impuesto predial 2026 — cuotas 1 y 2",
+      "Tarjeta",
+      "0003-0041182",
+      "294.84",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "28/05/2026",
+      "Arbitrios 2025 — cuotas 1 a 12",
+      "Yape",
+      "0003-0038944",
+      "412.00",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "18/02/2025",
+      "Impuesto predial 2025 — cuotas 1 a 4",
+      "BCP con código",
+      "0003-0034118",
+      "578.20",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "04/12/2024",
+      "Arbitrios 2024 — cuotas 9 a 12",
+      "Ventanilla",
+      "0003-0031044",
+      "148.60",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "22/02/2024",
+      "Impuesto predial 2024 — cuota 1",
+      "pagalo.pe",
+      "0003-0028801",
+      "460.65",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    }
+   ]
+  },
+  "pendiente": {
+   "total": {
+    "texto": "S/ 3,269.52",
+    "color": "rgb(169, 68, 66)"
+   },
+   "botones": [
+    {
+     "texto": "Pagar lo pendiente",
+     "alto": 46
+    }
+   ]
+  },
+  "unidades": {
+   "bases": [
+    "S/ 132,196.75",
+    "S/ 38,420.00",
+    "S/ 61,400.00"
+   ],
+   "chip": {
+    "papel": "rgb(242, 246, 250)",
+    "filo": "rgb(225, 233, 240)",
+    "tinta": "rgb(85, 85, 85)",
+    "caja": {
+     "x": 434.47,
+     "y": 1296.84,
+     "ancho": 127.28,
+     "alto": 28.75
+    }
+   }
+  }
+ },
+ "portal-con-pago-con-deuda-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "titulo": {
+   "tamano": "24px",
+   "color": "rgb(13, 95, 168)"
+  },
+  "reciente": {
+   "texto": "Pago de S/ 293.72 registrado hoy",
+   "color": "rgb(60, 118, 61)"
+  },
+  "tabla": {
+   "minWidth": "760px",
+   "ancho": 1018,
+   "anchoDelMarco": 1018,
+   "overflowX": "auto",
+   "desplazamientoPropio": 0,
+   "filas": [
+    {
+     "celdas": [
+      "13/09/2026",
+      "Impuesto predial 2026",
+      "Tarjeta",
+      "0003-0041418",
+      "293.72",
+      "Comprobante"
+     ],
+     "papel": "oklab(0.93603 -0.0265009 0.0252516 / 0.4)"
+    },
+    {
+     "celdas": [
+      "12/08/2026",
+      "Impuesto predial 2026 — cuotas 1 y 2",
+      "Tarjeta",
+      "0003-0041182",
+      "294.84",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "28/05/2026",
+      "Arbitrios 2025 — cuotas 1 a 12",
+      "Yape",
+      "0003-0038944",
+      "412.00",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "18/02/2025",
+      "Impuesto predial 2025 — cuotas 1 a 4",
+      "BCP con código",
+      "0003-0034118",
+      "578.20",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "04/12/2024",
+      "Arbitrios 2024 — cuotas 9 a 12",
+      "Ventanilla",
+      "0003-0031044",
+      "148.60",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "22/02/2024",
+      "Impuesto predial 2024 — cuota 1",
+      "pagalo.pe",
+      "0003-0028801",
+      "460.65",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    }
+   ]
+  },
+  "pendiente": {
+   "total": {
+    "texto": "S/ 3,269.52",
+    "color": "rgb(169, 68, 66)"
+   },
+   "botones": [
+    {
+     "texto": "Pagar lo pendiente",
+     "alto": 46
+    }
+   ]
+  },
+  "unidades": {
+   "bases": [
+    "S/ 132,196.75",
+    "S/ 38,420.00",
+    "S/ 61,400.00"
+   ],
+   "chip": {
+    "papel": "rgb(240, 246, 251)",
+    "filo": "rgb(232, 241, 249)",
+    "tinta": "rgb(85, 85, 85)",
+    "caja": {
+     "x": 434.47,
+     "y": 1293.34,
+     "ancho": 127.28,
+     "alto": 28.75
+    }
+   }
+  }
+ },
+ "artboard-con-pago-con-deuda-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "titulo": {
+   "tamano": "24px",
+   "color": "rgb(13, 95, 168)"
+  },
+  "reciente": {
+   "texto": "Pago de S/ 293.72 registrado hoy",
+   "color": "rgb(45, 90, 46)"
+  },
+  "tabla": {
+   "minWidth": "760px",
+   "ancho": 760,
+   "anchoDelMarco": 362,
+   "overflowX": "auto",
+   "desplazamientoPropio": 398,
+   "filas": [
+    {
+     "celdas": [
+      "13/09/2026",
+      "Impuesto predial 2026",
+      "Tarjeta",
+      "0003-0041418",
+      "293.72",
+      "Comprobante"
+     ],
+     "papel": "rgb(245, 251, 243)"
+    },
+    {
+     "celdas": [
+      "12/08/2026",
+      "Impuesto predial 2026 — cuotas 1 y 2",
+      "Tarjeta",
+      "0003-0041182",
+      "294.84",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "28/05/2026",
+      "Arbitrios 2025 — cuotas 1 a 12",
+      "Yape",
+      "0003-0038944",
+      "412.00",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "18/02/2025",
+      "Impuesto predial 2025 — cuotas 1 a 4",
+      "BCP con código",
+      "0003-0034118",
+      "578.20",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "04/12/2024",
+      "Arbitrios 2024 — cuotas 9 a 12",
+      "Ventanilla",
+      "0003-0031044",
+      "148.60",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "22/02/2024",
+      "Impuesto predial 2024 — cuota 1",
+      "pagalo.pe",
+      "0003-0028801",
+      "460.65",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    }
+   ]
+  },
+  "pendiente": {
+   "total": {
+    "texto": "S/ 3,269.52",
+    "color": "rgb(169, 68, 66)"
+   },
+   "botones": [
+    {
+     "texto": "Pagar lo pendiente",
+     "alto": 46
+    }
+   ]
+  },
+  "unidades": {
+   "bases": [
+    "S/ 132,196.75",
+    "S/ 38,420.00",
+    "S/ 61,400.00"
+   ],
+   "chip": {
+    "papel": "rgb(242, 246, 250)",
+    "filo": "rgb(225, 233, 240)",
+    "tinta": "rgb(85, 85, 85)",
+    "caja": {
+     "x": 209.36,
+     "y": 2114.11,
+     "ancho": 127.28,
+     "alto": 28.75
+    }
+   }
+  }
+ },
+ "portal-con-pago-con-deuda-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "titulo": {
+   "tamano": "24px",
+   "color": "rgb(13, 95, 168)"
+  },
+  "reciente": {
+   "texto": "Pago de S/ 293.72 registrado hoy",
+   "color": "rgb(60, 118, 61)"
+  },
+  "tabla": {
+   "minWidth": "760px",
+   "ancho": 760,
+   "anchoDelMarco": 362,
+   "overflowX": "auto",
+   "desplazamientoPropio": 398,
+   "filas": [
+    {
+     "celdas": [
+      "13/09/2026",
+      "Impuesto predial 2026",
+      "Tarjeta",
+      "0003-0041418",
+      "293.72",
+      "Comprobante"
+     ],
+     "papel": "oklab(0.93603 -0.0265009 0.0252516 / 0.4)"
+    },
+    {
+     "celdas": [
+      "12/08/2026",
+      "Impuesto predial 2026 — cuotas 1 y 2",
+      "Tarjeta",
+      "0003-0041182",
+      "294.84",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "28/05/2026",
+      "Arbitrios 2025 — cuotas 1 a 12",
+      "Yape",
+      "0003-0038944",
+      "412.00",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "18/02/2025",
+      "Impuesto predial 2025 — cuotas 1 a 4",
+      "BCP con código",
+      "0003-0034118",
+      "578.20",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "04/12/2024",
+      "Arbitrios 2024 — cuotas 9 a 12",
+      "Ventanilla",
+      "0003-0031044",
+      "148.60",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "22/02/2024",
+      "Impuesto predial 2024 — cuota 1",
+      "pagalo.pe",
+      "0003-0028801",
+      "460.65",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    }
+   ]
+  },
+  "pendiente": {
+   "total": {
+    "texto": "S/ 3,269.52",
+    "color": "rgb(169, 68, 66)"
+   },
+   "botones": [
+    {
+     "texto": "Pagar lo pendiente",
+     "alto": 46
+    }
+   ]
+  },
+  "unidades": {
+   "bases": [
+    "S/ 132,196.75",
+    "S/ 38,420.00",
+    "S/ 61,400.00"
+   ],
+   "chip": {
+    "papel": "rgb(240, 246, 251)",
+    "filo": "rgb(232, 241, 249)",
+    "tinta": "rgb(85, 85, 85)",
+    "caja": {
+     "x": 209.36,
+     "y": 2152.61,
+     "ancho": 127.28,
+     "alto": 28.75
+    }
+   }
+  }
+ },
+ "artboard-sin-pago-con-deuda-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "titulo": {
+   "tamano": "24px",
+   "color": "rgb(13, 95, 168)"
+  },
+  "reciente": null,
+  "tabla": {
+   "minWidth": "760px",
+   "ancho": 1018,
+   "anchoDelMarco": 1018,
+   "overflowX": "auto",
+   "desplazamientoPropio": 0,
+   "filas": [
+    {
+     "celdas": [
+      "12/08/2026",
+      "Impuesto predial 2026 — cuotas 1 y 2",
+      "Tarjeta",
+      "0003-0041182",
+      "294.84",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "28/05/2026",
+      "Arbitrios 2025 — cuotas 1 a 12",
+      "Yape",
+      "0003-0038944",
+      "412.00",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "18/02/2025",
+      "Impuesto predial 2025 — cuotas 1 a 4",
+      "BCP con código",
+      "0003-0034118",
+      "578.20",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "04/12/2024",
+      "Arbitrios 2024 — cuotas 9 a 12",
+      "Ventanilla",
+      "0003-0031044",
+      "148.60",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "22/02/2024",
+      "Impuesto predial 2024 — cuota 1",
+      "pagalo.pe",
+      "0003-0028801",
+      "460.65",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    }
+   ]
+  },
+  "pendiente": {
+   "total": {
+    "texto": "S/ 3,563.24",
+    "color": "rgb(169, 68, 66)"
+   },
+   "botones": [
+    {
+     "texto": "Pagar lo pendiente",
+     "alto": 46
+    }
+   ]
+  },
+  "unidades": {
+   "bases": [
+    "S/ 132,196.75",
+    "S/ 38,420.00",
+    "S/ 61,400.00"
+   ],
+   "chip": {
+    "papel": "rgb(242, 246, 250)",
+    "filo": "rgb(225, 233, 240)",
+    "tinta": "rgb(85, 85, 85)",
+    "caja": {
+     "x": 434.47,
+     "y": 1215.84,
+     "ancho": 127.28,
+     "alto": 28.75
+    }
+   }
+  }
+ },
+ "portal-sin-pago-con-deuda-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "titulo": {
+   "tamano": "24px",
+   "color": "rgb(13, 95, 168)"
+  },
+  "reciente": null,
+  "tabla": {
+   "minWidth": "760px",
+   "ancho": 1018,
+   "anchoDelMarco": 1018,
+   "overflowX": "auto",
+   "desplazamientoPropio": 0,
+   "filas": [
+    {
+     "celdas": [
+      "12/08/2026",
+      "Impuesto predial 2026 — cuotas 1 y 2",
+      "Tarjeta",
+      "0003-0041182",
+      "294.84",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "28/05/2026",
+      "Arbitrios 2025 — cuotas 1 a 12",
+      "Yape",
+      "0003-0038944",
+      "412.00",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "18/02/2025",
+      "Impuesto predial 2025 — cuotas 1 a 4",
+      "BCP con código",
+      "0003-0034118",
+      "578.20",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "04/12/2024",
+      "Arbitrios 2024 — cuotas 9 a 12",
+      "Ventanilla",
+      "0003-0031044",
+      "148.60",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "22/02/2024",
+      "Impuesto predial 2024 — cuota 1",
+      "pagalo.pe",
+      "0003-0028801",
+      "460.65",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    }
+   ]
+  },
+  "pendiente": {
+   "total": {
+    "texto": "S/ 3,563.24",
+    "color": "rgb(169, 68, 66)"
+   },
+   "botones": [
+    {
+     "texto": "Pagar lo pendiente",
+     "alto": 46
+    }
+   ]
+  },
+  "unidades": {
+   "bases": [
+    "S/ 132,196.75",
+    "S/ 38,420.00",
+    "S/ 61,400.00"
+   ],
+   "chip": {
+    "papel": "rgb(240, 246, 251)",
+    "filo": "rgb(232, 241, 249)",
+    "tinta": "rgb(85, 85, 85)",
+    "caja": {
+     "x": 434.47,
+     "y": 1212.34,
+     "ancho": 127.28,
+     "alto": 28.75
+    }
+   }
+  }
+ },
+ "artboard-sin-pago-con-deuda-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "titulo": {
+   "tamano": "24px",
+   "color": "rgb(13, 95, 168)"
+  },
+  "reciente": null,
+  "tabla": {
+   "minWidth": "760px",
+   "ancho": 760,
+   "anchoDelMarco": 362,
+   "overflowX": "auto",
+   "desplazamientoPropio": 398,
+   "filas": [
+    {
+     "celdas": [
+      "12/08/2026",
+      "Impuesto predial 2026 — cuotas 1 y 2",
+      "Tarjeta",
+      "0003-0041182",
+      "294.84",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "28/05/2026",
+      "Arbitrios 2025 — cuotas 1 a 12",
+      "Yape",
+      "0003-0038944",
+      "412.00",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "18/02/2025",
+      "Impuesto predial 2025 — cuotas 1 a 4",
+      "BCP con código",
+      "0003-0034118",
+      "578.20",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "04/12/2024",
+      "Arbitrios 2024 — cuotas 9 a 12",
+      "Ventanilla",
+      "0003-0031044",
+      "148.60",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "22/02/2024",
+      "Impuesto predial 2024 — cuota 1",
+      "pagalo.pe",
+      "0003-0028801",
+      "460.65",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    }
+   ]
+  },
+  "pendiente": {
+   "total": {
+    "texto": "S/ 3,563.24",
+    "color": "rgb(169, 68, 66)"
+   },
+   "botones": [
+    {
+     "texto": "Pagar lo pendiente",
+     "alto": 46
+    }
+   ]
+  },
+  "unidades": {
+   "bases": [
+    "S/ 132,196.75",
+    "S/ 38,420.00",
+    "S/ 61,400.00"
+   ],
+   "chip": {
+    "papel": "rgb(242, 246, 250)",
+    "filo": "rgb(225, 233, 240)",
+    "tinta": "rgb(85, 85, 85)",
+    "caja": {
+     "x": 209.36,
+     "y": 1988.86,
+     "ancho": 127.28,
+     "alto": 28.75
+    }
+   }
+  }
+ },
+ "portal-sin-pago-con-deuda-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "titulo": {
+   "tamano": "24px",
+   "color": "rgb(13, 95, 168)"
+  },
+  "reciente": null,
+  "tabla": {
+   "minWidth": "760px",
+   "ancho": 760,
+   "anchoDelMarco": 362,
+   "overflowX": "auto",
+   "desplazamientoPropio": 398,
+   "filas": [
+    {
+     "celdas": [
+      "12/08/2026",
+      "Impuesto predial 2026 — cuotas 1 y 2",
+      "Tarjeta",
+      "0003-0041182",
+      "294.84",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "28/05/2026",
+      "Arbitrios 2025 — cuotas 1 a 12",
+      "Yape",
+      "0003-0038944",
+      "412.00",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "18/02/2025",
+      "Impuesto predial 2025 — cuotas 1 a 4",
+      "BCP con código",
+      "0003-0034118",
+      "578.20",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "04/12/2024",
+      "Arbitrios 2024 — cuotas 9 a 12",
+      "Ventanilla",
+      "0003-0031044",
+      "148.60",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "22/02/2024",
+      "Impuesto predial 2024 — cuota 1",
+      "pagalo.pe",
+      "0003-0028801",
+      "460.65",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    }
+   ]
+  },
+  "pendiente": {
+   "total": {
+    "texto": "S/ 3,563.24",
+    "color": "rgb(169, 68, 66)"
+   },
+   "botones": [
+    {
+     "texto": "Pagar lo pendiente",
+     "alto": 46
+    }
+   ]
+  },
+  "unidades": {
+   "bases": [
+    "S/ 132,196.75",
+    "S/ 38,420.00",
+    "S/ 61,400.00"
+   ],
+   "chip": {
+    "papel": "rgb(240, 246, 251)",
+    "filo": "rgb(232, 241, 249)",
+    "tinta": "rgb(85, 85, 85)",
+    "caja": {
+     "x": 209.36,
+     "y": 2027.36,
+     "ancho": 127.28,
+     "alto": 28.75
+    }
+   }
+  }
+ },
+ "artboard-sin-pago-sin-deuda-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "titulo": {
+   "tamano": "24px",
+   "color": "rgb(13, 95, 168)"
+  },
+  "reciente": null,
+  "tabla": {
+   "minWidth": "760px",
+   "ancho": 1018,
+   "anchoDelMarco": 1018,
+   "overflowX": "auto",
+   "desplazamientoPropio": 0,
+   "filas": [
+    {
+     "celdas": [
+      "12/08/2026",
+      "Impuesto predial 2026 — cuotas 1 y 2",
+      "Tarjeta",
+      "0003-0041182",
+      "294.84",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "28/05/2026",
+      "Arbitrios 2025 — cuotas 1 a 12",
+      "Yape",
+      "0003-0038944",
+      "412.00",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "18/02/2025",
+      "Impuesto predial 2025 — cuotas 1 a 4",
+      "BCP con código",
+      "0003-0034118",
+      "578.20",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "04/12/2024",
+      "Arbitrios 2024 — cuotas 9 a 12",
+      "Ventanilla",
+      "0003-0031044",
+      "148.60",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "22/02/2024",
+      "Impuesto predial 2024 — cuota 1",
+      "pagalo.pe",
+      "0003-0028801",
+      "460.65",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    }
+   ]
+  },
+  "pendiente": {
+   "total": {
+    "texto": "Sin deuda pendiente",
+    "color": "rgb(169, 68, 66)"
+   },
+   "botones": [
+    {
+     "texto": "Pedir mi constancia",
+     "alto": 46
+    }
+   ]
+  },
+  "unidades": {
+   "bases": [
+    "S/ 132,196.75",
+    "S/ 38,420.00",
+    "S/ 61,400.00"
+   ],
+   "chip": {
+    "papel": "rgb(242, 246, 250)",
+    "filo": "rgb(225, 233, 240)",
+    "tinta": "rgb(85, 85, 85)",
+    "caja": {
+     "x": 434.47,
+     "y": 1000.59,
+     "ancho": 127.28,
+     "alto": 28.75
+    }
+   }
+  }
+ },
+ "portal-sin-pago-sin-deuda-1180": {
+  "anchoDoc": 1180,
+  "anchoVentana": 1180,
+  "hayDesplazamientoHorizontal": false,
+  "titulo": {
+   "tamano": "24px",
+   "color": "rgb(13, 95, 168)"
+  },
+  "reciente": null,
+  "tabla": {
+   "minWidth": "760px",
+   "ancho": 1018,
+   "anchoDelMarco": 1018,
+   "overflowX": "auto",
+   "desplazamientoPropio": 0,
+   "filas": [
+    {
+     "celdas": [
+      "12/08/2026",
+      "Impuesto predial 2026 — cuotas 1 y 2",
+      "Tarjeta",
+      "0003-0041182",
+      "294.84",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "28/05/2026",
+      "Arbitrios 2025 — cuotas 1 a 12",
+      "Yape",
+      "0003-0038944",
+      "412.00",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "18/02/2025",
+      "Impuesto predial 2025 — cuotas 1 a 4",
+      "BCP con código",
+      "0003-0034118",
+      "578.20",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "04/12/2024",
+      "Arbitrios 2024 — cuotas 9 a 12",
+      "Ventanilla",
+      "0003-0031044",
+      "148.60",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "22/02/2024",
+      "Impuesto predial 2024 — cuota 1",
+      "pagalo.pe",
+      "0003-0028801",
+      "460.65",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    }
+   ]
+  },
+  "pendiente": {
+   "total": {
+    "texto": "Sin deuda pendiente",
+    "color": "rgb(169, 68, 66)"
+   },
+   "botones": [
+    {
+     "texto": "Pedir mi constancia",
+     "alto": 46
+    }
+   ]
+  },
+  "unidades": {
+   "bases": [
+    "S/ 132,196.75",
+    "S/ 38,420.00",
+    "S/ 61,400.00"
+   ],
+   "chip": {
+    "papel": "rgb(240, 246, 251)",
+    "filo": "rgb(232, 241, 249)",
+    "tinta": "rgb(85, 85, 85)",
+    "caja": {
+     "x": 434.47,
+     "y": 997.09,
+     "ancho": 127.28,
+     "alto": 28.75
+    }
+   }
+  }
+ },
+ "artboard-sin-pago-sin-deuda-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "titulo": {
+   "tamano": "24px",
+   "color": "rgb(13, 95, 168)"
+  },
+  "reciente": null,
+  "tabla": {
+   "minWidth": "760px",
+   "ancho": 760,
+   "anchoDelMarco": 362,
+   "overflowX": "auto",
+   "desplazamientoPropio": 398,
+   "filas": [
+    {
+     "celdas": [
+      "12/08/2026",
+      "Impuesto predial 2026 — cuotas 1 y 2",
+      "Tarjeta",
+      "0003-0041182",
+      "294.84",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "28/05/2026",
+      "Arbitrios 2025 — cuotas 1 a 12",
+      "Yape",
+      "0003-0038944",
+      "412.00",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "18/02/2025",
+      "Impuesto predial 2025 — cuotas 1 a 4",
+      "BCP con código",
+      "0003-0034118",
+      "578.20",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "04/12/2024",
+      "Arbitrios 2024 — cuotas 9 a 12",
+      "Ventanilla",
+      "0003-0031044",
+      "148.60",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "22/02/2024",
+      "Impuesto predial 2024 — cuota 1",
+      "pagalo.pe",
+      "0003-0028801",
+      "460.65",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    }
+   ]
+  },
+  "pendiente": {
+   "total": {
+    "texto": "Sin deuda pendiente",
+    "color": "rgb(169, 68, 66)"
+   },
+   "botones": [
+    {
+     "texto": "Pedir mi constancia",
+     "alto": 46
+    }
+   ]
+  },
+  "unidades": {
+   "bases": [
+    "S/ 132,196.75",
+    "S/ 38,420.00",
+    "S/ 61,400.00"
+   ],
+   "chip": {
+    "papel": "rgb(242, 246, 250)",
+    "filo": "rgb(225, 233, 240)",
+    "tinta": "rgb(85, 85, 85)",
+    "caja": {
+     "x": 209.36,
+     "y": 1648.36,
+     "ancho": 127.28,
+     "alto": 28.75
+    }
+   }
+  }
+ },
+ "portal-sin-pago-sin-deuda-400": {
+  "anchoDoc": 400,
+  "anchoVentana": 400,
+  "hayDesplazamientoHorizontal": false,
+  "titulo": {
+   "tamano": "24px",
+   "color": "rgb(13, 95, 168)"
+  },
+  "reciente": null,
+  "tabla": {
+   "minWidth": "760px",
+   "ancho": 760,
+   "anchoDelMarco": 362,
+   "overflowX": "auto",
+   "desplazamientoPropio": 398,
+   "filas": [
+    {
+     "celdas": [
+      "12/08/2026",
+      "Impuesto predial 2026 — cuotas 1 y 2",
+      "Tarjeta",
+      "0003-0041182",
+      "294.84",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "28/05/2026",
+      "Arbitrios 2025 — cuotas 1 a 12",
+      "Yape",
+      "0003-0038944",
+      "412.00",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "18/02/2025",
+      "Impuesto predial 2025 — cuotas 1 a 4",
+      "BCP con código",
+      "0003-0034118",
+      "578.20",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "04/12/2024",
+      "Arbitrios 2024 — cuotas 9 a 12",
+      "Ventanilla",
+      "0003-0031044",
+      "148.60",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    },
+    {
+     "celdas": [
+      "22/02/2024",
+      "Impuesto predial 2024 — cuota 1",
+      "pagalo.pe",
+      "0003-0028801",
+      "460.65",
+      "Comprobante"
+     ],
+     "papel": "rgb(255, 255, 255)"
+    }
+   ]
+  },
+  "pendiente": {
+   "total": {
+    "texto": "Sin deuda pendiente",
+    "color": "rgb(169, 68, 66)"
+   },
+   "botones": [
+    {
+     "texto": "Pedir mi constancia",
+     "alto": 46
+    }
+   ]
+  },
+  "unidades": {
+   "bases": [
+    "S/ 132,196.75",
+    "S/ 38,420.00",
+    "S/ 61,400.00"
+   ],
+   "chip": {
+    "papel": "rgb(240, 246, 251)",
+    "filo": "rgb(232, 241, 249)",
+    "tinta": "rgb(85, 85, 85)",
+    "caja": {
+     "x": 209.36,
+     "y": 1686.86,
+     "ancho": 127.28,
+     "alto": 28.75
+    }
+   }
+  }
+ },
+ "portal-mis-predios-1180": {
+  "scrollAntes": 0,
+  "scrollDespues": 889,
+  "foco": "H2: De dónde sale lo que paga",
+  "topDelFocoEnLaVentana": 162,
+  "hash": "#/historial"
+ },
+ "portal-mis-predios-400": {
+  "scrollAntes": 0,
+  "scrollDespues": 1667,
+  "foco": "H2: De dónde sale lo que paga",
+  "topDelFocoEnLaVentana": 16,
+  "hash": "#/historial"
+ }
+}
