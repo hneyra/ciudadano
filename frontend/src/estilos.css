@@ -1,0 +1,151 @@
+/*
+ * La hoja de estilos de `ciudadano-web`. **No define ni un color, ni una fuente, ni un radio.**
+ *
+ * Portada de `rentas/frontend/src/estilos.css`. La paleta es de `@kamayuk/ui`, y el tema de este
+ * portal —la identidad `clasico`, `kamayuk-lib`#56— se ELIGE en `src/aplicacion.tsx` con
+ * `ProveedorDeTema`, no se escribe aqui: un valor puesto en este archivo seria una segunda fuente de
+ * verdad, y la que gana depende del orden en que el empaquetador resuelva los modulos. Lo vigila
+ * `verificaciones/sin-colores-propios.test.ts`.
+ *
+ * ────────────────────────────────────────────────────────────────────────────────────────────
+ * POR QUE ESTE ARCHIVO EXISTE, SI LA PALETA ES DE `@kamayuk/ui`
+ * ────────────────────────────────────────────────────────────────────────────────────────────
+ *
+ * Por `@source`, y por la capa `base` de abajo.
+ *
+ * Tailwind v4 descubre las clases leyendo los archivos del proyecto, y **omite `node_modules` por
+ * completo**. `@kamayuk/ui` llega por `link:`, o sea que vive ahi dentro: sus clases no las veria
+ * nadie. Y no falla del todo, que es lo que lo hizo invisible en `rentas` (rentas#107): el CSS salia
+ * con 157 reglas en vez de 419, la pantalla se dibujaba con su estructura correcta y la mitad de su
+ * aspecto, y ninguna prueba de `vitest` podia verlo porque comparan `className` como texto.
+ *
+ * Sin `@source` hacia `@kamayuk/shell`, a diferencia de `rentas`: este portal no usa el armazon de
+ * back-office.
+ */
+
+@import '@kamayuk/ui/estilos.css';
+
+/*
+ * Donde mirar, ademas de en `src/`.
+ *
+ * La ruta es relativa a ESTE archivo y apunta al clon hermano, que es donde `link:` resuelve.
+ * `verificaciones/tailwind-esta-conectado.test.ts` comprueba que siga apuntando a `@kamayuk/ui`.
+ */
+@source "../../../kamayuk-lib/paquetes/ui";
+
+/*
+ * ────────────────────────────────────────────────────────────────────────────────────────────
+ * LOS ESTILOS GLOBALES DEL ARTBOARD (`diseno/Ciudadano.dc.html`, lineas 12-22), SIN UN VALOR PROPIO
+ * ────────────────────────────────────────────────────────────────────────────────────────────
+ *
+ * El artboard los escribe con hexadecimales en su `<helmet>`. Aqui cada color es un `var(--color-…)`
+ * de la identidad `clasico`, y lo que ya resuelve el *preflight* de Tailwind —que la hoja de la
+ * libreria arrastra— no se repite:
+ *
+ *   html, body { margin: 0 }                    preflight: `margin: 0` a todo
+ *   html, body { font-family: Arial, … }        `--font-sans` de `[data-tema='clasico']`, que el
+ *                                               preflight pinta en `html` (`kamayuk-lib`#56)
+ *   * { box-sizing: border-box }                preflight
+ *   input, select, button, textarea
+ *     { font-family: inherit; color: #333 }     preflight: `font: inherit; color: inherit`, y
+ *                                               hereda los 15 px y la tinta del `body` de abajo
+ *   table { border-collapse: collapse }         preflight (el `width: 100%` no: va abajo)
+ *
+ * Y lo que se aparta del artboard, con su porque (medido en
+ * `verificaciones/tailwind-emite-las-clases.test.ts`):
+ *
+ *   · `:focus-visible` pinta con `--color-azul` y no con el `#1BA0D7` del artboard (`--color-foco`):
+ *     ese azul da 2.98:1 sobre `--superficie` y 2.75:1 sobre `--fondo`, y WCAG 1.4.11 pide 3:1 para
+ *     un indicador de foco. `--azul` es ademas el `TOKEN_DEL_CONTORNO` con que la libreria dibuja el
+ *     de sus piezas (`shadcn/foco.ts`): un solo contorno en toda la pantalla.
+ *   · Los enlaces pintan con `--color-azul` y no con el `#1569B0` del artboard (`AZUL_TXT`): la
+ *     identidad `clasico` no tiene token de enlace, y sin color el preflight los dejaria del color
+ *     del texto, indistinguibles.
+ *   · El foco de un campo NO lleva el `outline: none` del artboard. Globalmente le quitaria el
+ *     indicador a todo campo sin filo; las piezas con filo (`CONTROL`) ya lo quitan por su cuenta.
+ *     El filo pasa a `--color-azul`, como en `CONTROL`, por el mismo 2.98:1.
+ *   · El halo del campo es el de `HALO_DE_FOCO` de la libreria —3 px de `--color-foco`— y no el
+ *     difuminado de 6 px al 45 % con sombra interior negra al 6 % del artboard: esos dos son
+ *     `rgba()` literales, que es justo lo que esta hoja no puede escribir. Y un `color-mix()` sobre
+ *     el token tampoco vale: Tailwind lo emite con un respaldo que lleva el valor del `@theme`
+ *     —el `#d3ebfa` de `institucional`— para el navegador que no lo entienda. Medido compilando.
+ *
+ * Las reglas de las lineas 23-44 —`[data-pagar]`, `[data-recibo]`, `[data-meta]`, …— son de las
+ * pantallas que las usan, y entraron con ellas como variantes `max-[…]:` escritas donde se leen. La de
+ * impresion (lineas 45-49) entra con el comprobante (issue 9) y va AQUI, al final de la capa: no es de
+ * una pantalla sino de todo lo que lleve `data-noprint`, este donde este.
+ *
+ * `@layer base`, y no suelto: las utilidades (`@layer utilities`) tienen que poder ganarle a esto
+ * sin depender del orden ni de la especificidad.
+ */
+@layer base {
+  body {
+    background-color: var(--color-fondo);
+    color: var(--color-tinta);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  a {
+    color: var(--color-azul);
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-azul);
+    outline-offset: 2px;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    border-color: var(--color-azul);
+    box-shadow: 0 0 0 3px var(--color-foco);
+  }
+
+  table {
+    width: 100%;
+  }
+
+  fieldset {
+    min-width: 0;
+  }
+
+  legend {
+    padding: 0 8px;
+  }
+
+  /*
+   * AL IMPRIMIR, SOLO EL RECIBO (artboard, lineas 45-49; issue 9).
+   *
+   * · Todo lo marcado `data-noprint` —la barra, la franja, el pie, los avisos, y en el comprobante la
+   *   banda de exito, las acciones y la invitacion— desaparece. Con `!important`, como en el artboard:
+   *   las utilidades (`flex`, `grid`) viven en una capa posterior, y una declaracion `!important` de
+   *   una capa anterior les gana; sin el, `display: flex` volveria a pintar la barra en el papel.
+   * · El lienzo pasa a `--color-superficie`, el blanco de la identidad (el artboard escribe `#fff`, que
+   *   esta hoja no puede escribir). El contenedor del marco hace lo mismo con `print:bg-superficie`.
+   * · El recibo, sin filo ni sombra: en papel el filo del propio folio ya lo enmarca.
+   *
+   * Que esta regla este, oculte y siga oculta lo mide `verificaciones/lo-no-imprimible-no-se-imprime.test.ts`
+   * sobre el CSS emitido.
+   */
+  @media print {
+    [data-noprint] {
+      display: none !important;
+    }
+
+    html,
+    body {
+      background-color: var(--color-superficie);
+    }
+
+    [data-recibo] {
+      border: 0 !important;
+      box-shadow: none !important;
+    }
+  }
+}

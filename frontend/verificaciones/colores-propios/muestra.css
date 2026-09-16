@@ -1,0 +1,19 @@
+/* La muestra que viola `sin-colores-propios` en una hoja: la guarda la juzga como si fuera
+   `src/estilos.css`. Cada violacion lleva la marca en la linea de encima. Un `#0D5FA8` nombrado en
+   un comentario NO cuenta, y este comentario lo demuestra. */
+
+@import '@kamayuk/ui/estilos.css';
+
+:root {
+  /* VIOLA: declara `--color-*` y, de paso, escribe un color literal. */
+  --color-azul: #0d5fa8;
+}
+
+@layer base {
+  body {
+    /* VIOLA: un color literal. */
+    background-color: rgba(244, 246, 248, 1);
+    /* VIOLA: una fuente. */
+    font-family: Arial, sans-serif;
+  }
+}
