@@ -12,7 +12,8 @@ entra a su cuenta, paga con uno de cuatro medios y se lleva un comprobante que s
 > · **Con plataforma** (`yarn dev:con-plataforma`, y el paquete de produccion): se entra con la cuenta
 >   del portal —Keycloak, realm `kamayuk-ciudadano`— y la deuda la contesta `GET /portal/situacion`. El
 >   recorrido es de **cuatro** pasos: Entrar → Elegir que pago → Pagar → Comprobante. **El pago sigue
->   simulado y se dice**: no hay endpoint de cobro, y las dos ultimas pantallas lo avisan.
+>   simulado y se dice**: no hay endpoint de cobro, las dos ultimas pantallas lo avisan, no se ofrece
+>   ningun medio de pago, el comprobante es una vista de ejemplo y **la deuda no cambia**.
 >
 > Hoy, contra la plataforma local, la respuesta real es «no se pudo consultar»: `catastro` contesta 401
 > al token del ciudadano, asi que `rentas` no puede componer el total. Es backend, y de otros

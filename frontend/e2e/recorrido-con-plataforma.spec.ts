@@ -192,24 +192,42 @@ test.describe('el recorrido con plataforma', () => {
     await principal(page).getByRole('button', { name: 'Ver el detalle' }).click();
     await expect(principal(page).getByText('El portal no publica el desglose de este concepto.')).toBeVisible();
 
-    // Paso 3 · Pagar, con el aviso de que no se cobra nada.
+    // Paso 3 · Pagar: no hay medio de pago que ofrecer, y se dice.
     await principal(page).getByRole('button', { name: 'Pagar todo' }).click();
     await expect(page).toHaveURL(/#\/pagar$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Todavía no se puede pagar en línea' })).toBeVisible();
     await expect(
       principal(page).getByText('El pago en línea todavía no está disponible: esta pantalla es una demostración.'),
     ).toBeVisible();
+    // Ni el numero para yapear ni el codigo del banco: son datos accionables de una ficcion, y aqui
+    // hay una deuda de verdad delante (revision del issue 28).
+    await expect(principal(page)).not.toContainText('969 032 194');
+    await expect(principal(page)).not.toContainText('2026-0025673-4418');
     await seVeBien(page, 'pagar con plataforma a 1280 px');
 
-    // Paso 4 · Comprobante: el mismo aviso, y el recibo con lo que dijo el servidor.
+    // Paso 4 · Comprobante: el mismo aviso, el recibo con lo que dijo el servidor, y NINGUNA
+    // afirmacion de que se pago, se envio o se descontó algo.
     await principal(page).getByRole('button', { name: 'Simular el pago: no se cobra nada' }).click();
     await expect(page).toHaveURL(/#\/comprobante$/);
-    await expect(page.getByRole('heading', { level: 1, name: 'Su pago se registró' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Así se vería su comprobante' })).toBeVisible();
     await expect(
       principal(page).getByText('El pago en línea todavía no está disponible: esta pantalla es una demostración.'),
     ).toBeVisible();
+    await expect(principal(page)).not.toContainText('Su pago se registró');
+    await expect(principal(page)).not.toContainText('La deuda pagada ya se descontó de su cuenta.');
+    await expect(principal(page)).not.toContainText('Constancia de pago');
+    await expect(principal(page)).not.toContainText('Número de operación');
+    await expect(principal(page)).not.toContainText('Total pagado');
+    await expect(principal(page)).toContainText('Comprobante de ejemplo');
+    await expect(principal(page)).toContainText('Total que se pagaría');
     await expect(principal(page).getByText('Impuesto predial 2024')).toBeVisible();
     // 1500 + 42.60 + 100 = 1642.60, sin el interes que la amnistia condona.
     await expect(principal(page).getByText('1,642.60').first()).toBeVisible();
+
+    // Y la deuda sigue donde estaba: volver al paso 2 la encuentra entera.
+    await page.getByRole('navigation').getByRole('button', { name: 'Elegir qué pago' }).click();
+    await expect(page).toHaveURL(/#\/deudas$/);
+    await expect(principal(page).getByText('Impuesto predial 2024')).toBeVisible();
   });
 
   test('con sesion, la barra dice quien entro con los claims del token', async ({ page }) => {

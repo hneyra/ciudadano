@@ -8,6 +8,7 @@ import {
   PASOS_DE_LA_DEMOSTRACION,
   type EstadoDelRecorrido,
   cuenta,
+  cuentaPendiente,
   destinoAlPagar,
   destinoDelComprobante,
   estadoInicial,
@@ -18,6 +19,7 @@ import {
   recorrido,
   seleccion,
   ultimoAlcanzable,
+  vivas,
   vivasDelArtboard,
   vivasDelServidor,
 } from './recorrido.ts';
@@ -61,6 +63,9 @@ function delServidor(id: string, insoluto: string): DeudaDelServidor {
 }
 
 const QUIEN: QuienDebe = { nombre: 'Rufina Medina Medina', codigo: '00000025673', documento: 'DNI 03593174' };
+
+/** Aplica una lista de acciones desde el estado inicial de demostracion. */
+const tras = (acciones: readonly Parameters<typeof recorrido>[1][]) => acciones.reduce(recorrido, ESTADO_INICIAL);
 
 const conSesion = estadoInicial({ conPlataforma: true, autenticado: true });
 const sinSesion = estadoInicial({ conPlataforma: true, autenticado: false });
@@ -187,6 +192,27 @@ describe('`situacionLeida`: los conceptos del servidor pasan a ser los del recor
     expect(pagado.paso).toBe('comprobante');
     expect(pagado.ultimo?.ids).toEqual(['predial-2024', 'predial-2025']);
     expect(pagado.ultimo?.total).toBe('1500.00');
-    expect(vivasDelServidor(pagado)).toEqual([]);
+  });
+
+  it('REVISION — pero la deuda NO se da por pagada: no hubo cobro', () => {
+    // El aviso de los pasos 4 y 5 promete que «su deuda no cambia». Con `pagadas` tocado, la deuda
+    // desaparecia de la lista y del historial: el mismo embuste que la frase «la deuda pagada ya se
+    // descontó de su cuenta», dicho con la lista en vez de con palabras.
+    const pagado = recorrido(recorrido(conDeuda, { tipo: 'irA', paso: 'pagar' }), { tipo: 'confirmarPago' });
+
+    expect(pagado.pagadas).toEqual({});
+    expect(vivasDelServidor(pagado).map((deuda) => deuda.id)).toEqual(['predial-2024', 'predial-2025']);
+    expect(cuentaPendiente(pagado).total).toBe('1500.00');
+  });
+
+  it('EL OTRO SENTIDO: en demostracion pagar SI descuenta la deuda, como el artboard', () => {
+    const pagado = tras([
+      { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' },
+      { tipo: 'continuarConCorreo', correo: 'maria@correo.com', avisarVencimiento: false },
+      { tipo: 'confirmarPago' },
+    ]);
+
+    expect(Object.keys(pagado.pagadas)).toEqual(['pred26', 'arb26', 'pred24', 'veh24']);
+    expect(vivas(pagado)).toEqual([]);
   });
 });

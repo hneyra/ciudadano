@@ -92,6 +92,39 @@ function useRotuloDelMedio(pago: PagoSellado): string {
   return t(rotuloDelMedio(pago.medio));
 }
 
+/**
+ * **Con plataforma, la banda no dice que se pago** (issue 28, revision).
+ *
+ * La del artboard afirma tres hechos —«Pagó …», «Le enviamos el comprobante a …», «La deuda pagada
+ * ya se descontó de su cuenta»— y con plataforma **no ocurrio ninguno**: no hubo cobro, no se envio
+ * nada y la deuda esta donde estaba (el reductor ya no la da por pagada). Un aviso al lado no
+ * arregla una afirmacion falsa en el cuerpo: quien la lee se va creyendo que pago.
+ *
+ * Asi que se dice en condicional y se niegan los tres, uno por uno. Y no va en verde de exito: no
+ * hay ningun exito que celebrar.
+ */
+function BandaSimulada({ pago }: { readonly pago: PagoSellado }) {
+  const { t } = useTranslation();
+  const idDelTitulo = useId();
+
+  return (
+    <section
+      aria-labelledby={idDelTitulo}
+      className="mb-[18px] border border-l-[5px] border-linea border-l-azul bg-superficie px-[22px] py-5"
+    >
+      <h1 id={idDelTitulo} className="m-0 text-[21px] font-bold text-pretty">
+        {t('Así se vería su comprobante')}
+      </h1>
+      <p className="mt-[6px] mb-0 max-w-[70ch] text-[15px] leading-[1.6] text-pretty text-tinta-2">
+        {t(
+          'Esto es lo que habría pagado: {{importe}}. No se cobró nada, no se envió ningún comprobante y su deuda no ha cambiado.',
+          { importe: formatearImporte(pago.conAmnistia) },
+        )}
+      </p>
+    </section>
+  );
+}
+
 /** La banda verde de exito, que no se imprime (lineas 480-489 y 1276-1279). */
 function BandaDeExito({ pago }: { readonly pago: PagoSellado }) {
   const { t } = useTranslation();
@@ -146,6 +179,7 @@ function Recibo({ pago }: { readonly pago: PagoSellado }) {
   const medio = useRotuloDelMedio(pago);
   const { comprobante } = pago;
   const quien = estado.contribuyente;
+  const simulado = estado.conPlataforma;
 
   const columnas = [
     { rotulo: t('Concepto'), cifra: false },
@@ -166,11 +200,17 @@ function Recibo({ pago }: { readonly pago: PagoSellado }) {
           <span className="block text-[16px] font-bold">{t('Municipalidad Distrital de Catacaos')}</span>
           <span className="mt-[2px] block text-[13px] text-tinta-3">{t('Gerencia de Administración Tributaria')}</span>
         </span>
+        {/*
+          Con plataforma esto NO es una constancia y no tiene numero: no hay comprobante emitido que
+          numerar. El numero del artboard es utileria, y aqui se leeria como el de un documento.
+        */}
         <div className="min-w-[140px] flex-[1_0_auto] text-right">
           <h2 id={idDelTitulo} className="m-0 text-[13px] font-normal text-tinta-3">
-            {t('Constancia de pago')}
+            {simulado ? t('Comprobante de ejemplo') : t('Constancia de pago')}
           </h2>
-          <span className="mt-[2px] block text-[17px] font-bold text-azul tabular-nums">{comprobante.numero}</span>
+          {simulado ? null : (
+            <span className="mt-[2px] block text-[17px] font-bold text-azul tabular-nums">{comprobante.numero}</span>
+          )}
         </div>
       </div>
 
@@ -178,9 +218,15 @@ function Recibo({ pago }: { readonly pago: PagoSellado }) {
         data-meta="1"
         className="m-0 grid grid-cols-[repeat(auto-fit,minmax(206px,1fr))] overflow-hidden bg-superficie max-[701px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] max-[521px]:grid-cols-[minmax(0,1fr)]"
       >
-        <Meta rotulo={t('Número de operación')}>{comprobante.operacion}</Meta>
-        <Meta rotulo={t('Fecha y hora')}>{`${formatearFecha(comprobante.fecha)} · ${comprobante.hora}`}</Meta>
-        <Meta rotulo={t('Medio de pago')}>{medio}</Meta>
+        {/*
+          Con plataforma no hay operacion, ni fecha de pago, ni medio: **no se pago**. Las tres del
+          artboard son numeros de utileria, y en un recibo se leen como el registro de un hecho.
+        */}
+        {simulado ? null : <Meta rotulo={t('Número de operación')}>{comprobante.operacion}</Meta>}
+        {simulado ? null : (
+          <Meta rotulo={t('Fecha y hora')}>{`${formatearFecha(comprobante.fecha)} · ${comprobante.hora}`}</Meta>
+        )}
+        {simulado ? null : <Meta rotulo={t('Medio de pago')}>{medio}</Meta>}
         {/*
           Quien es sale del RECORRIDO y no de `CONTRIBUYENTE` (issue 28): en demostracion son los
           mismos dos valores del artboard, y con plataforma los que dijo el servidor. Escritos aqui,
@@ -189,7 +235,8 @@ function Recibo({ pago }: { readonly pago: PagoSellado }) {
         */}
         {quien === null ? null : <Meta rotulo={t('Contribuyente')}>{quien.nombre}</Meta>}
         {quien?.codigo == null ? null : <Meta rotulo={t('Código')}>{quien.codigo}</Meta>}
-        <Meta rotulo={t('Enviado a')}>{pago.destino ?? t('su correo')}</Meta>
+        {/* «Enviado a» afirma que se envio. Con plataforma no se envio nada a ningun sitio. */}
+        {simulado ? null : <Meta rotulo={t('Enviado a')}>{pago.destino ?? t('su correo')}</Meta>}
       </dl>
 
       <Tabla className="min-w-[660px] max-[701px]:min-w-0">
@@ -228,7 +275,8 @@ function Recibo({ pago }: { readonly pago: PagoSellado }) {
           </tr>
           <tr className="bg-sup text-[14.5px] font-bold text-tinta">
             <th scope="row" colSpan={3} className={cn('border-t-2 border-linea py-3 text-left', CELDA_DEL_RECIBO)}>
-              {t('Total pagado')}
+              {/* «Total pagado» afirma un pago. Con plataforma no se pago: se habria pagado. */}
+              {simulado ? t('Total que se pagaría') : t('Total pagado')}
             </th>
             <td className={cn('border-t-2 border-linea py-3 text-right tabular-nums', CELDA_DEL_RECIBO)}>
               {cifraSinSimbolo(pago.conAmnistia)}
@@ -239,9 +287,13 @@ function Recibo({ pago }: { readonly pago: PagoSellado }) {
 
       <div className="border-t border-linea-2 px-6 pt-[18px] pb-[22px]">
         <p className="m-0 max-w-[80ch] text-[13.5px] leading-[1.65] text-pretty text-tinta-3">
-          {t(
-            'Esta constancia acredita el pago de los conceptos detallados. Consérvela: es lo que hay que presentar si la deuda volviera a aparecer. El pago con tarjeta, Yape o pagalo.pe se aplica de inmediato; el pago con código de banco, al día siguiente hábil.',
-          )}
+          {simulado
+            ? t(
+                'Este comprobante es una vista de ejemplo y no acredita ningún pago: el portal todavía no cobra en línea, así que no hay ninguna operación que constatar. Para pagar, acérquese con su documento a la ventanilla de la municipalidad.',
+              )
+            : t(
+                'Esta constancia acredita el pago de los conceptos detallados. Consérvela: es lo que hay que presentar si la deuda volviera a aparecer. El pago con tarjeta, Yape o pagalo.pe se aplica de inmediato; el pago con código de banco, al día siguiente hábil.',
+              )}
         </p>
       </div>
     </section>
@@ -262,14 +314,21 @@ function Acciones({ pago }: { readonly pago: PagoSellado }) {
       data-noprint="1"
       className="mt-[18px] flex flex-wrap items-center gap-[11px] max-[701px]:flex-col max-[701px]:items-stretch"
     >
-      <Boton
-        type="button"
-        variante="primario"
-        onClick={() => avisar(t('Se descargaría el comprobante {{numero}} en PDF.', { numero: pago.comprobante.numero }))}
-        className={cn(BOTON_DE_ACCION, 'px-6')}
-      >
-        {t('Descargar comprobante')}
-      </Boton>
+      {/*
+        Con plataforma no hay comprobante que descargar: no se emitio ninguno, y el numero del
+        artboard es utileria. «Imprimir» si se queda, y el aviso de pago simulado NO lleva
+        `data-noprint`: lo que salga en el papel lleva escrito que es una demostracion.
+      */}
+      {estado.conPlataforma ? null : (
+        <Boton
+          type="button"
+          variante="primario"
+          onClick={() => avisar(t('Se descargaría el comprobante {{numero}} en PDF.', { numero: pago.comprobante.numero }))}
+          className={cn(BOTON_DE_ACCION, 'px-6')}
+        >
+          {t('Descargar comprobante')}
+        </Boton>
+      )}
       <Boton type="button" onClick={() => window.print()} className={cn(BOTON_DE_ACCION, 'px-[22px]')}>
         {t('Imprimir')}
       </Boton>
@@ -353,7 +412,7 @@ export function Comprobante() {
         arriba del todo y antes de la banda de exito, que es la que dice «Su pago se registró».
       */}
       {estado.conPlataforma ? <AvisoDePagoSimulado /> : null}
-      <BandaDeExito pago={pago} />
+      {estado.conPlataforma ? <BandaSimulada pago={pago} /> : <BandaDeExito pago={pago} />}
       <Recibo pago={pago} />
       <Acciones pago={pago} />
       {estado.autenticado ? null : <Invitacion pago={pago} />}

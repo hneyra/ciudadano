@@ -98,36 +98,55 @@ function Seccion({
   );
 }
 
-/** El pago de esta visita, arriba y en verde (lineas 573-581 y 1330-1335). */
+/**
+ * El pago de esta visita, arriba y en verde (lineas 573-581 y 1330-1335).
+ *
+ * **Con plataforma no se dice que se pago** (issue 28, revision): no hubo cobro, no hay operacion
+ * que numerar y no se envio nada. Se dice lo que es —una simulacion— y se quita el verde, que es el
+ * color de un pago hecho.
+ */
 function PagoReciente({ pago }: { readonly pago: PagoSellado }) {
   const { t } = useTranslation();
-  const { despachar } = useRecorrido();
+  const { estado, despachar } = useRecorrido();
   const idDelTitulo = useId();
+  const simulado = estado.conPlataforma;
 
   return (
     <section
       aria-labelledby={idDelTitulo}
-      className="mb-[18px] flex flex-wrap items-center gap-[14px] border border-l-[5px] border-ok-tinta/25 border-l-ok-tinta bg-ok-fondo px-[18px] py-4"
+      className={cn(
+        'mb-[18px] flex flex-wrap items-center gap-[14px] border border-l-[5px] px-[18px] py-4',
+        simulado ? 'border-linea border-l-azul bg-superficie' : 'border-ok-tinta/25 border-l-ok-tinta bg-ok-fondo',
+      )}
     >
       <span className="min-w-[200px] flex-1">
-        <h2 id={idDelTitulo} className="m-0 text-[15px] font-bold text-ok-tinta">
-          {t('Pago de {{importe}} registrado hoy', { importe: formatearImporte(pago.conAmnistia) })}
+        <h2 id={idDelTitulo} className={cn('m-0 text-[15px] font-bold', simulado ? null : 'text-ok-tinta')}>
+          {simulado
+            ? t('Pago simulado de {{importe}} en esta visita', { importe: formatearImporte(pago.conAmnistia) })
+            : t('Pago de {{importe}} registrado hoy', { importe: formatearImporte(pago.conAmnistia) })}
         </h2>
-        <span className="mt-[3px] block text-[13.5px] text-pretty text-ok-tinta">
-          {t('Operación {{operacion}} · {{medio}} · comprobante {{numero}}, enviado a {{destino}}', {
-            operacion: pago.comprobante.operacion,
-            medio: t(rotuloDelMedio(pago.medio)),
-            numero: pago.comprobante.numero,
-            destino: pago.destino ?? t('su correo'),
-          })}
+        <span
+          className={cn('mt-[3px] block text-[13.5px] text-pretty', simulado ? 'text-tinta-3' : 'text-ok-tinta')}
+        >
+          {simulado
+            ? t('No se cobró nada, no se envió ningún comprobante y su deuda sigue pendiente.')
+            : t('Operación {{operacion}} · {{medio}} · comprobante {{numero}}, enviado a {{destino}}', {
+                operacion: pago.comprobante.operacion,
+                medio: t(rotuloDelMedio(pago.medio)),
+                numero: pago.comprobante.numero,
+                destino: pago.destino ?? t('su correo'),
+              })}
         </span>
       </span>
       <Boton
         type="button"
         onClick={() => despachar({ tipo: 'irA', paso: 'comprobante' })}
-        className="min-h-[40px] flex-[0_0_auto] border-ok-tinta px-4 py-0 text-[14px] font-bold text-ok-tinta hover:border-ok-tinta hover:bg-ok-fondo"
+        className={cn(
+          'min-h-[40px] flex-[0_0_auto] px-4 py-0 text-[14px] font-bold',
+          simulado ? null : 'border-ok-tinta text-ok-tinta hover:border-ok-tinta hover:bg-ok-fondo',
+        )}
       >
-        {t('Ver el comprobante')}
+        {simulado ? t('Ver cómo se vería') : t('Ver el comprobante')}
       </Boton>
     </section>
   );
@@ -148,7 +167,10 @@ function PagosRealizados() {
   const { t } = useTranslation();
   const { estado } = useRecorrido();
   const historial = useHistorial();
-  const pago = estado.recienPagado ? estado.ultimo : null;
+  // Con plataforma el pago simulado NO entra en «Pagos realizados»: esa tabla es la lista de lo que
+  // se pago, y ahi no se pago nada (issue 28, revision). Lo de esta visita lo dice la banda de
+  // arriba, que ademas dice que es simulado.
+  const pago = estado.recienPagado && !estado.conPlataforma ? estado.ultimo : null;
 
   const filas: FilaDePago[] = [
     ...(pago === null

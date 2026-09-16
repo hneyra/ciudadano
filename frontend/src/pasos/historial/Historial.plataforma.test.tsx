@@ -1,5 +1,5 @@
 import type { Cliente } from '@kamayuk/api';
-import { screen, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { identidad } from '../../api/identidad.ts';
@@ -151,5 +151,45 @@ describe('«De dónde sale lo que paga» con plataforma', () => {
     expect(seccion).not.toBeNull();
     expect(within(seccion as HTMLElement).queryByText(/Autovalúo 2026|Base imponible/)).toBeNull();
     expect((seccion as HTMLElement).textContent).not.toMatch(/S\/\s?[\d,]+\.\d{2}/);
+  });
+});
+
+describe('REVISION — el pago simulado no se cuenta como pago', () => {
+  /** Del paso 2 al comprobante, simulando el pago, y de ahi a «Mis pagos». */
+  async function trasSimularElPago(): Promise<void> {
+    identidad.fijarToken(tokenDeMentira());
+    montarElPortal({ hash: '#/deudas', fuente: crearFuenteDeLaPlataforma(clienteCon(CON_DEUDA_Y_PREDIO)) });
+    await enMain().findByRole('heading', { level: 1, name: 'Lo que debe, por concepto' });
+    fireEvent.click(enMain().getByRole('button', { name: 'Pagar todo' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/pagar'));
+    fireEvent.click(enMain().getByRole('button', { name: 'Simular el pago: no se cobra nada' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/comprobante'));
+    window.location.hash = '#/historial';
+    await enMain().findByRole('heading', { level: 1, name: 'Mis pagos' });
+  }
+
+  it('la banda dice que fue simulado, y no que se registro ni que se envio nada', async () => {
+    await trasSimularElPago();
+
+    expect(enMain().getByText('Pago simulado de S/ 1,842.60 en esta visita')).toBeInTheDocument();
+    expect(
+      enMain().getByText('No se cobró nada, no se envió ningún comprobante y su deuda sigue pendiente.'),
+    ).toBeInTheDocument();
+    const dicho = principal().textContent ?? '';
+    expect(dicho).not.toMatch(/Pago de S\/ [\d,.]+ registrado hoy/);
+    expect(dicho).not.toMatch(/Operación .* comprobante .*, enviado a /);
+  });
+
+  it('y la deuda SIGUE pendiente, y no entra en «Pagos realizados»', async () => {
+    await trasSimularElPago();
+
+    // Lo que queda pendiente: el mismo concepto, con el mismo importe. Si el pago simulado lo
+    // hubiera descontado, la pantalla estaria diciendo con la lista lo que el aviso niega con palabras.
+    expect(enMain().getByText('Impuesto predial 2024')).toBeInTheDocument();
+    expect(enMain().queryByText('Sin deuda pendiente')).toBeNull();
+    expect(principal().querySelector('[data-total-pendiente]')?.textContent).toBe('S/ 1,842.60');
+    // Y la tabla de pagos hechos no trae ninguna fila: ahi no se pago nada.
+    expect(principal().querySelectorAll('[data-reciente]')).toHaveLength(0);
+    expect(principal().querySelectorAll('tbody tr')).toHaveLength(0);
   });
 });

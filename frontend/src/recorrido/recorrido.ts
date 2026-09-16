@@ -484,10 +484,16 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
         ...estado,
         paso: 'comprobante',
         recienPagado: true,
-        pagadas: {
-          ...estado.pagadas,
-          ...Object.fromEntries(pagado.map((deuda) => [deuda.id, true as const])),
-        },
+        // **Con plataforma, lo pagado NO se da por pagado** (issue 28, revision): no hubo cobro, y
+        // quitar el concepto de la deuda viva seria el mismo embuste que la frase «la deuda pagada
+        // ya se descontó de su cuenta» — dicho con la lista en vez de con palabras. El aviso de los
+        // pasos 4 y 5 promete que «su deuda no cambia»; esto es lo que lo hace verdad.
+        pagadas: estado.conPlataforma
+          ? estado.pagadas
+          : {
+              ...estado.pagadas,
+              ...Object.fromEntries(pagado.map((deuda) => [deuda.id, true as const])),
+            },
         ultimo: {
           ids: pagado.map((deuda) => deuda.id),
           ...cuentaDe(pagado),
