@@ -326,6 +326,29 @@ const LITERALES = [
   'Volvimos del sistema de identidad sin poder entrar: {{motivo}}. {{detalle}}',
   'Vuelva a cargar la página e inténtelo otra vez. Si sigue igual, puede consultar y pagar en la ventanilla de la municipalidad.',
 
+  // ── El doble modo y los estados de la consulta (issue 27) ───────────────────────────────────
+  // No estan en el artboard: el artboard no consulta a ningun servidor. Son los cinco finales que
+  // `src/pasos/deudas/LaConsulta.tsx` dibuja cuando hay plataforma, y la sesion de la barra.
+  //
+  // Lo que NO esta aqui, y no es un olvido: la nota del servidor («No se pudo consultar
+  // Municipalidad Provincial de Sullana…»). Esa la redacta el backend y se ensena TAL CUAL; pasarla
+  // por `t()` la buscaria en este inventario, no la encontraria, y saldria igual — por accidente.
+  'Consultando su deuda…',
+  'Estamos preguntando a las municipalidades. Tarda unos segundos.',
+  'No pudimos consultar toda su deuda',
+  'Por eso no le mostramos ningún total: una cifra a la que le falta una municipalidad se lee como si fuera toda su deuda, y no lo es.',
+  'No encontramos deuda a su nombre',
+  'Con {{tipoDeDocumento}} {{numeroDeDocumento}} no figura ninguna deuda en las municipalidades del sistema.',
+  'Si cree que es un error, acérquese con su documento a la ventanilla de la municipalidad: allí lo revisan en el momento.',
+  'Lo que encontramos a su nombre',
+  'Todavía no puede pagar aquí lo que el portal consulta: por ahora, acérquese con su documento a la ventanilla de la municipalidad.',
+  // El boton del peldano que pide identidad, y lo que se dice si no se pudo ni llegar al emisor.
+  'Entrar',
+  'No pudimos llevarle al acceso: {{motivo}}.',
+  // El nombre de respaldo de la barra: un realm puede no mandar `name`, y el circulo no puede
+  // quedarse vacio (`src/marco/Barra.tsx`).
+  'Su cuenta',
+
   // Los plurales: cada forma que i18next pide para `es` (`_one`, `_many`, `_other`). Lo que dice
   // cada una esta en `PLURALES`.
   ...Object.keys(PLURALES_DEL_PASO_2),

@@ -232,7 +232,8 @@ describe('sin haber pagado nada en esta visita', () => {
   it('mientras la fuente no contesta, las secciones quedan `aria-busy`; si falla, lo dice un aviso', async () => {
     let contestar: (valor: typeof HISTORIAL) => void = () => {};
     const lenta: FuenteDelPortal = {
-      situacion: () => Promise.reject(new Error('no se usa')),
+      // Sin plataforma no hay consulta que hacer: el historial se lee igual (issue 27).
+      consulta: null,
       historial: () => new Promise((resolver) => (contestar = resolver)),
       unidades: () => Promise.reject(new Error('la fuente no contesto')),
     };
@@ -251,7 +252,8 @@ describe('sin haber pagado nada en esta visita', () => {
 
   it('y si fallan los pagos, tambien', async () => {
     const rota: FuenteDelPortal = {
-      situacion: () => Promise.reject(new Error('no se usa')),
+      // Sin plataforma no hay consulta que hacer: el historial se lee igual (issue 27).
+      consulta: null,
       historial: () => Promise.reject(new Error('la fuente no contesto')),
       unidades: () => Promise.resolve(UNIDADES),
     };

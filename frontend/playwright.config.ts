@@ -57,7 +57,28 @@ export default defineConfig({
     // `package.json`, DELANTE de `playwright test`. Medido en rentas#148: puesta en este comando,
     // Playwright ya ha hablado antes con su propio aviso («… is already used»), que no dice quien tiene
     // el puerto ni desde que directorio.
-    command: `yarn build && yarn preview --port ${PUERTO} --strictPort`,
+    //
+    // <h3>`build:arnes` y no `build`: el arnes mide el bundle EN MODO DEMOSTRACION (issue 27)</h3>
+    //
+    // `build:arnes` es `NODE_ENV=development vite build --mode development`, y hacen falta LAS DOS
+    // mitades. Medido, una por una:
+    //
+    //   · sin `NODE_ENV=development`, `vite build` lo fija a `production` por su cuenta e
+    //     `import.meta.env.DEV` sale `false` **tambien con `--mode development`**: la primera
+    //     condicion corta y el `import()` de la demostracion se pliega igual;
+    //   · sin `--mode development`, el modo es `production` y Vite **no carga `.env.development`**,
+    //     asi que la bandera llega `undefined` y corta la segunda condicion. (El paquete sale con
+    //     React de desarrollo y en modo plataforma, que es lo peor de los dos mundos.)
+    //
+    // Y hace falta porque lo que este arnes recorre es **el recorrido de la demostracion**: buscar
+    // por documento, entrar con la cuenta del artboard, pagar y ver el comprobante. Con plataforma
+    // nada de eso existe —el paso 1 consulta al servidor y «Iniciar sesión» se va a Keycloak—, asi
+    // que un arnes contra el paquete de produccion mediria un portal que pide a un backend que en CI
+    // no esta. El recorrido con plataforma es del issue 28, y lo cubrira con su propio backend falso.
+    //
+    // Lo que esto NO deja de medir es que la demostracion se caiga del paquete de PRODUCCION:
+    // `e2e/la-demostracion-no-viaja-al-bundle.spec.ts` construye ese aparte y compara los dos.
+    command: `yarn build:arnes && yarn preview --port ${PUERTO} --strictPort`,
     url: URL_DEL_ARNES,
     reuseExistingServer: false,
     timeout: 120_000,

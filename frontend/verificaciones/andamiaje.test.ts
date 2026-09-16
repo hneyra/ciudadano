@@ -244,7 +244,11 @@ describe('el arnes corre en la CI contra el bundle', () => {
     expect(config).toContain('workers: 1');
     expect(config).toContain("trace: 'retain-on-failure'");
     expect(config).toContain("devices['Desktop Chrome']");
-    expect(config).toMatch(/command:\s*`yarn build && yarn preview --port \$\{PUERTO\} --strictPort`/);
+    // `build:arnes` y no `build` desde el issue 27: el arnes recorre el recorrido del ARTBOARD, y
+    // eso solo existe en un paquete construido en modo demostracion. Que ese guion siga siendo el
+    // que enciende la bandera lo comprueba `la-demostracion-no-viaja-al-bundle.test.ts`; aqui solo
+    // se fija que el arnes construya y sirva, en ese orden y sin moverse de puerto.
+    expect(config).toMatch(/command:\s*`yarn build:arnes && yarn preview --port \$\{PUERTO\} --strictPort`/);
     expect(config).toContain("globalSetup: './e2e/el-bundle-servido-es-el-mio.ts'");
   });
 });
