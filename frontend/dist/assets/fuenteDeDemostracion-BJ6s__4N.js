@@ -1,0 +1,2 @@
+import{U as o,H as r}from"./index-ByEFHEoH.js";import"./react-XDJ8N-YE.js";import"./consultas-BqOiIqzQ.js";import"./avisos-B8F_wOg0.js";import"./enrutador-cPnkN9PU.js";import"./i18n-C6kyi1oS.js";import"./estilo-DSOPSYhy.js";import"./radix-CPJfZZ-B.js";const n={consulta:null,historial:()=>Promise.resolve(r),unidades:()=>Promise.resolve(o)};export{n as fuenteDeDemostracion};
+//# sourceMappingURL=fuenteDeDemostracion-BJ6s__4N.js.map

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es-PE">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pago de tributos en línea</title>
+    <script type="module" crossorigin src="/portal/assets/index-ByEFHEoH.js"></script>
+    <link rel="modulepreload" crossorigin href="/portal/assets/react-XDJ8N-YE.js">
+    <link rel="modulepreload" crossorigin href="/portal/assets/consultas-BqOiIqzQ.js">
+    <link rel="modulepreload" crossorigin href="/portal/assets/avisos-B8F_wOg0.js">
+    <link rel="modulepreload" crossorigin href="/portal/assets/enrutador-cPnkN9PU.js">
+    <link rel="modulepreload" crossorigin href="/portal/assets/i18n-C6kyi1oS.js">
+    <link rel="modulepreload" crossorigin href="/portal/assets/estilo-DSOPSYhy.js">
+    <link rel="modulepreload" crossorigin href="/portal/assets/radix-CPJfZZ-B.js">
+    <link rel="stylesheet" crossorigin href="/portal/assets/index-C1W6nEmy.css">
+  </head>
+  <body>
+    <div id="raiz"></div>
+    <!--
+      Las senias del ambiente, ANTES del paquete. Ver `src/api/configuracion.ts` (issue 13).
+
+      Guion clasico y no `type="module"`, y el orden de estas dos lineas es lo unico que hace que
+      funcione: un modulo se difiere hasta despues del analisis del documento, asi que este se
+      ejecuta primero aunque este escrito arriba o abajo. Al reves —los dos como modulos— la
+      puerta de identidad leeria las senias antes de que nadie las hubiera puesto.
+
+      La ruta es absoluta desde la raiz del sitio; Vite le antepone `base` (`/portal/`) al
+      construir, que es lo mismo que hace con los activos del paquete.
+    -->
+    <script src="/portal/configuracion.js"></script>
+  </body>
+</html>

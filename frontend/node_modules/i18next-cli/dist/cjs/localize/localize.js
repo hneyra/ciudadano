@@ -1,0 +1,475 @@
+'use strict';
+
+var node_util = require('node:util');
+var promises = require('node:fs/promises');
+var execa = require('execa');
+var inquirer = require('inquirer');
+var glob = require('glob');
+var config = require('../config.js');
+var heuristicConfig = require('../heuristic-config.js');
+var extractor = require('../extractor/core/extractor.js');
+require('node:module');
+require('node:path');
+var nestedObject = require('../utils/nested-object.js');
+require('jiti');
+require('@croct/json5-parser');
+require('yaml');
+var instrumenter = require('../instrumenter/core/instrumenter.js');
+require('../utils/jsx-attributes.js');
+require('magic-string');
+var locize = require('../locize.js');
+var locizeOnboarding = require('../utils/locize-onboarding.js');
+var detect = require('./detect.js');
+var agentPrompt = require('./agent-prompt.js');
+
+function _interopDefault (e) { return e && e.__esModule ? e : { default: e }; }
+
+var inquirer__default = /*#__PURE__*/_interopDefault(inquirer);
+
+const LOCIZE_SIGNUP_URL = 'https://www.locize.app/register?from=i18next_cli__localize';
+const TOTAL_STEPS = 6;
+/**
+ * Server-side errors indicating auto-translation is not enabled/available on
+ * the project: the output must both mention auto-translation/MT and describe
+ * a disabled state. Checked against the captured stderr/stdout only — never
+ * `error.message`, which can echo the invoked command line (and therefore
+ * always contains "--auto-translate").
+ */
+const AI_MENTION_PATTERN = /auto.?translat|machine translation/i;
+const AI_DISABLED_PATTERN = /not (enabled|allowed|activated|available)|disabled/i;
+/** Delays between status-poll rounds while waiting for async AI translation (rounds = delays + 1). */
+const POLL_DELAYS_MS = [15000, 20000];
+function step(n, label) {
+    console.log(node_util.styleText('bold', `\n[${n}/${TOTAL_STEPS}] ${label}`));
+}
+function ok(message) {
+    console.log(node_util.styleText('green', `      ✔ ${message}`));
+}
+function warn(message) {
+    console.log(node_util.styleText('yellow', `      ⚠ ${message}`));
+}
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+/**
+ * Checks the git working tree. Returns:
+ * - true: dirty (uncommitted changes)
+ * - false: clean
+ * - null: not a git repository (or git unavailable)
+ */
+async function isGitTreeDirty() {
+    try {
+        const { stdout } = await execa.execa('git', ['status', '--porcelain']);
+        return stdout.trim().length > 0;
+    }
+    catch {
+        return null;
+    }
+}
+/**
+ * Computes per-locale translation completeness from the local translation
+ * files (post-download these mirror the remote state). Intentionally
+ * tolerant: non-JSON output formats or unreadable files simply yield no data
+ * — this powers an informational summary, not a gate.
+ */
+async function computeCompleteness(config) {
+    const output = config.extract.output;
+    if (typeof output !== 'string')
+        return [];
+    const primary = config.extract.primaryLanguage || config.locales[0] || 'en';
+    const secondaries = config.locales.filter(l => l !== primary);
+    const rawSep = config.extract.keySeparator;
+    const keySeparator = rawSep === false ? false : (rawSep ?? '.');
+    const primaryTemplate = output.replace('{{language}}', primary);
+    const hasNamespace = primaryTemplate.includes('{{namespace}}');
+    const primaryFiles = hasNamespace
+        ? await glob.glob(primaryTemplate.replace('{{namespace}}', '*'), { nodir: true })
+        : [primaryTemplate];
+    const readJson = async (path) => {
+        try {
+            return JSON.parse(await promises.readFile(path, 'utf-8'));
+        }
+        catch {
+            return null;
+        }
+    };
+    // namespace → flattened primary keys
+    const namespaces = new Map();
+    const [prefix, suffix] = hasNamespace
+        ? primaryTemplate.replace(/\\/g, '/').split('{{namespace}}')
+        : ['', ''];
+    for (const file of primaryFiles) {
+        const json = await readJson(file);
+        if (!json)
+            continue;
+        const normalized = file.replace(/\\/g, '/');
+        const ns = hasNamespace
+            ? normalized.slice(prefix.length, suffix ? normalized.length - suffix.length : undefined)
+            : '';
+        namespaces.set(ns, nestedObject.getNestedKeys(json, keySeparator));
+    }
+    // No parseable primary files (e.g. yaml/js output formats): make no claim
+    // rather than reporting every language as 0/0 = 100% complete.
+    if (namespaces.size === 0)
+        return [];
+    const totalKeys = [...namespaces.values()].reduce((sum, keys) => sum + keys.length, 0);
+    const results = [];
+    for (const locale of secondaries) {
+        let translated = 0;
+        for (const [ns, keys] of namespaces) {
+            const path = output.replace('{{language}}', locale).replace('{{namespace}}', ns);
+            const json = await readJson(path);
+            if (!json)
+                continue;
+            for (const key of keys) {
+                const value = nestedObject.getNestedValue(json, key, keySeparator);
+                if (typeof value === 'string' ? value.trim() !== '' : (value !== undefined && value !== null)) {
+                    translated++;
+                }
+            }
+        }
+        results.push({ locale, translated, total: totalKeys });
+    }
+    return results;
+}
+function printCompleteness(completeness) {
+    for (const { locale, translated, total } of completeness) {
+        const pct = total === 0 ? 100 : Math.round((translated / total) * 100);
+        const color = pct === 100 ? 'green' : pct > 0 ? 'yellow' : 'red';
+        console.log(node_util.styleText(color, `        ${locale}: ${translated}/${total} (${pct}%)`));
+    }
+}
+function printEpilogue(config) {
+    const projectId = config.locize?.projectId || '<your-project-id>';
+    console.log(node_util.styleText('green', '\n✅ Done. Your app is localized.'));
+    console.log(node_util.styleText('cyan', '\nYour AI translations come with confidence scores; low-confidence ones are flagged for review in Locize.'));
+    console.log('\nOptional — switch to CDN delivery so translation fixes go live without redeploying your app:');
+    console.log(node_util.styleText('cyan', '  npm install i18next-locize-backend'));
+    console.log(node_util.styleText('gray', `
+  // in your i18n init file:
+  import LocizeBackend from 'i18next-locize-backend'
+
+  i18next
+    .use(LocizeBackend)
+    .init({
+      backend: {
+        projectId: '${projectId}',
+        version: 'latest', // no apiKey in production!
+      },
+      // ...
+    })
+`));
+    console.log('Docs: https://github.com/locize/i18next-locize-backend');
+    console.log('Your current setup (local translation files) keeps working either way; run `i18next-cli locize-download` in CI to refresh the files.');
+}
+/**
+ * The `localize` supercommand: takes a mono-lingual app to fully localized +
+ * delivered via Locize in one command, orchestrating the existing pieces —
+ * detect → instrument → extract → connect Locize → sync with AI
+ * auto-translate → download & verify.
+ */
+async function runLocalize(options = {}, configPath) {
+    if (options.printAgentPrompt) {
+        console.log(agentPrompt.AGENT_PROMPT);
+        return;
+    }
+    const isDryRun = !!options.dryRun;
+    const isCi = !!options.ci;
+    const autoYes = !!options.yes;
+    const interactive = !isCi && !autoYes;
+    console.log(node_util.styleText('bold', 'i18next-cli localize — from hardcoded strings to a localized app'));
+    // ── [1/6] Detect ────────────────────────────────────────────────────────
+    step(1, 'Detecting project…');
+    const stack = await detect.detectStack(instrumenter.findExistingI18nInitFile);
+    ok(`${stack.framework === 'unknown' ? 'unknown framework' : stack.framework}${stack.hasAppRouter ? ' (App Router)' : ''}${stack.hasTypeScript ? ' + TypeScript' : ''}${stack.hasI18next ? ', i18next detected' : ''}`);
+    let skipInstrument = !!options.skipInstrument;
+    if (stack.hasParaglide) {
+        warn('This app uses inlang Paraglide — instrumenting i18next calls would conflict; Locize can still manage these translations.');
+        if (!stack.hasI18next) {
+            console.log(node_util.styleText('yellow', '\nNo i18next setup found alongside Paraglide, so there is nothing for `localize` to do here.'));
+            console.log('To manage Paraglide translations with Locize, see https://www.locize.com — or set up i18next first and re-run.');
+            return;
+        }
+        skipInstrument = true;
+    }
+    // ── [2/6] Configuration ─────────────────────────────────────────────────
+    step(2, 'Configuration…');
+    let config$1;
+    if (isCi) {
+        let loaded = await config.loadConfig(configPath);
+        if (!loaded) {
+            const detected = await heuristicConfig.detectConfig();
+            if (!detected) {
+                console.error(node_util.styleText('red', 'No i18next.config found.'));
+                console.log('Run `npx i18next-cli init` locally and commit the config, or pass `--config <path>`.');
+                process.exit(1);
+                return;
+            }
+            loaded = detected;
+        }
+        config$1 = loaded;
+    }
+    else {
+        config$1 = await config.ensureConfig(configPath);
+    }
+    ok(`locales: ${config$1.locales.join(', ')}`);
+    // Instrument eligibility: React/Next natively, other stacks via a configured plugin
+    const instrumentableNatively = stack.framework === 'react' || stack.framework === 'next';
+    const stackPluginConfigured = detect.hasStackPlugin(config$1, stack.framework);
+    if (!skipInstrument && !instrumentableNatively && !stackPluginConfigured) {
+        warn(`instrument transforms React/JSX out of the box${stack.framework !== 'unknown' ? ` — detected ${stack.framework}` : ''}.`);
+        console.log(`      For ${stack.framework === 'vue' ? 'Vue, add a plugin to i18next.config.ts — community: i18next-cli-vue' : stack.framework === 'svelte' ? 'Svelte, add a plugin to i18next.config.ts — community: i18next-cli-plugin-svelte' : 'this stack, add a plugin to i18next.config.ts'} — or write your own via the instrumentOnLoad/onLoad hooks (see the Plugin System docs). Then re-run \`i18next-cli localize\`.`);
+        console.log('      Without a plugin: wrap strings manually (`i18next-cli lint` lists them) and re-run with `--skip-instrument`.');
+        skipInstrument = true;
+    }
+    // ── [3/6] Instrument ────────────────────────────────────────────────────
+    step(3, 'Instrumenting code…');
+    if (!skipInstrument && isCi && !autoYes) {
+        warn('Skipped in CI: instrumentation rewrites source files and needs human review. Run `i18next-cli localize` locally, or pass `--ci --yes` to force.');
+        skipInstrument = true;
+    }
+    if (skipInstrument) {
+        if (options.skipInstrument)
+            ok('Skipped (--skip-instrument).');
+    }
+    else {
+        // Dirty-git guard: instrument rewrites source files — make sure the diff is reviewable.
+        if (!isDryRun) {
+            const dirty = await isGitTreeDirty();
+            if (dirty === null) {
+                warn("Not a git repository — you won't be able to review instrument's changes as a diff.");
+            }
+            else if (dirty) {
+                if (interactive) {
+                    const { proceed } = await inquirer__default.default.prompt([{
+                            type: 'confirm',
+                            name: 'proceed',
+                            message: 'Working tree has uncommitted changes. instrument rewrites source files — continue?',
+                            default: false,
+                        }]);
+                    if (!proceed) {
+                        console.log('Aborted. Commit or stash your changes, then re-run `i18next-cli localize`.');
+                        process.exit(1);
+                        return;
+                    }
+                }
+                else {
+                    warn('Working tree has uncommitted changes — instrument changes will mix into your diff.');
+                }
+            }
+        }
+        // Already-using-i18next heuristic (instrument is idempotent either way)
+        if (stack.hasI18next && stack.initFile && interactive) {
+            const { proceed } = await inquirer__default.default.prompt([{
+                    type: 'confirm',
+                    name: 'proceed',
+                    message: `Your project already uses i18next (found ${stack.initFile}). Run instrumentation anyway to catch remaining hardcoded strings?`,
+                    default: true,
+                }]);
+            if (!proceed)
+                skipInstrument = true;
+        }
+        if (stack.hasAppRouter) {
+            warn("Next.js App Router detected: instrument injects useTranslation(), which is client-only. Review the diff for server components — add 'use client' or switch those to a server-side t() pattern.");
+        }
+        if (!skipInstrument) {
+            const results = await instrumenter.runInstrumenter(config$1, {
+                isDryRun,
+                isInteractive: interactive,
+                namespace: options.namespace,
+                quiet: false,
+            });
+            if (results.totalCandidates === 0) {
+                ok('No hardcoded strings found — your code looks already internationalized.');
+            }
+            else {
+                ok(`${results.totalTransformed}/${results.totalCandidates} candidate string(s) ${isDryRun ? 'would be ' : ''}instrumented (${results.totalSkipped} skipped).`);
+            }
+        }
+    }
+    // ── [4/6] Extract ───────────────────────────────────────────────────────
+    step(4, 'Extracting translation keys…');
+    const { hasErrors } = await extractor.runExtractor(config$1, { isDryRun, quiet: false });
+    if (hasErrors) {
+        console.error(node_util.styleText('red', '\nExtraction reported errors (see above).'));
+        console.log('Fix the parse errors, then re-run `i18next-cli localize` — completed steps are skipped automatically on re-run.');
+        process.exit(1);
+        return;
+    }
+    ok(isDryRun ? 'Extraction previewed (dry-run).' : 'Translation keys extracted.');
+    if (options.skipLocize) {
+        console.log(node_util.styleText('green', '\n✅ Done (local files only — steps 5–6 skipped via --skip-locize).'));
+        console.log('When you are ready for managed translations + AI auto-translate, re-run without --skip-locize.');
+        return;
+    }
+    // ── [5/6] Connect Locize ────────────────────────────────────────────────
+    step(5, 'Connecting to Locize…');
+    let projectId = config$1.locize?.projectId || process.env.LOCIZE_PROJECTID || process.env.LOCIZE_PID;
+    let apiKey = config$1.locize?.apiKey || process.env.LOCIZE_API_KEY || process.env.LOCIZE_KEY;
+    if (projectId && apiKey) {
+        ok(`Project ${projectId} (API key ${locize.maskApiKey(apiKey)})`);
+        config$1.locize = { ...config$1.locize, projectId, apiKey };
+    }
+    else if (isCi) {
+        console.error(node_util.styleText('red', 'Missing Locize credentials.'));
+        console.log('Set the LOCIZE_PROJECTID and LOCIZE_API_KEY environment variables (Project settings → "API, CDN, NOTIFICATIONS" tab on www.locize.app), or add locize.projectId to i18next.config.ts.');
+        process.exit(1);
+        return;
+    }
+    else if (isDryRun) {
+        warn('No Locize credentials configured — with credentials, step 6 would sync your keys and request AI auto-translation.');
+        console.log(node_util.styleText('blue', '\n📋 Dry run complete — re-run without --dry-run to apply.'));
+        return;
+    }
+    else {
+        console.log(`
+  One manual step — in your browser:
+    1. Sign up / log in:   ${LOCIZE_SIGNUP_URL}
+    2. Create a project.
+       Your target languages (${config$1.locales.join(', ')}) are created
+       automatically on the first sync. Auto-translate and Quality Estimation
+       are on by default for new projects: translations with confidence scores
+       arrive automatically once the project is subscribed or an AI/MT provider
+       is configured; low-confidence ones are flagged for review.
+    3. Copy your Project ID and an API key from Project settings →
+       "API, CDN, NOTIFICATIONS" tab (any write-capable key works).
+`);
+        const opened = await locizeOnboarding.openBrowser(LOCIZE_SIGNUP_URL, { ci: isCi });
+        if (!opened) {
+            console.log(`  👉 Open this URL manually: ${LOCIZE_SIGNUP_URL}\n`);
+        }
+        const credentials = await locizeOnboarding.promptLocizeCredentials();
+        if (!credentials.apiKey) {
+            console.error(node_util.styleText('red', '\nAn API key is required to sync translations.'));
+            console.log('Your code is instrumented and keys are extracted — re-run `i18next-cli localize` anytime to finish, or use `--skip-locize`.');
+            process.exit(1);
+            return;
+        }
+        projectId = credentials.projectId;
+        apiKey = credentials.apiKey;
+        config$1.locize = { ...config$1.locize, projectId, apiKey };
+        console.log(node_util.styleText('cyan', '\nTo persist these credentials for future runs:'));
+        console.log(node_util.styleText('green', `
+  # .env (add to .gitignore!)
+  LOCIZE_API_KEY=${apiKey}
+`));
+        console.log(node_util.styleText('green', `  // i18next.config.ts
+  locize: {
+    projectId: '${projectId}',
+    apiKey: process.env.LOCIZE_API_KEY,
+  },
+`));
+    }
+    // ── [6/6] Translate & deliver ───────────────────────────────────────────
+    step(6, 'Translating & delivering…');
+    const autoTranslate = options.skipTranslate ? undefined : true;
+    try {
+        await locize.runLocizeSync(config$1, {
+            autoTranslate,
+            updateValues: options.updateValues,
+            cdnType: options.cdnType,
+            dryRun: isDryRun,
+            throwOnError: true,
+        });
+    }
+    catch (error) {
+        const capturedOutput = error instanceof locize.LocizeCommandError ? `${error.stderr}\n${error.stdout}` : '';
+        if (autoTranslate && AI_MENTION_PATTERN.test(capturedOutput) && AI_DISABLED_PATTERN.test(capturedOutput)) {
+            warn('Locize rejected auto-translation — AI/MT is not enabled on this project.');
+            // Retry once without auto-translate so the key sync itself completes.
+            try {
+                await locize.runLocizeSync(config$1, {
+                    updateValues: options.updateValues,
+                    cdnType: options.cdnType,
+                    dryRun: isDryRun,
+                    throwOnError: true,
+                });
+                ok('Keys synced to Locize (without auto-translation).');
+            }
+            catch (retryError) {
+                console.error(node_util.styleText('red', `Sync failed: ${retryError.message}`));
+            }
+            console.log(`
+  Enable it: www.locize.app → your project → Settings →
+  "EDITOR, TM/MT/AI, ORDERING" tab → turn on the Automatic Translation Workflow.
+  Then re-run \`i18next-cli localize\` (or \`i18next-cli locize-sync --auto-translate true\`).
+`);
+            process.exit(1);
+            return;
+        }
+        if (error instanceof locize.LocizeCommandError && /missing required argument/i.test(error.stderr)) {
+            console.error(node_util.styleText('red', 'Locize rejected the credentials.'));
+            console.log('Check the API key in Project settings → "API, CDN, NOTIFICATIONS" tab (any write-capable key works for new projects; readonly keys cannot sync).');
+            process.exit(1);
+            return;
+        }
+        // Empty-project case (project exists but has no languages yet): newer
+        // locize-cli versions bootstrap the languages automatically during sync —
+        // guide users running an older global install. The wrong-cdnType variant
+        // of this error is actionable as-is and passes through below.
+        if (error instanceof locize.LocizeCommandError &&
+            /Project with id .* not found/i.test(capturedOutput) &&
+            !/wrong cdnType/i.test(capturedOutput)) {
+            console.error(node_util.styleText('red', 'The Locize project was not found — or it has no languages yet.'));
+            console.log('If the project ID is correct, your project has no languages yet:');
+            console.log('  - update locize-cli (`npm i -g locize-cli`) so sync can create them automatically, or');
+            console.log('  - add your languages in the project settings on www.locize.app,');
+            console.log('then re-run `i18next-cli localize`.');
+            process.exit(1);
+            return;
+        }
+        console.error(node_util.styleText('red', `Sync failed: ${error.message}`));
+        process.exit(1);
+        return;
+    }
+    if (isDryRun) {
+        console.log(node_util.styleText('blue', '\n📋 Dry run complete — re-run without --dry-run to apply.'));
+        return;
+    }
+    ok(`Synced to Locize${autoTranslate ? ' with AI auto-translate requested' : ''}.`);
+    // Poll-then-download: AI translation is asynchronous server-side — watch
+    // the translations arrive instead of downloading a still-empty snapshot.
+    const isComplete = (completeness) => completeness.length > 0 && completeness.every(c => c.translated >= c.total);
+    let downloadFailed = false;
+    const download = async () => {
+        try {
+            await locize.runLocizeDownload(config$1, { cdnType: options.cdnType, throwOnError: true });
+            return true;
+        }
+        catch (error) {
+            downloadFailed = true;
+            warn(`Download failed: ${error.message}`);
+            return false;
+        }
+    };
+    let completeness = [];
+    if (autoTranslate && !isCi) {
+        console.log(node_util.styleText('cyan', '      Waiting for AI translations to arrive…'));
+        for (let round = 0; round <= POLL_DELAYS_MS.length; round++) {
+            if (!await download())
+                break;
+            completeness = await computeCompleteness(config$1);
+            printCompleteness(completeness);
+            // Stop when done — or when completeness cannot be computed (non-JSON
+            // output formats); polling blindly would just burn time.
+            if (completeness.length === 0 || isComplete(completeness))
+                break;
+            if (round < POLL_DELAYS_MS.length)
+                await sleep(POLL_DELAYS_MS[round]);
+        }
+    }
+    else {
+        if (await download()) {
+            completeness = await computeCompleteness(config$1);
+            printCompleteness(completeness);
+        }
+    }
+    if (downloadFailed || (autoTranslate && completeness.length > 0 && !isComplete(completeness))) {
+        warn('Translations may still be processing — run `i18next-cli locize-download` in a minute.');
+        console.log('      (On an unsubscribed trial, AI translation needs a subscription or a configured AI/MT provider — see Project settings.)');
+    }
+    else if (completeness.length > 0) {
+        ok('All languages translated and downloaded.');
+    }
+    printEpilogue(config$1);
+}
+
+exports.runLocalize = runLocalize;

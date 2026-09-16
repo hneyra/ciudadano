@@ -1,0 +1,1092 @@
+'use strict';
+
+var glob = require('glob');
+var promises = require('node:fs/promises');
+var core = require('@swc/core');
+var node_path = require('node:path');
+var node_events = require('node:events');
+var node_util = require('node:util');
+var logger = require('./utils/logger.js');
+var wrapOra = require('./utils/wrap-ora.js');
+var jsxAttributes = require('./utils/jsx-attributes.js');
+var astUtils = require('./extractor/parsers/ast-utils.js');
+var functionMatcher = require('./extractor/utils/function-matcher.js');
+
+/**
+ * Loads all translation values from the primary locale's JSON files and returns
+ * a flat Map of key -> translated string. Used by the interpolation linter so it
+ * can resolve a lookup key (e.g. "ABC") to its actual value ("hello {{name}}")
+ * and check interpolation parameters against the real string, not the key.
+ */
+async function loadPrimaryTranslationValues(config) {
+    const result = new Map();
+    const output = config.extract?.output;
+    if (!output || typeof output !== 'string')
+        return result;
+    const primaryLang = config.extract?.primaryLanguage ?? config.locales?.[0] ?? 'en';
+    // Candidate paths: substitute language + try common namespace names (including no namespace).
+    // This covers patterns like:
+    //   locales/{{language}}.json              -> no namespace token
+    //   locales/{{language}}/{{namespace}}.json -> substitute 'translation' (i18next default)
+    // Deliberately uses readFile directly (not glob) so it works correctly in test
+    // environments that mock fs/promises via memfs.
+    const candidatePaths = [];
+    if (!output.includes('{{namespace}}')) {
+        candidatePaths.push(output.replace(/\{\{language\}\}/g, primaryLang));
+    }
+    else {
+        for (const ns of ['translation', 'common', 'default']) {
+            candidatePaths.push(output
+                .replace(/\{\{language\}\}/g, primaryLang)
+                .replace(/\{\{namespace\}\}/g, ns));
+        }
+    }
+    // For each candidate, try: (1) the path as-is resolved from cwd, and
+    // (2) an absolute path with a leading '/' — the latter ensures we hit
+    // memfs in test environments where vol.fromJSON uses absolute paths like
+    // '/locales/en.json' but the output template is relative ('locales/...').
+    const seen = new Set();
+    const resolvedPaths = [];
+    for (const p of candidatePaths) {
+        const abs = node_path.resolve(p);
+        const leadingSlash = '/' + p.replace(/^\//, '');
+        for (const candidate of [abs, leadingSlash]) {
+            if (!seen.has(candidate)) {
+                seen.add(candidate);
+                resolvedPaths.push(candidate);
+            }
+        }
+    }
+    for (const filePath of resolvedPaths) {
+        try {
+            const raw = await promises.readFile(filePath, 'utf-8');
+            const json = JSON.parse(raw);
+            for (const [k, v] of Object.entries(json)) {
+                if (typeof v === 'string')
+                    result.set(k, v);
+            }
+            break; // stop after first successful read
+        }
+        catch {
+            // file doesn't exist or is malformed — try next candidate
+        }
+    }
+    return result;
+}
+// Helper to extract interpolation keys from a translation string
+function extractInterpolationKeys(str, config) {
+    const prefix = config.extract.interpolationPrefix ?? '{{';
+    const suffix = config.extract.interpolationSuffix ?? '}}';
+    // Regex to match {{key}} or {{key, format}} (i18next formatting syntax)
+    const regex = new RegExp(`${prefix.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\\s*([\\w.-]+)\\s*(?:,[^}]*)?${suffix.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}`, 'g');
+    const keys = [];
+    let match;
+    while ((match = regex.exec(str))) {
+        if (match[1])
+            keys.push(match[1]);
+    }
+    return keys;
+}
+// Known i18next t() option keys that are NOT interpolation parameters.
+// These should not be flagged as "unused" in the translation string.
+const i18nextOptionKeys = new Set([
+    'defaultValue', 'count', 'context', 'ns', 'lng', 'lngs',
+    'fallbackLng', 'returnDetails', 'returnObjects', 'joinArrays',
+    'postProcess', 'interpolation', 'skipInterpolation', 'replace',
+    'ordinal', 'keySeparator', 'nsSeparator', 'tDescription',
+]);
+function isI18nextOptionKey(key) {
+    if (i18nextOptionKeys.has(key))
+        return true;
+    // defaultValue_one, defaultValue_other, defaultValue_many, etc.
+    if (key.startsWith('defaultValue_'))
+        return true;
+    return false;
+}
+// Builds the full dotted callee name (e.g. 'i18n.t', 'tProps.label') and the
+// bare last segment ('t', 'label') for a CallExpression, so both exact and
+// wildcard function patterns can be matched against it.
+function getCalleeNames(node) {
+    let calleeName = '';
+    let fullCalleeName = '';
+    if (node.callee) {
+        if (node.callee.type === 'Identifier') {
+            calleeName = node.callee.value || node.callee.name || '';
+            fullCalleeName = calleeName;
+        }
+        else if (node.callee.type === 'MemberExpression') {
+            const parts = [];
+            let current = node.callee;
+            let computed = false;
+            while (current?.type === 'MemberExpression') {
+                if (current.property?.type === 'Identifier') {
+                    parts.unshift(current.property.value || current.property.name);
+                }
+                else {
+                    computed = true;
+                    break;
+                }
+                current = current.object;
+            }
+            if (!computed) {
+                if (current?.type === 'ThisExpression') {
+                    parts.unshift('this');
+                }
+                else if (current?.type === 'Identifier') {
+                    parts.unshift(current.value || current.name);
+                }
+                else {
+                    parts.length = 0;
+                }
+            }
+            if (node.callee.property?.type === 'Identifier') {
+                calleeName = node.callee.property.value || node.callee.property.name;
+            }
+            fullCalleeName = parts.length ? parts.join('.') : calleeName;
+        }
+    }
+    return { calleeName, fullCalleeName };
+}
+// Returns true when a CallExpression's callee matches one of the configured
+// translation functions (config.extract.functions, default ['t', '*.t']).
+function isTranslationCall(node, config) {
+    if (!node || node.type !== 'CallExpression')
+        return false;
+    const { calleeName, fullCalleeName } = getCalleeNames(node);
+    const fnPatterns = config.extract.functions || ['t', '*.t'];
+    for (const pattern of fnPatterns) {
+        if (functionMatcher.matchesFunctionPattern(fullCalleeName, pattern))
+            return true;
+        // Backwards-compatible: '*.X' also matches a call whose last segment is X
+        // (covers computed member expressions where the full chain is unavailable).
+        if (pattern.startsWith('*.') && calleeName === pattern.slice(2))
+            return true;
+    }
+    return false;
+}
+// Helper to lint interpolation parameter errors in t() calls
+function lintInterpolationParams(ast, code, config, translationValues) {
+    const issues = [];
+    // Only run if enabled (default true)
+    const enabled = config.lint?.checkInterpolationParams !== false;
+    if (!enabled)
+        return issues;
+    // Helper for line number
+    const getLineNumber = (pos) => {
+        return code.substring(0, pos).split('\n').length;
+    };
+    const callSites = [];
+    // Traverse AST for CallExpressions matching t() or i18n.t()
+    function walk(node, ancestors) {
+        if (!node || typeof node !== 'object')
+            return;
+        const currentAncestors = [...ancestors, node];
+        // Handle CallExpression nodes
+        if (node.type === 'CallExpression') {
+            handleCallExpression(node);
+        }
+        // Recurse into all child nodes (arrays and objects), skip 'span'
+        for (const key of Object.keys(node)) {
+            if (key === 'span')
+                continue;
+            const child = node[key];
+            if (Array.isArray(child)) {
+                for (const item of child) {
+                    if (item && typeof item === 'object')
+                        walk(item, currentAncestors);
+                }
+            }
+            else if (child && typeof child === 'object') {
+                walk(child, currentAncestors);
+            }
+        }
+    }
+    // Modularized CallExpression handler
+    function handleCallExpression(node, ancestors) {
+        if (isTranslationCall(node, config)) {
+            // Support both .expression and direct node for arguments
+            const arg0raw = node.arguments?.[0];
+            const arg1raw = node.arguments?.[1];
+            const arg2raw = node.arguments?.[2];
+            const arg0 = arg0raw?.expression ?? arg0raw;
+            const arg1 = arg1raw?.expression ?? arg1raw;
+            const arg2 = arg2raw?.expression ?? arg2raw;
+            // Only check interpolation params if the first argument is a string literal
+            if (arg0?.type === 'StringLiteral') {
+                const keyOrStr = arg0.value;
+                // Detect 3-argument form: t('key', 'Default string {{foo}}', { foo })
+                // In this form arg1 is the default string and arg2 is the params object.
+                const isThreeArgForm = arg1?.type === 'StringLiteral' && arg2 !== undefined;
+                const translationArg = isThreeArgForm ? arg1 : arg0;
+                const paramsArg = isThreeArgForm ? arg2 : arg1;
+                // If a params argument exists but is NOT an object literal (e.g. it's a variable),
+                // we cannot statically determine its keys — skip the interpolation check to avoid
+                // false positives.
+                if (paramsArg && paramsArg.type !== 'ObjectExpression') {
+                    return;
+                }
+                let paramKeys = [];
+                if (paramsArg?.type === 'ObjectExpression') {
+                    paramKeys = paramsArg.properties
+                        .map((p) => {
+                        // Standard key:value property like { name: "value" }
+                        if (p.type === 'KeyValueProperty' && p.key) {
+                            if (p.key.type === 'Identifier')
+                                return p.key.value;
+                            if (p.key.type === 'StringLiteral')
+                                return p.key.value;
+                            return undefined;
+                        }
+                        // Shorthand property like { hours, minutes }
+                        if (p.type === 'ShorthandProperty' || p.type === 'Identifier') {
+                            return p.value ?? p.name;
+                        }
+                        return undefined;
+                    })
+                        .filter((k) => typeof k === 'string');
+                }
+                if (!Array.isArray(paramKeys))
+                    paramKeys = [];
+                // Resolve the actual translation string:
+                // - For 3-arg form: the default string is always arg1 (use it directly)
+                // - For 2-arg / 1-arg form: if arg0 is a lookup key (no interpolation markers),
+                //   try to resolve it from the loaded translation map.
+                let resolvedStr;
+                if (isThreeArgForm) {
+                    resolvedStr = translationArg.value;
+                }
+                else {
+                    resolvedStr = translationValues?.get(keyOrStr) ?? keyOrStr;
+                }
+                const searchText = arg0.raw ?? `"${arg0.value}"`;
+                callSites.push({ translationStr: resolvedStr, searchText, paramKeys });
+            }
+        }
+    }
+    walk(ast, []);
+    // 187 fix — process call sites in source order, advancing lastSearchIndex so that
+    // each occurrence of the same string literal finds its own line, not always the first.
+    let lastSearchIndex = 0;
+    for (const { translationStr, searchText, paramKeys } of callSites) {
+        const position = code.indexOf(searchText, lastSearchIndex);
+        if (position === -1)
+            continue;
+        lastSearchIndex = position + searchText.length;
+        const issueLineNumber = getLineNumber(position);
+        const keys = extractInterpolationKeys(translationStr, config);
+        // Only check for unused parameters if there is at least one interpolation key in the string
+        if (keys.length > 0) {
+            // i18next supports nested object access via dot notation (e.g. {{author.name}} with { author }).
+            // For each interpolation key, check if the root (part before the first dot) matches a provided param.
+            for (const k of keys) {
+                const root = k.split('.')[0];
+                if (!paramKeys.includes(k) && !paramKeys.includes(root)) {
+                    issues.push({
+                        text: `Interpolation parameter "${k}" was not provided`,
+                        line: issueLineNumber,
+                        type: 'interpolation',
+                    });
+                }
+            }
+            // For each provided param, check if it is used either directly or as the root of a dotted key.
+            // Skip known i18next t() option keys that are not interpolation parameters.
+            for (const pk of paramKeys) {
+                if (isI18nextOptionKey(pk))
+                    continue;
+                const isUsed = keys.some(k => k === pk || k.split('.')[0] === pk);
+                if (!isUsed) {
+                    issues.push({
+                        text: `Parameter "${pk}" is not used in translation string`,
+                        line: issueLineNumber,
+                        type: 'interpolation',
+                    });
+                }
+            }
+        }
+    }
+    return issues;
+}
+// Literal text that is punctuation only (no letters/digits). Covers ASCII, the
+// CJK fullwidth forms and Arabic variants, since those are exactly the marks whose
+// spacing/shape differ per language (French narrow no-break space before ':',
+// fullwidth '：' in CJK, RTL reordering).
+const PUNCTUATION_ONLY_RE = /^[:.!?,;\-–—…·/|&()[\]{}"'«»„“”‘’：．！？，；、。〜～؛،؟]+$/;
+/**
+ * Detects string concatenation involving translated strings — an i18n
+ * anti-pattern because word order and grammar differ across languages, so
+ * gluing translated fragments together produces ungrammatical output in
+ * languages that reorder, inflect, or gender the pieces.
+ *
+ * Flags two patterns:
+ *   JS  — a `+` expression where an operand is a t() call:
+ *           t('greeting') + ', ' + name
+ *   JSX — a sentence split across ≥2 adjacent translation units (a <Trans>
+ *         component or a `{t(...)}` expression) rendered as direct siblings:
+ *           <p><Trans>Hello</Trans> <Trans>World</Trans></p>
+ *           <p><Trans>new</Trans>{t('cat')}</p>
+ *
+ * The fix in both cases is a single key with placeholders:
+ *   t('greeting', { name })  /  <Trans i18nKey="greeting">Hello {{name}}</Trans>
+ *
+ * Additionally, when `lint.checkPunctuationConcatenation` is enabled (opt-in,
+ * default 'off'), flags punctuation glued onto a translation:
+ *   <label><Trans>Email</Trans>:</label>   /   <div>- <Trans>item</Trans></div>
+ *
+ * Severity for both is controlled by their config option: 'warn' reports without
+ * failing the run, 'error' makes it fail (exit non-zero), 'off'/false disables it.
+ */
+function lintConcatenation(ast, code, config) {
+    const issues = [];
+    // Resolve each check's severity independently. `false`/'off' disable a check;
+    // `'error'` makes it fail the run (exit non-zero); `true`/'warn' warn.
+    // checkConcatenation defaults to on ('warn'); checkPunctuationConcatenation
+    // defaults to off (opt-in), since punctuation outside a translation is often
+    // deliberate and flagging it by default would be noisy.
+    const setting = config.lint?.checkConcatenation;
+    const concatEnabled = setting !== false && setting !== 'off';
+    const severity = setting === 'error' ? 'error' : 'warning';
+    const punctSetting = config.lint?.checkPunctuationConcatenation;
+    const punctEnabled = punctSetting === true || punctSetting === 'warn' || punctSetting === 'error';
+    const punctSeverity = punctSetting === 'error' ? 'error' : 'warning';
+    if (!concatEnabled && !punctEnabled)
+        return issues;
+    const transComponents = new Set((config.extract.transComponents || ['Trans']).map(s => s.toLowerCase()));
+    const lineOf = (node) => {
+        const start = node?.span?.start;
+        if (typeof start === 'number') {
+            const pos = astUtils.lineColumnFromOffset(code, start);
+            if (pos)
+                return pos.line;
+        }
+        // ponytail: span normalisation failed (also degrades ignore handling); coarse line 1.
+        return 1;
+    };
+    // A JSXText span starts right after the preceding tag, so it can begin on an
+    // earlier line than its visible text. Skip the leading whitespace to report the
+    // line the punctuation actually sits on.
+    const lineOfText = (node) => {
+        const start = node?.span?.start;
+        if (typeof start === 'number' && typeof node.value === 'string') {
+            const offset = node.value.length - node.value.trimStart().length;
+            const pos = astUtils.lineColumnFromOffset(code, start + offset);
+            if (pos)
+                return pos.line;
+        }
+        return lineOf(node);
+    };
+    // Is `node` a translated-string operand of a concatenation? True when it is a
+    // t() call, or a `+` chain that itself contains one. Deliberately does NOT
+    // descend into other call/member expressions, so `arr.indexOf(t('x')) + 1`
+    // (numeric +, t() used only as a lookup argument) is not flagged.
+    const isTranslatedConcatOperand = (node) => {
+        let n = node?.expression ?? node;
+        // Unwrap parenthesis / TS assertion wrappers.
+        while (n && (n.type === 'ParenthesisExpression' || n.type === 'TsAsExpression' || n.type === 'TsNonNullExpression' || n.type === 'TsConstAssertion')) {
+            n = n.expression;
+        }
+        if (!n)
+            return false;
+        if (isTranslationCall(n, config))
+            return true;
+        if (n.type === 'BinaryExpression' && n.operator === '+') {
+            return isTranslatedConcatOperand(n.left) || isTranslatedConcatOperand(n.right);
+        }
+        return false;
+    };
+    const getJsxName = (el) => {
+        const nameNode = el?.opening?.name ?? el?.name;
+        if (!nameNode)
+            return null;
+        if (nameNode.type === 'JSXIdentifier' || nameNode.type === 'Identifier')
+            return nameNode.value ?? nameNode.name ?? null;
+        // e.g. Foo.Trans → use the last segment
+        if (nameNode.type === 'JSXMemberExpression')
+            return nameNode.property?.value ?? nameNode.property?.name ?? null;
+        return null;
+    };
+    const walk = (node, parent) => {
+        if (!node || typeof node !== 'object')
+            return;
+        // JS: `+` concatenation involving a t() call. Only report the outermost `+`
+        // of a chain (skip when the parent is also a `+`) so one chain = one issue.
+        if (concatEnabled && node.type === 'BinaryExpression' && node.operator === '+') {
+            const parentIsPlus = parent?.type === 'BinaryExpression' && parent.operator === '+';
+            if (!parentIsPlus && (isTranslatedConcatOperand(node.left) || isTranslatedConcatOperand(node.right))) {
+                issues.push({
+                    text: 'Avoid string concatenation in translations. Use a single string with placeholders instead.',
+                    line: lineOf(node),
+                    type: 'concatenation',
+                    severity,
+                });
+            }
+        }
+        // JSX: a sentence split across ≥2 adjacent translation units rendered as
+        // direct siblings — a <Trans> component or a `{t(...)}` expression. Covers
+        // <Trans>…</Trans><Trans>…</Trans>, <Trans>…</Trans>{t(…)} and {t(…)}{t(…)}.
+        if ((node.type === 'JSXElement' || node.type === 'JSXFragment') && Array.isArray(node.children)) {
+            const children = node.children.filter((c) => c && typeof c === 'object');
+            const isUnit = (child) => {
+                if (child.type === 'JSXElement') {
+                    const name = getJsxName(child);
+                    return !!name && transComponents.has(name.toLowerCase());
+                }
+                if (child.type === 'JSXExpressionContainer')
+                    return isTranslationCall(child.expression, config);
+                return false;
+            };
+            const units = children.filter(isUnit);
+            let reportedHere = false;
+            if (concatEnabled && units.length >= 2) {
+                issues.push({
+                    text: 'Avoid splitting text across multiple translations (<Trans> or t()). Use a single translation with placeholders instead.',
+                    line: lineOf(units[0]),
+                    type: 'concatenation',
+                    severity,
+                });
+                reportedHere = true;
+            }
+            // Punctuation glued onto a translation, e.g. `<Trans>Email</Trans>:` or
+            // `- <Trans>item</Trans>`. Skipped when the element was already reported
+            // above, so one problem yields one issue. Opt-in via config.
+            if (punctEnabled && !reportedHere) {
+                for (let i = 0; i < children.length; i++) {
+                    const child = children[i];
+                    if (child.type !== 'JSXText')
+                        continue;
+                    const trimmed = child.value.trim();
+                    if (!trimmed || !PUNCTUATION_ONLY_RE.test(trimmed))
+                        continue;
+                    // Only flag when it actually abuts a translation (previous or next
+                    // non-blank sibling), not when it merely shares a parent.
+                    const prev = children.slice(0, i).reverse().find((c) => c.type !== 'JSXText' || c.value.trim());
+                    const next = children.slice(i + 1).find((c) => c.type !== 'JSXText' || c.value.trim());
+                    const neighbour = [prev, next].find(c => c && isUnit(c));
+                    if (!neighbour)
+                        continue;
+                    issues.push({
+                        text: `Avoid concatenating punctuation ("${trimmed}") with a translation. Include it in the translation string or use semantic markup, since punctuation spacing and form differ across languages.`,
+                        line: lineOfText(child),
+                        type: 'concatenation',
+                        severity: punctSeverity,
+                    });
+                }
+            }
+        }
+        for (const key of Object.keys(node)) {
+            if (key === 'span')
+                continue;
+            const child = node[key];
+            if (Array.isArray(child)) {
+                for (const item of child)
+                    walk(item, node);
+            }
+            else if (child && typeof child === 'object') {
+                walk(child, node);
+            }
+        }
+    };
+    walk(ast, null);
+    return issues;
+}
+const recommendedAcceptedTags = jsxAttributes.acceptedTags.map(s => s.toLowerCase());
+const recommendedAcceptedAttributes = jsxAttributes.translatableAttributes.map(s => s.toLowerCase());
+const defaultIgnoredAttributes = jsxAttributes.ignoredAttributeLowerSet;
+const defaultIgnoredTags = jsxAttributes.ignoredTags;
+class Linter extends node_events.EventEmitter {
+    config;
+    logger;
+    constructor(config, logger$1 = new logger.ConsoleLogger()) {
+        super({ captureRejections: true });
+        this.config = config;
+        this.logger = logger$1;
+    }
+    wrapError(error) {
+        const prefix = 'Linter failed to run: ';
+        if (error instanceof Error) {
+            if (error.message.startsWith(prefix)) {
+                return error;
+            }
+            const wrappedError = new Error(`${prefix}${error.message}`);
+            wrappedError.stack = error.stack;
+            return wrappedError;
+        }
+        return new Error(`${prefix}${String(error)}`);
+    }
+    async run() {
+        const { config } = this;
+        try {
+            this.emit('progress', { message: 'Finding source files to analyze...' });
+            const defaultIgnore = ['node_modules/**'];
+            const extractIgnore = Array.isArray(config.extract.ignore)
+                ? config.extract.ignore
+                : config.extract.ignore ? [config.extract.ignore] : [];
+            const lintIgnore = Array.isArray(config.lint?.ignore)
+                ? config.lint.ignore
+                : config.lint?.ignore ? [config.lint.ignore] : [];
+            const sourceFiles = await glob.glob(config.extract.input, {
+                ignore: [...defaultIgnore, ...extractIgnore, ...lintIgnore],
+                // A directory named e.g. `abc.tsx` matches the input globs; reading it throws EISDIR
+                nodir: true
+            });
+            this.emit('progress', { message: `Analyzing ${sourceFiles.length} source files...` });
+            // Load translation values once so the interpolation linter can resolve lookup keys
+            // to their translated strings (fixes: key != value interpolation not detected)
+            const translationValues = await loadPrimaryTranslationValues(config);
+            const plugins = config.plugins || [];
+            const lintPluginContext = this.createLintPluginContext(config);
+            await this.initializeLintPlugins(plugins, lintPluginContext);
+            let totalIssues = 0;
+            const issuesByFile = new Map();
+            for (const file of sourceFiles) {
+                const sourceCode = await promises.readFile(file, 'utf-8');
+                const lintPrepared = await this.runLintOnLoadPipeline(sourceCode, file, plugins);
+                if (lintPrepared === null) {
+                    this.emit('progress', { message: `Skipped ${file} by plugin` });
+                    continue;
+                }
+                const code = lintPrepared;
+                // Determine parser options from file extension so .ts is not parsed as TSX
+                const fileExt = node_path.extname(file).toLowerCase();
+                const isTypeScriptFile = fileExt === '.ts' || fileExt === '.tsx' || fileExt === '.mts' || fileExt === '.cts';
+                const isTSX = fileExt === '.tsx';
+                const isJSX = fileExt === '.jsx';
+                let ast;
+                try {
+                    ast = await core.parse(code, {
+                        syntax: isTypeScriptFile ? 'typescript' : 'ecmascript',
+                        tsx: isTSX,
+                        jsx: isJSX,
+                        decorators: true
+                    });
+                }
+                catch (err) {
+                    // Fallback for .ts files with JSX
+                    if (fileExt === '.ts' && !isTSX) {
+                        try {
+                            ast = await core.parse(code, {
+                                syntax: 'typescript',
+                                tsx: true,
+                                decorators: true
+                            });
+                            this.emit('progress', { message: `Parsed ${file} using TSX fallback` });
+                        }
+                        catch (err2) {
+                            const wrapped = this.wrapError(err2);
+                            this.emit('error', wrapped);
+                            continue;
+                        }
+                        // Fallback for .js files with JSX
+                    }
+                    else if (fileExt === '.js' && !isJSX) {
+                        try {
+                            ast = await core.parse(code, {
+                                syntax: 'ecmascript',
+                                jsx: true,
+                                decorators: true
+                            });
+                            this.emit('progress', { message: `Parsed ${file} using JSX fallback` });
+                        }
+                        catch (err2) {
+                            const wrapped = this.wrapError(err2);
+                            this.emit('error', wrapped);
+                            continue;
+                        }
+                    }
+                    else {
+                        const wrapped = this.wrapError(err);
+                        this.emit('error', wrapped);
+                        continue;
+                    }
+                }
+                // Normalise AST spans to file-relative character indices so the ignore
+                // directive can resolve the line range of the JSX element it precedes.
+                // (findHardcodedStrings/lintInterpolationParams locate issues via text
+                // search and don't read spans, so this only affects ignore handling.)
+                try {
+                    astUtils.normalizeSpansToCharIndices(ast, code);
+                }
+                catch {
+                    // If span normalisation fails for any reason, fall back to text-based
+                    // issue detection without block-scoped ignore support.
+                }
+                // Collect hardcoded string issues
+                const hardcodedStrings = findHardcodedStrings(ast, code, config);
+                // Collect interpolation parameter issues
+                const interpolationIssues = lintInterpolationParams(ast, code, config, translationValues);
+                // Collect string-concatenation issues
+                const concatenationIssues = lintConcatenation(ast, code, config);
+                let allIssues = [...hardcodedStrings, ...interpolationIssues, ...concatenationIssues];
+                // Filter issues suppressed by ignore-directive comments.
+                //   i18next-instrument-ignore-next-line → suppresses the single next line
+                //   i18next-instrument-ignore           → suppresses the whole next JSX element
+                const ignoredLines = astUtils.collectIgnoredLineRanges(ast, code);
+                if (ignoredLines.size > 0) {
+                    allIssues = allIssues.filter(issue => !ignoredLines.has(issue.line));
+                }
+                allIssues = await this.runLintOnResultPipeline(file, allIssues, plugins);
+                if (allIssues.length > 0) {
+                    totalIssues += allIssues.length;
+                    issuesByFile.set(file, allIssues);
+                }
+            }
+            const files = Object.fromEntries(issuesByFile.entries());
+            // `success` reflects errors only — warning-severity issues (e.g. string
+            // concatenation) are reported but do not fail the run / CI.
+            const errorCount = Array.from(issuesByFile.values()).flat().filter(i => i.severity !== 'warning').length;
+            const data = { success: errorCount === 0, message: totalIssues > 0 ? `Linter found ${totalIssues} potential issues.` : 'No issues found.', files };
+            this.emit('done', data);
+            return data;
+        }
+        catch (error) {
+            const wrappedError = this.wrapError(error);
+            this.emit('error', wrappedError);
+            throw wrappedError;
+        }
+    }
+    createLintPluginContext(config) {
+        return {
+            config,
+            logger: this.logger,
+        };
+    }
+    async initializeLintPlugins(plugins, context) {
+        for (const plugin of plugins) {
+            try {
+                await plugin.lintSetup?.(context);
+            }
+            catch (err) {
+                const wrapped = this.wrapError(err);
+                this.emit('error', wrapped);
+            }
+        }
+    }
+    normalizeExtension(ext) {
+        const trimmed = ext.trim().toLowerCase();
+        if (!trimmed)
+            return '';
+        return trimmed.startsWith('.') ? trimmed : `.${trimmed}`;
+    }
+    shouldRunLintPluginForFile(plugin, filePath) {
+        const hints = plugin.lintExtensions;
+        if (!hints || hints.length === 0)
+            return true;
+        const fileExt = this.normalizeExtension(node_path.extname(filePath));
+        if (!fileExt)
+            return false;
+        const normalizedHints = hints.map(hint => this.normalizeExtension(hint)).filter(Boolean);
+        if (normalizedHints.length === 0)
+            return true;
+        return normalizedHints.includes(fileExt);
+    }
+    async runLintOnLoadPipeline(initialCode, filePath, plugins) {
+        let code = initialCode;
+        for (const plugin of plugins) {
+            if (!this.shouldRunLintPluginForFile(plugin, filePath))
+                continue;
+            try {
+                const result = await plugin.lintOnLoad?.(code, filePath);
+                if (result === null)
+                    return null;
+                if (typeof result === 'string')
+                    code = result;
+            }
+            catch (err) {
+                const wrapped = this.wrapError(err);
+                this.emit('error', wrapped);
+            }
+        }
+        return code;
+    }
+    async runLintOnResultPipeline(filePath, initialIssues, plugins) {
+        let issues = initialIssues;
+        for (const plugin of plugins) {
+            if (!this.shouldRunLintPluginForFile(plugin, filePath))
+                continue;
+            try {
+                const result = await plugin.lintOnResult?.(filePath, issues);
+                if (Array.isArray(result)) {
+                    issues = result;
+                }
+            }
+            catch (err) {
+                const wrapped = this.wrapError(err);
+                this.emit('error', wrapped);
+            }
+        }
+        return issues;
+    }
+}
+/**
+ * Runs the i18next linter to detect hardcoded strings and other potential issues.
+ *
+ * This function performs static analysis on source files to identify:
+ * - Hardcoded text strings in JSX elements
+ * - Hardcoded strings in JSX attributes (like alt text, titles, etc.)
+ * - Text that should be extracted for translation
+ *
+ * The linter respects configuration settings:
+ * - Uses the same input patterns as the extractor
+ * - Ignores content inside configured Trans components
+ * - Skips technical content like script/style tags
+ * - Identifies numeric values and interpolation syntax to avoid false positives
+ *
+ * @param config - The toolkit configuration with input patterns and component names
+ *
+ * @example
+ * ```typescript
+ * const config = {
+ *   extract: {
+ *     input: ['src/**\/*.{ts,tsx}'],
+ *     transComponents: ['Trans', 'Translation']
+ *   }
+ * }
+ *
+ * await runLinter(config)
+ * // Outputs issues found or success message
+ * ```
+ */
+async function runLinter(config) {
+    return new Linter(config).run();
+}
+async function runLinterCli(config, options = {}) {
+    const internalLogger = options.logger ?? new logger.ConsoleLogger();
+    const linter = new Linter(config, internalLogger);
+    const spinner = wrapOra.createSpinnerLike('', { quiet: !!options.quiet, logger: options.logger });
+    linter.on('progress', (event) => {
+        spinner.text = event.message;
+    });
+    try {
+        const { message, files } = await linter.run();
+        const fileEntries = Object.entries(files);
+        const allIssues = fileEntries.flatMap(([, issues]) => issues);
+        const hasErrors = allIssues.some(i => i.severity !== 'warning');
+        const hasWarnings = allIssues.some(i => i.severity === 'warning');
+        // Summary line: fail on errors, warn when only warnings, succeed when clean.
+        if (hasErrors)
+            spinner.fail(node_util.styleText(['red', 'bold'], message));
+        else if (hasWarnings)
+            spinner.warn(node_util.styleText(['yellow', 'bold'], message));
+        else
+            spinner.succeed(node_util.styleText(['green', 'bold'], message));
+        // Detailed report — colour each line by severity (red Error / yellow Warning).
+        for (const [file, issues] of fileEntries) {
+            if (internalLogger.info)
+                internalLogger.info(node_util.styleText('yellow', `\n${file}`));
+            else
+                console.log(node_util.styleText('yellow', `\n${file}`));
+            issues.forEach(({ text, line, type, severity }) => {
+                const label = type === 'interpolation' ? 'Interpolation issue' : type === 'concatenation' ? 'String concatenation' : 'Found hardcoded string';
+                const tag = severity === 'warning' ? node_util.styleText('yellow', 'Warning:') : node_util.styleText('red', 'Error:');
+                const detail = `  ${node_util.styleText('gray', `${line}:`)} ${tag} ${label}: "${text}"`;
+                if (typeof internalLogger.info === 'function')
+                    internalLogger.info(detail);
+                else
+                    console.log(detail);
+            });
+        }
+        // Only errors fail the process; warning-only runs exit 0.
+        if (hasErrors)
+            process.exit(1);
+    }
+    catch (error) {
+        const wrappedError = linter.wrapError(error);
+        spinner.fail(wrappedError.message);
+        if (internalLogger.error)
+            internalLogger.error(wrappedError);
+        else
+            console.error(wrappedError);
+        process.exit(1);
+    }
+}
+const isUrlOrPath = (text) => /^(https|http|\/\/|^\/)/.test(text);
+/**
+ * Analyzes an AST to find potentially hardcoded strings that should be translated.
+ *
+ * This function traverses the syntax tree looking for:
+ * 1. JSX text nodes with translatable content
+ * 2. String literals in JSX attributes that might need translation
+ *
+ * It applies several filters to reduce false positives:
+ * - Ignores content inside Trans components (already handled)
+ * - Skips script and style tag content (technical, not user-facing)
+ * - Filters out numeric values (usually not translatable)
+ * - Ignores interpolation syntax starting with `{{`
+ * - Filters out ellipsis/spread operator notation `...`
+ * - Only reports non-empty, trimmed strings
+ *
+ * Also checks for interpolation parameter errors in translation function calls if enabled via config.
+ *
+ * @param config - The toolkit configuration with input patterns and component names
+ *
+ * @example
+ * ```typescript
+ * const config = {
+ *   extract: {
+ *     input: ['src/**\/*.{ts,tsx}'],
+ *     transComponents: ['Trans', 'Translation']
+ *   }
+ * }
+ *
+ * await runLinter(config)
+ * // Outputs issues found or success message
+ * ```
+ */
+function findHardcodedStrings(ast, code, config) {
+    const issues = [];
+    // A list of AST nodes that have been identified as potential issues.
+    const nodesToLint = [];
+    const getLineNumber = (pos) => {
+        return code.substring(0, pos).split('\n').length;
+    };
+    const transComponents = (config.extract.transComponents || ['Trans']).map((s) => s.toLowerCase());
+    const customIgnoredTags = (config?.lint?.ignoredTags || config.extract.ignoredTags || []).map((s) => s.toLowerCase());
+    const allIgnoredTags = new Set([...transComponents, ...defaultIgnoredTags.map((s) => s.toLowerCase()), ...customIgnoredTags]);
+    const customIgnoredAttributes = (config?.lint?.ignoredAttributes || config.extract.ignoredAttributes || []).map((s) => s.toLowerCase());
+    const ignoredAttributes = new Set([...defaultIgnoredAttributes, ...customIgnoredAttributes]);
+    const lintAcceptedTags = config?.lint?.acceptedTags ? config.lint.acceptedTags : null;
+    const extractAcceptedTags = config?.extract?.acceptedTags ? config.extract.acceptedTags : null;
+    const rawAcceptedTags = lintAcceptedTags ?? extractAcceptedTags ?? recommendedAcceptedTags;
+    // 'all' disables tag filtering entirely: lint text and attributes in every tag (ignoredTags still win)
+    const acceptAllTags = rawAcceptedTags === 'all';
+    const acceptedTagsList = acceptAllTags ? null : (rawAcceptedTags?.map((s) => s.toLowerCase()) ?? null);
+    const lintAcceptedAttrs = config?.lint?.acceptedAttributes ? config.lint.acceptedAttributes : null;
+    const extractAcceptedAttrs = config?.extract?.acceptedAttributes ? config.extract.acceptedAttributes : null;
+    const acceptedAttributesList = (lintAcceptedAttrs ?? extractAcceptedAttrs ?? recommendedAcceptedAttributes)?.map((s) => s.toLowerCase()) ?? null;
+    const acceptedTagsSet = acceptedTagsList && acceptedTagsList.length > 0 ? new Set(acceptedTagsList) : null;
+    const acceptedAttributesSet = acceptedAttributesList && acceptedAttributesList.length > 0 ? new Set(acceptedAttributesList) : null;
+    // Helper: robustly extract a JSX element name from different node shapes
+    const extractJSXName = (node) => {
+        if (!node)
+            return null;
+        // node might be JSXOpeningElement / JSXSelfClosingElement (has .name)
+        const nameNode = node.name ?? node.opening?.name ?? node.opening?.name;
+        if (!nameNode) {
+            // maybe this node is a full JSXElement with opening.name
+            if (node.opening?.name)
+                return extractJSXName({ name: node.opening.name });
+            return null;
+        }
+        const fromIdentifier = (n) => {
+            if (!n)
+                return null;
+            if (n.type === 'JSXIdentifier' && (n.name || n.value))
+                return (n.name ?? n.value);
+            if (n.type === 'Identifier' && (n.name || n.value))
+                return (n.name ?? n.value);
+            if (n.type === 'JSXMemberExpression') {
+                const object = fromIdentifier(n.object);
+                const property = fromIdentifier(n.property);
+                return object && property ? `${object}.${property}` : (property ?? object);
+            }
+            // fallback attempts
+            return n.name ?? n.value ?? n.property?.name ?? n.property?.value ?? null;
+        };
+        const rawName = fromIdentifier(nameNode);
+        return rawName ? String(rawName) : null;
+    };
+    // Helper: extract attribute name from a JSXAttribute.name node
+    const extractAttrName = (nameNode) => {
+        if (!nameNode)
+            return null;
+        // Direct string (unlikely, but be defensive)
+        if (typeof nameNode === 'string')
+            return nameNode;
+        // Common SWC shapes:
+        // JSXIdentifier: { type: 'JSXIdentifier', value: 'alt' } or { name: 'alt' }
+        if (nameNode.type === 'JSXIdentifier' || nameNode.type === 'Identifier') {
+            const n = (nameNode.name ?? nameNode.value ?? nameNode.raw ?? null);
+            return n ? String(n) : null;
+        }
+        // JSXNamespacedName: { type: 'JSXNamespacedName', namespace: {...}, name: {...} }
+        if (nameNode.type === 'JSXNamespacedName') {
+            // prefer the local name (after the colon)
+            return extractAttrName(nameNode.name) ?? extractAttrName(nameNode.namespace);
+        }
+        // Member-like expressions (defensive)
+        if (nameNode.type === 'JSXMemberExpression') {
+            const left = extractAttrName(nameNode.object);
+            const right = extractAttrName(nameNode.property);
+            if (left && right)
+                return `${left}.${right}`;
+            return right ?? left;
+        }
+        // Some AST variants put the identifier under `.name` or `.value`
+        if (nameNode.name || nameNode.value || nameNode.property) {
+            return (nameNode.name ?? nameNode.value ?? nameNode.property?.name ?? nameNode.property?.value ?? null);
+        }
+        // Last-resort: try to stringify and extract an identifier-looking token
+        try {
+            const s = JSON.stringify(nameNode);
+            const m = /"?(?:name|value)"?\s*:\s*"?([a-zA-Z0-9_\-:.$]+)"?/.exec(s);
+            return m ? m[1] : null;
+        }
+        catch {
+            return null;
+        }
+    };
+    // Helper: return true if any JSX ancestor is in the ignored tags set
+    const isWithinIgnoredElement = (ancestors) => {
+        // First: if ANY ancestor is in the ignored set -> ignore (ignored always wins)
+        for (let i = ancestors.length - 1; i >= 0; i--) {
+            const an = ancestors[i];
+            if (!an || typeof an !== 'object')
+                continue;
+            if (an.type === 'JSXElement' || an.type === 'JSXOpeningElement' || an.type === 'JSXSelfClosingElement') {
+                const name = extractJSXName(an);
+                if (!name)
+                    continue;
+                if (allIgnoredTags.has(String(name).toLowerCase()))
+                    return true;
+            }
+        }
+        // If acceptedTags is set: use nearest enclosing JSX element to decide acceptance
+        if (acceptedTagsSet) {
+            for (let i = ancestors.length - 1; i >= 0; i--) {
+                const an = ancestors[i];
+                if (!an || typeof an !== 'object')
+                    continue;
+                if (an.type === 'JSXElement' || an.type === 'JSXOpeningElement' || an.type === 'JSXSelfClosingElement') {
+                    const name = extractJSXName(an);
+                    if (!name)
+                        continue;
+                    return !acceptedTagsSet.has(String(name).toLowerCase());
+                }
+            }
+            // no enclosing element found -> treat as ignored
+            return true;
+        }
+        // Default: not inside an ignored element
+        return false;
+    };
+    // --- PHASE 1: Collect all potentially problematic nodes ---
+    const walk = (node, ancestors) => {
+        if (!node || typeof node !== 'object')
+            return;
+        const currentAncestors = [...ancestors, node];
+        if (node.type === 'JSXText') {
+            // If acceptedAttributesSet exists but acceptedTagsSet does not, we're in attribute-only mode:
+            // do not collect JSXText nodes when attribute-only mode is active.
+            // (acceptedTags: 'all' is not attribute-only mode — it lints text in every tag.)
+            if (acceptedAttributesSet && !acceptedTagsSet && !acceptAllTags) ;
+            else {
+                const isIgnored = isWithinIgnoredElement(currentAncestors);
+                if (!isIgnored) {
+                    const text = node.value.trim();
+                    if (text && text.length > 1 && text !== '...' && !isUrlOrPath(text) && isNaN(Number(text)) && !text.startsWith('{{')) {
+                        nodesToLint.push(node);
+                    }
+                }
+            }
+        }
+        if (node.type === 'StringLiteral') {
+            const parent = currentAncestors[currentAncestors.length - 2];
+            const grandparent = currentAncestors[currentAncestors.length - 3];
+            // Determine whether this attribute is inside any ignored element (handles nested Trans etc.)
+            const insideIgnored = isWithinIgnoredElement(currentAncestors);
+            // A StringLiteral can be an attribute value in two forms:
+            //   <tag attr="value" />       → parent is JSXAttribute
+            //   <tag attr={"value"} />     → parent is JSXExpressionContainer, grandparent is JSXAttribute
+            const attrNode = parent?.type === 'JSXAttribute'
+                ? parent
+                : (parent?.type === 'JSXExpressionContainer' && grandparent?.type === 'JSXAttribute' ? grandparent : null);
+            if (attrNode && !insideIgnored) {
+                const rawAttrName = extractAttrName(attrNode.name);
+                const attrNameLower = rawAttrName ? String(rawAttrName).toLowerCase() : null;
+                // Check tag-level acceptance if acceptedTagsSet provided: attributes should only be considered
+                // when the nearest enclosing element is accepted. Use the ancestors above the attrNode.
+                const attrNodeIdx = currentAncestors.indexOf(attrNode);
+                const parentElement = currentAncestors.slice(0, attrNodeIdx).reverse().find(a => a && typeof a === 'object' && (a.type === 'JSXElement' || a.type === 'JSXOpeningElement' || a.type === 'JSXSelfClosingElement'));
+                if (acceptedTagsSet && parentElement) {
+                    const parentName = extractJSXName(parentElement);
+                    if (!parentName || !acceptedTagsSet.has(String(parentName).toLowerCase())) {
+                        // attribute is inside a non-accepted tag -> skip
+                        return;
+                    }
+                }
+                else if (acceptedTagsSet && !parentElement) {
+                    // no enclosing element -> skip
+                    return;
+                }
+                // If acceptedAttributesSet exists, only lint attributes explicitly accepted.
+                const shouldLintAttribute = acceptedAttributesSet
+                    ? (attrNameLower != null && acceptedAttributesSet.has(attrNameLower))
+                    : (attrNameLower != null ? !ignoredAttributes.has(attrNameLower) : false);
+                if (shouldLintAttribute) {
+                    const text = node.value.trim();
+                    // Filter out: empty strings, URLs, numbers, and ellipsis
+                    if (text && text !== '...' && !isUrlOrPath(text) && isNaN(Number(text))) {
+                        nodesToLint.push(node); // Collect the node
+                    }
+                }
+            }
+            // Hardcoded string inside a JSX expression container used as element child:
+            //   <tag>{"hello"}</tag>   → parent is JSXExpressionContainer, grandparent is JSXElement/JSXFragment
+            // Apply the same filters used for JSXText so this behaves like raw text.
+            const isJsxChildExpression = parent?.type === 'JSXExpressionContainer' &&
+                (grandparent?.type === 'JSXElement' || grandparent?.type === 'JSXFragment');
+            if (isJsxChildExpression && !insideIgnored) {
+                // Respect attribute-only mode: when acceptedAttributes is set without acceptedTags,
+                // only attribute strings are linted — skip JSX child text.
+                if (!(acceptedAttributesSet && !acceptedTagsSet && !acceptAllTags)) {
+                    const text = node.value.trim();
+                    if (text && text.length > 1 && text !== '...' && !isUrlOrPath(text) && isNaN(Number(text)) && !text.startsWith('{{')) {
+                        nodesToLint.push(node);
+                    }
+                }
+            }
+        }
+        // Recurse into children
+        for (const key of Object.keys(node)) {
+            if (key === 'span')
+                continue;
+            const child = node[key];
+            if (Array.isArray(child)) {
+                child.forEach(item => walk(item, currentAncestors));
+            }
+            else if (child && typeof child === 'object') {
+                walk(child, currentAncestors);
+            }
+        }
+    };
+    walk(ast, []); // Run the walk to collect nodes
+    // --- PHASE 2: Resolve line numbers from the (already normalised) node spans,
+    // falling back to a tracked text search when a span is unavailable. Searching
+    // the raw source misreports short strings that also occur as a substring
+    // earlier in the file (283: "in" inside "settings.scss"), which in turn breaks
+    // the ignore directives, since those are correlated by line.
+    let lastSearchIndex = 0;
+    for (const node of nodesToLint) {
+        const start = node?.span?.start;
+        if (typeof start === 'number') {
+            // A JSXText span starts right after the preceding tag, so skip its leading
+            // whitespace to report the line the visible text actually sits on.
+            const offset = node.type === 'JSXText' && typeof node.value === 'string'
+                ? node.value.length - node.value.trimStart().length
+                : 0;
+            const pos = astUtils.lineColumnFromOffset(code, start + offset);
+            if (pos) {
+                issues.push({ text: node.value.trim(), line: pos.line, type: 'hardcoded' });
+                continue;
+            }
+        }
+        // For StringLiterals, the `raw` property includes the quotes ("..."), which is
+        // much more unique for searching than the plain `value`.
+        const searchText = node.raw ?? node.value;
+        const position = code.indexOf(searchText, lastSearchIndex);
+        if (position > -1) {
+            issues.push({
+                text: node.value.trim(),
+                line: getLineNumber(position),
+                type: 'hardcoded',
+            });
+            lastSearchIndex = position + searchText.length;
+        }
+    }
+    return issues;
+}
+
+exports.Linter = Linter;
+exports.recommendedAcceptedAttributes = recommendedAcceptedAttributes;
+exports.recommendedAcceptedTags = recommendedAcceptedTags;
+exports.runLinter = runLinter;
+exports.runLinterCli = runLinterCli;

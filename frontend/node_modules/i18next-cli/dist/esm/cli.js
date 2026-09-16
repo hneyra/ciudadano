@@ -1,0 +1,487 @@
+#!/usr/bin/env node
+import { Command } from 'commander';
+import chokidar from 'chokidar';
+import { glob } from 'glob';
+import { minimatch } from 'minimatch';
+import { styleText } from 'node:util';
+import { ensureConfig, loadConfig } from './config.js';
+import { detectConfig } from './heuristic-config.js';
+import { runExtractor } from './extractor/core/extractor.js';
+import 'node:module';
+import 'node:path';
+import { getNestedKeys, getNestedValue } from './utils/nested-object.js';
+import 'node:fs/promises';
+import 'jiti';
+import '@croct/json5-parser';
+import 'yaml';
+import { runTypesGenerator } from './types-generator.js';
+import { runSyncer } from './syncer.js';
+import { runMigrator } from './migrator.js';
+import { runInit } from './init.js';
+import { runLinterCli } from './linter.js';
+import { runUnusedReport, runStatus } from './status.js';
+import { runLocizeSync, runLocizeDownload, runLocizeMigrate } from './locize.js';
+import { runRenameKey } from './rename-key.js';
+import { runInstrumenter } from './instrumenter/core/instrumenter.js';
+import './utils/jsx-attributes.js';
+import 'magic-string';
+import { runLocalize } from './localize/localize.js';
+
+const program = new Command();
+program
+    .name('i18next-cli')
+    .description('A unified, high-performance i18next CLI.')
+    .version('1.73.2') // This string is replaced with the actual version at build time by rollup
+    .addHelpText('after', '\nUsing an AI coding agent? Install the i18next-localization skill: npx skills add i18next/i18next-cli\n');
+// new: global config override option
+program.option('-c, --config <path>', 'Path to i18next-cli config file (overrides detection)');
+program
+    .command('extract')
+    .description('Extract translation keys from source files and update resource files.')
+    .option('-w, --watch', 'Watch for file changes and re-run the extractor.')
+    .option('--ci', 'Exit with a non-zero status code if any files are updated.')
+    .option('--dry-run', 'Run the extractor without writing any files to disk.')
+    .option('--sync-primary', 'Sync primary language values with default values from code.')
+    .option('--sync-all', 'Sync primary language values with default values from code AND clear synced keys in all other locales.')
+    .option('--trust-derived', 'When used with --sync-primary or --sync-all, also trust defaults inferred from keys (including keyPrefix-derived values).')
+    .option('--with-types', 'After extraction, regenerate TypeScript definitions (runs the types generator) when translation files changed.')
+    .option('-q, --quiet', 'Suppress spinner and output')
+    .action(async (options) => {
+    try {
+        const cfgPath = program.opts().config;
+        const config = await ensureConfig(cfgPath);
+        const runExtract = async () => {
+            // --sync-all implies sync-primary behavior
+            const syncPrimary = !!options.syncPrimary || !!options.syncAll;
+            const { anyFileUpdated, hasErrors, results } = await runExtractor(config, {
+                isWatchMode: !!options.watch,
+                isDryRun: !!options.dryRun,
+                syncPrimaryWithDefaults: syncPrimary,
+                syncAll: !!options.syncAll,
+                trustDerivedDefaults: !!options.trustDerived,
+                quiet: !!options.quiet
+            });
+            if (options.ci && !anyFileUpdated) {
+                console.log('✅ No files were updated.');
+                process.exit(hasErrors ? 1 : 0);
+            }
+            else if (options.ci && anyFileUpdated) {
+                console.error('❌ Some files were updated. This should not happen in CI mode.');
+                printCiDiff(results, config);
+                process.exit(1);
+            }
+            if (hasErrors && !options.watch) {
+                process.exit(1);
+            }
+            // Re-generate TypeScript definitions in the same process so consumers
+            // don't have to wire a second watcher (avoids the chokidar mid-write race).
+            if (options.withTypes && anyFileUpdated && !options.dryRun) {
+                await runTypesGenerator(config, { quiet: !!options.quiet });
+            }
+            return anyFileUpdated;
+        };
+        // Run the extractor once initially
+        await runExtract();
+        // If in watch mode, set up the chokidar watcher
+        if (options.watch) {
+            console.log('\nWatching for changes...');
+            // expand configured input globs (keep original behavior for detection)
+            const expanded = await expandGlobs(config.extract.input);
+            // build ignore list (configured + derived from output template)
+            const configuredIgnore = toArray(config.extract.ignore);
+            const derivedIgnore = deriveOutputIgnore(config.extract.output);
+            const ignoreGlobs = [...configuredIgnore, ...derivedIgnore].filter(Boolean);
+            // filter expanded files by ignore globs
+            const watchFiles = expanded.filter(f => !ignoreGlobs.some(g => minimatch(f, g, { dot: true })));
+            const watcher = chokidar.watch(watchFiles, {
+                ignored: /node_modules/,
+                persistent: true,
+            });
+            watcher.on('change', path => {
+                console.log(`\nFile changed: ${path}`);
+                runExtract();
+            });
+        }
+    }
+    catch (error) {
+        console.error('Error running extractor:', error);
+        process.exit(1);
+    }
+});
+program
+    .command('status [locale]')
+    .description('Display translation status. Provide a locale for a detailed key-by-key view.')
+    .option('-n, --namespace <ns>', 'Filter the status report by a specific namespace')
+    .option('--hide-translated', 'Hide already translated keys in the detailed view')
+    .option('--unused', 'Report only unused translation keys (read-only; exits 1 when any are found)')
+    .action(async (locale, options) => {
+    const cfgPath = program.opts().config;
+    let config = await loadConfig(cfgPath);
+    if (!config) {
+        console.log(styleText('blue', 'No config file found. Attempting to detect project structure...'));
+        const detected = await detectConfig();
+        if (!detected) {
+            console.error(styleText('red', 'Could not automatically detect your project structure.'));
+            console.log(`Please create a config file first by running: ${styleText('cyan', 'npx i18next-cli init')}`);
+            process.exit(1);
+        }
+        console.log(styleText('green', 'Project structure detected successfully!'));
+        config = detected;
+    }
+    if (options.unused) {
+        await runUnusedReport(config, { locale, namespace: options.namespace });
+        return;
+    }
+    await runStatus(config, { detail: locale, namespace: options.namespace, hideTranslated: !!options.hideTranslated });
+});
+program
+    .command('types')
+    .description('Generate TypeScript definitions from translation resource files.')
+    .option('-w, --watch', 'Watch for file changes and re-run the type generator.')
+    .option('--ci', 'Exit with a non-zero status code if type definitions are not up to date (check-only, no writes).')
+    .option('-q, --quiet', 'Suppress spinner and output')
+    .action(async (options) => {
+    const cfgPath = program.opts().config;
+    const config = await ensureConfig(cfgPath);
+    if (options.ci && options.watch) {
+        console.error(styleText('red', '--ci and --watch cannot be used together'));
+        process.exit(1);
+    }
+    if (options.ci) {
+        const { changed, changedFiles } = await runTypesGenerator(config, { checkOnly: true });
+        if (changed) {
+            console.error(styleText('red', "❌ TypeScript definitions are out of date. Run 'i18next-cli types' and commit the changes."));
+            for (const file of changedFiles) {
+                console.error(`   ${file}`);
+            }
+            process.exit(1);
+        }
+        console.log(styleText('green', '✅ TypeScript definitions are up to date.'));
+        return;
+    }
+    const run = () => runTypesGenerator(config, { quiet: !!options.quiet });
+    await run();
+    if (options.watch) {
+        console.log('\nWatching for changes...');
+        const expandedTypes = await expandGlobs(config.types?.input || []);
+        const ignoredTypes = [...toArray(config.extract?.ignore)].filter(Boolean);
+        const watchTypes = expandedTypes.filter(f => !ignoredTypes.some(g => minimatch(f, g, { dot: true })));
+        // awaitWriteFinish avoids triggering mid-write when another process (e.g. `extract -w`)
+        // is rewriting the same translation files. See i18next/i18next-cli#257.
+        const watcher = chokidar.watch(watchTypes, {
+            persistent: true,
+            awaitWriteFinish: { stabilityThreshold: 200, pollInterval: 50 },
+        });
+        watcher.on('change', path => {
+            console.log(`\nFile changed: ${path}`);
+            run();
+        });
+    }
+});
+program
+    .command('sync')
+    .description('Synchronize secondary language files with the primary language file.')
+    .option('-q, --quiet', 'Suppress spinner and output')
+    .option('--changed-only', 'Only sync keys that changed on the current git branch compared to the base branch (requires git). Removals are skipped.')
+    .option('--base <ref>', 'Base git branch/ref for --changed-only (default: auto-detect origin/HEAD, then main, then master).')
+    .action(async (options) => {
+    const cfgPath = program.opts().config;
+    const config = await ensureConfig(cfgPath);
+    try {
+        await runSyncer(config, { quiet: !!options.quiet, changedOnly: !!options.changedOnly, base: options.base });
+    }
+    catch (error) {
+        console.error(styleText('red', error instanceof Error ? error.message : String(error)));
+        process.exit(1);
+    }
+});
+program
+    .command('migrate-config [configPath]')
+    .description('Migrate a legacy i18next-parser.config.js to the new format.')
+    .action(async (configPath) => {
+    await runMigrator(configPath);
+});
+program
+    .command('init')
+    .description('Create a new i18next.config.ts/js file with an interactive setup wizard.')
+    .option('--ci', 'Skip the browser launch when a backend (e.g. Locize) is selected. The signup URL is printed instead.')
+    .option('--inlang', 'Also scaffold an inlang project (project.inlang/settings.json) so inlang tooling (Sherlock, Fink, Paraglide) works on the translation files. Skips the corresponding wizard question.')
+    .option('-y, --yes', 'Non-interactive: use the detected defaults for every question not answered by an option below; never opens a browser. For AI coding agents and scripts.')
+    .option('--locales <list...>', 'Locales, comma- or space-separated, e.g. en,de,fr (skips the question).')
+    .option('--input <glob>', 'Source-file glob (skips the question).')
+    .option('--output <path>', 'Output path template, e.g. public/locales/{{language}}/{{namespace}}.json (skips the question).')
+    .option('--backend <local|locize|other>', 'Translation backend (skips the question). With locize, pass --project-id or set LOCIZE_PROJECTID.')
+    .option('--project-id <id>', 'Locize project id (skips the signup page and the credential prompts; the API key stays in LOCIZE_API_KEY).')
+    .option('--file-type <ts|js>', 'Config file type (skips the question).')
+    .option('--agent-note', 'Write a short note about this i18n setup for AI coding agents into AGENTS.md (and CLAUDE.md if present) without asking.')
+    .option('--no-agent-note', 'Skip the agent-note question.')
+    .action((options) => runInit({
+    ci: !!options.ci,
+    inlang: !!options.inlang,
+    yes: !!options.yes,
+    locales: Array.isArray(options.locales) ? options.locales.join(',') : options.locales,
+    input: options.input,
+    output: options.output,
+    backend: options.backend,
+    projectId: options.projectId,
+    fileType: options.fileType,
+    agentNote: options.agentNote,
+}));
+program
+    .command('lint')
+    .description('Find potential issues like hardcoded strings in your codebase.')
+    .option('-w, --watch', 'Watch for file changes and re-run the linter.')
+    .option('-q, --quiet', 'Suppress spinner and output')
+    .action(async (options) => {
+    const cfgPath = program.opts().config;
+    const loadAndRunLinter = async () => {
+        // The existing logic for loading the config or detecting it is now inside this function
+        let config = await loadConfig(cfgPath);
+        if (!config) {
+            console.log(styleText('blue', 'No config file found. Attempting to detect project structure...'));
+            const detected = await detectConfig();
+            if (!detected) {
+                console.error(styleText('red', 'Could not automatically detect your project structure.'));
+                console.log(`Please create a config file first by running: ${styleText('cyan', 'npx i18next-cli init')}`);
+                process.exit(1);
+            }
+            console.log(styleText('green', 'Project structure detected successfully!'));
+            config = detected;
+        }
+        await runLinterCli(config, { quiet: !!options.quiet });
+    };
+    // Run the linter once initially
+    await loadAndRunLinter();
+    // If in watch mode, set up the chokidar watcher
+    if (options.watch) {
+        console.log('\nWatching for changes...');
+        // Re-load the config to get the correct input paths for the watcher
+        const config = await loadConfig(cfgPath);
+        if (config?.extract?.input) {
+            const expandedLint = await expandGlobs(config.extract.input);
+            const configuredIgnore2 = toArray(config.extract.ignore);
+            const derivedIgnore2 = deriveOutputIgnore(config.extract.output);
+            const ignoredLint = [...configuredIgnore2, ...derivedIgnore2].filter(Boolean);
+            const watchLint = expandedLint.filter(f => !ignoredLint.some(g => minimatch(f, g, { dot: true })));
+            const watcher = chokidar.watch(watchLint, {
+                ignored: /node_modules/,
+                persistent: true,
+            });
+            watcher.on('change', path => {
+                console.log(`\nFile changed: ${path}`);
+                loadAndRunLinter(); // Re-run on change
+            });
+        }
+    }
+});
+program
+    .command('instrument')
+    .description('Scan for hardcoded strings and instrument your code with i18next calls.')
+    .option('--dry-run', 'Preview changes without writing files to disk.')
+    .option('--interactive', 'Prompt for approval of each candidate string.')
+    .option('--namespace <ns>', 'Target a specific namespace for extracted keys.')
+    .option('-q, --quiet', 'Suppress spinner and output')
+    .action(async (options) => {
+    try {
+        const cfgPath = program.opts().config;
+        const config = await ensureConfig(cfgPath);
+        const results = await runInstrumenter(config, {
+            isDryRun: !!options.dryRun,
+            isInteractive: !!options.interactive,
+            namespace: options.namespace,
+            quiet: !!options.quiet
+        });
+        // Display results
+        if (!options.quiet) {
+            console.log(styleText('bold', '\nInstrumentation Summary:'));
+            console.log(`  Total candidates: ${results.totalCandidates}`);
+            console.log(`  Approved: ${results.totalTransformed}`);
+            console.log(`  Skipped: ${results.totalSkipped}`);
+            if (results.totalLanguageChanges > 0) {
+                console.log(`  Language-change sites: ${results.totalLanguageChanges}`);
+            }
+            if (options.dryRun) {
+                console.log(styleText('blue', '\n📋 Dry-run mode enabled. No files were modified.'));
+                console.log('Run again without --dry-run to apply changes.');
+            }
+            if (results.files.length > 0) {
+                console.log(styleText('green', `\n✅ ${results.files.length} file(s) ready for instrumentation`));
+            }
+            else {
+                console.log(styleText('yellow', '\n⚠️  No files required instrumentation'));
+            }
+            if (results.totalTransformed > 0 && !options.dryRun) {
+                console.log(styleText('cyan', '\n💡 Next step: run `i18next-cli extract` to extract the translation keys into your locale files.'));
+            }
+        }
+    }
+    catch (error) {
+        console.error(styleText('red', 'Error running instrument command:'), error);
+        process.exit(1);
+    }
+});
+program
+    .command('localize')
+    .description('One command from hardcoded strings to a fully localized app: detect, instrument, extract, connect to Locize, auto-translate, deliver.')
+    .option('--dry-run', 'Preview every step; nothing is written or pushed.')
+    .option('-y, --yes', 'Accept defaults; auto-approve instrumentation candidates (no per-string prompts).')
+    .option('--ci', 'Non-interactive: never open a browser or prompt; instrument is skipped (combine with --yes to force non-interactive instrumentation).')
+    .option('--skip-instrument', 'Skip the code-instrumentation step (use when your code already calls t()).')
+    .option('--skip-translate', 'Sync to Locize but do not request AI auto-translation.')
+    .option('--skip-locize', 'Stop after extraction (local files only; steps 5-6 skipped).')
+    .option('--namespace <ns>', 'Target namespace for instrumented keys (forwarded to instrument).')
+    .option('--update-values', 'Also update existing translation values on Locize (forwarded to sync).')
+    .option('--cdn-type <standard|pro>', 'Specify the cdn endpoint that should be used (depends on which cdn type you\'ve in your Locize project)')
+    .option('--print-agent-prompt', 'Print a copy-paste prompt for AI coding agents (Claude Code, Cursor) that performs the same steps, then exit.')
+    .action(async (options) => {
+    try {
+        const cfgPath = program.opts().config;
+        await runLocalize(options, cfgPath);
+    }
+    catch (error) {
+        console.error(styleText('red', 'Error running localize command:'), error);
+        process.exit(1);
+    }
+});
+program
+    .command('locize-sync')
+    .description('Synchronize local translations with your Locize project.')
+    .option('--update-values', 'Update values of existing translations on Locize.')
+    .option('--src-lng-only <true|false>', 'Check for changes in source language only. (default: true)')
+    .option('--compare-mtime', 'Compare modification times when syncing.')
+    .option('--dry-run', 'Run the command without making any changes.')
+    .option('--cdn-type <standard|pro>', 'Specify the cdn endpoint that should be used (depends on which cdn type you\'ve in your locize project)')
+    .option('--auto-translate <true|false>', 'Trigger AI/MT auto-translation of newly synced keys (requires auto-translation enabled in your Locize project; on by default for new projects).')
+    .option('--auto-translate-review <true|false>', 'Route auto-translated segments through the review workflow for languages that have review enabled.')
+    .option('--auto-translate-languages <lng1,lng2>', 'Restrict auto-translation to these target languages (comma separated; defaults to all languages).')
+    .option('--changed-only', 'Only sync and auto-translate keys that changed on the current git branch compared to the base branch (requires git; deletions are skipped).')
+    .option('--base <ref>', 'Base git branch/ref for --changed-only (default: auto-detect origin/HEAD, then main, then master).')
+    .action(async (options) => {
+    const cfgPath = program.opts().config;
+    const config = await ensureConfig(cfgPath);
+    await runLocizeSync(config, options);
+});
+program
+    .command('locize-download')
+    .description('Download all translations from your Locize project.')
+    .option('--cdn-type <standard|pro>', 'Specify the cdn endpoint that should be used (depends on which cdn type you\'ve in your Locize project)')
+    .action(async (options) => {
+    const cfgPath = program.opts().config;
+    const config = await ensureConfig(cfgPath);
+    await runLocizeDownload(config, options);
+});
+program
+    .command('locize-migrate')
+    .description('Migrate local translation files to a new Locize project.')
+    .option('--cdn-type <standard|pro>', 'Specify the cdn endpoint that should be used (depends on which cdn type you\'ve in your Locize project)')
+    .action(async (options) => {
+    const cfgPath = program.opts().config;
+    const config = await ensureConfig(cfgPath);
+    await runLocizeMigrate(config, options);
+});
+program
+    .command('rename-key <oldKey> <newKey>')
+    .description('Rename a translation key across all source files and translation files.')
+    .option('--dry-run', 'Preview changes without modifying files')
+    .action(async (oldKey, newKey, options) => {
+    try {
+        const cfgPath = program.opts().config;
+        const config = await ensureConfig(cfgPath);
+        const result = await runRenameKey(config, oldKey, newKey, options);
+        if (!result.success) {
+            if (result.conflicts) {
+                console.error(styleText('red', '\n❌ Conflicts detected:'));
+                result.conflicts.forEach(c => console.error(`   - ${c}`));
+            }
+            if (result.error) {
+                console.error(styleText('red', `\n❌ ${result.error}`));
+            }
+            process.exit(1);
+        }
+        const totalChanges = result.sourceFiles.reduce((sum, f) => sum + f.changes, 0);
+        if (totalChanges === 0) {
+            console.log(styleText('yellow', `\n⚠️  No usages found for "${oldKey}"`));
+        }
+    }
+    catch (error) {
+        console.error(styleText('red', 'Error renaming key:'), error);
+        process.exit(1);
+    }
+});
+program.parse(process.argv);
+const toArray = (v) => Array.isArray(v) ? v : (v ? [v] : []);
+const deriveOutputIgnore = (output) => {
+    if (!output || typeof output !== 'string')
+        return [];
+    return [output.replace(/\{\{[^}]+\}\}/g, '*')];
+};
+// helper to expand one or many glob patterns
+const expandGlobs = async (patterns = []) => {
+    const arr = toArray(patterns);
+    const sets = await Promise.all(arr.map(p => glob(p || '', { nodir: true })));
+    return Array.from(new Set(sets.flat()));
+};
+function printCiDiff(results, config) {
+    const rawSep = config.extract.keySeparator;
+    const keySeparator = rawSep === false ? false : (rawSep ?? '.');
+    for (const result of results) {
+        if (!result.updated)
+            continue;
+        const existing = result.existingTranslations || {};
+        const next = result.newTranslations || {};
+        const oldKeys = new Set(getNestedKeys(existing, keySeparator));
+        const newKeys = new Set(getNestedKeys(next, keySeparator));
+        const added = [];
+        const removed = [];
+        const changed = [];
+        for (const k of newKeys) {
+            if (!oldKeys.has(k)) {
+                added.push(k);
+            }
+            else {
+                const oldVal = getNestedValue(existing, k, keySeparator);
+                const newVal = getNestedValue(next, k, keySeparator);
+                if (oldVal !== newVal)
+                    changed.push(k);
+            }
+        }
+        for (const k of oldKeys) {
+            if (!newKeys.has(k))
+                removed.push(k);
+        }
+        const nsLabel = result.namespace
+            ? ` [${result.locale}/${result.namespace}]`
+            : ` [${result.locale}]`;
+        console.error(`\n  ${result.path}${nsLabel}`);
+        if (added.length === 0 && removed.length === 0 && changed.length === 0) {
+            console.error('    (no key differences — only formatting or ordering changes)');
+            continue;
+        }
+        added.sort();
+        removed.sort();
+        changed.sort();
+        for (const k of added) {
+            const v = getNestedValue(next, k, keySeparator);
+            console.error(styleText('green', `    + ${k}: ${formatCiDiffValue(v)}`));
+        }
+        for (const k of removed) {
+            const v = getNestedValue(existing, k, keySeparator);
+            console.error(styleText('red', `    - ${k}: ${formatCiDiffValue(v)}`));
+        }
+        for (const k of changed) {
+            const oldV = getNestedValue(existing, k, keySeparator);
+            const newV = getNestedValue(next, k, keySeparator);
+            console.error(styleText('yellow', `    ~ ${k}: ${formatCiDiffValue(oldV)} → ${formatCiDiffValue(newV)}`));
+        }
+    }
+}
+function formatCiDiffValue(value) {
+    try {
+        return JSON.stringify(value);
+    }
+    catch {
+        return String(value);
+    }
+}
+
+export { program };

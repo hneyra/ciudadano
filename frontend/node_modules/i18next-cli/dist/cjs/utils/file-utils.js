@@ -1,0 +1,211 @@
+'use strict';
+
+var promises = require('node:fs/promises');
+var node_path = require('node:path');
+var jiti = require('jiti');
+var config = require('../config.js');
+var json5Parser = require('@croct/json5-parser');
+var yaml = require('yaml');
+
+function _interopDefault (e) { return e && e.__esModule ? e : { default: e }; }
+
+var yaml__default = /*#__PURE__*/_interopDefault(yaml);
+
+/**
+ * Thrown when an existing translation file in a structured data format
+ * (JSON/JSON5/YAML) exists on disk but cannot be parsed. Callers should treat
+ * this as fatal rather than as an empty/missing file, since overwriting an
+ * unparseable file would silently destroy its contents (e.g. a merge conflict
+ * marker accidentally committed into an en.json).
+ */
+class ParseTranslationFileError extends Error {
+    filePath;
+    cause;
+    constructor(filePath, cause) {
+        const detail = cause instanceof Error ? cause.message : String(cause);
+        super(`Could not parse translation file ${filePath}: ${detail}`);
+        this.filePath = filePath;
+        this.cause = cause;
+        this.name = 'ParseTranslationFileError';
+    }
+}
+/**
+ * Resolve an output template (string or function) into an actual path string.
+ *
+ * - If `outputTemplate` is a function, call it with (language, namespace)
+ * - If it's a string, replace placeholders:
+ *    - {{language}} or {{lng}} -> language
+ *    - {{namespace}} -> namespace (or removed if namespace is undefined)
+ * - Normalizes duplicate slashes and returns a platform-correct path.
+ */
+function getOutputPath(outputTemplate, language, namespace) {
+    if (!outputTemplate) {
+        // Fallback to a sensible default
+        return node_path.normalize(`locales/${language}/${namespace ?? 'translation'}.json`);
+    }
+    if (typeof outputTemplate === 'function') {
+        try {
+            const result = String(outputTemplate(language, namespace));
+            return node_path.normalize(result.replace(/\/\/+/g, '/'));
+        }
+        catch {
+            // If user function throws, fallback to default path
+            return node_path.normalize(`locales/${language}/${namespace ?? 'translation'}.json`);
+        }
+    }
+    // It's a string template
+    let out = String(outputTemplate);
+    out = out.replace(/\{\{language\}\}|\{\{lng\}\}/g, language);
+    if (namespace !== undefined && namespace !== null) {
+        out = out.replace(/\{\{namespace\}\}/g, namespace);
+    }
+    else {
+        // remove any occurrences of /{{namespace}} or {{namespace}} (keeping surrounding slashes tidy)
+        out = out.replace(/\/?\{\{namespace\}\}/g, '');
+    }
+    // collapse duplicate slashes and normalize to platform-specific separators
+    out = out.replace(/\/\/+/g, '/');
+    return node_path.normalize(out);
+}
+/**
+ * Dynamically loads a translation file, supporting .json, .js, and .ts formats.
+ * @param filePath - The path to the translation file.
+ * @returns The parsed content of the file, or null if not found or failed to parse.
+ */
+async function loadTranslationFile(filePath) {
+    const fullPath = node_path.resolve(process.cwd(), filePath);
+    try {
+        await promises.access(fullPath);
+    }
+    catch {
+        return null; // File doesn't exist
+    }
+    const ext = node_path.extname(fullPath).toLowerCase();
+    // Structured data formats (JSON/JSON5/YAML): the file exists (it passed the
+    // access() check above) but could not be parsed. Treating this as `null` is
+    // dangerous: callers coalesce it to an empty object and may overwrite the
+    // existing file, silently destroying its contents (e.g. when a merge conflict
+    // marker breaks an en.json that a watcher then re-extracts). Fail loudly so
+    // the caller can stop instead of overwriting good data with nothing.
+    if (ext === '.json5') {
+        const content = await promises.readFile(fullPath, 'utf-8');
+        try {
+            // Parse as a JSON5 object node
+            const node = json5Parser.JsonParser.parse(content, json5Parser.JsonObjectNode);
+            return node.toJSON();
+        }
+        catch (error) {
+            throw new ParseTranslationFileError(filePath, error);
+        }
+    }
+    else if (ext === '.yaml' || ext === '.yml') {
+        const content = await promises.readFile(fullPath, 'utf-8');
+        try {
+            return yaml__default.default.parse(content);
+        }
+        catch (error) {
+            throw new ParseTranslationFileError(filePath, error);
+        }
+    }
+    else if (ext === '.json') {
+        const content = await promises.readFile(fullPath, 'utf-8');
+        try {
+            return JSON.parse(content);
+        }
+        catch (error) {
+            throw new ParseTranslationFileError(filePath, error);
+        }
+    }
+    else if (ext === '.ts' || ext === '.js') {
+        // .ts/.js resource files are loaded via jiti, which can fail for reasons
+        // unrelated to corruption (e.g. a transitive import or a side-effectful
+        // module). This path has been deliberately lenient since #59, so keep
+        // degrading to `null` here rather than aborting the whole command.
+        try {
+            // Load TypeScript path aliases for proper module resolution
+            const aliases = await config.getTsConfigAliases();
+            const jiti$1 = jiti.createJiti(process.cwd(), {
+                alias: aliases,
+                interopDefault: true,
+            });
+            const module = await jiti$1.import(fullPath, { default: true });
+            return module;
+        }
+        catch (error) {
+            console.warn(`Could not parse translation file ${filePath}:`, error);
+            return null;
+        }
+    }
+    return null; // Unsupported file type
+}
+// Helper to load raw JSON5 content for preservation
+async function loadRawJson5Content(filePath) {
+    const fullPath = node_path.resolve(process.cwd(), filePath);
+    try {
+        await promises.access(fullPath);
+        return await promises.readFile(fullPath, 'utf-8');
+    }
+    catch {
+        return null;
+    }
+}
+/**
+ * Serializes a translation object into a string based on the desired format.
+ * For JSON5, preserves comments and formatting using JsonObjectNode.update().
+ */
+function serializeTranslationFile(data, format = 'json', indentation = 2, rawContent // Pass raw content for JSON5 preservation
+) {
+    const jsonString = JSON.stringify(data, null, indentation);
+    switch (format) {
+        case 'json5': {
+            if (rawContent) {
+                // Parse the original JSON5 file, update it, and output as string
+                const node = json5Parser.JsonParser.parse(rawContent, json5Parser.JsonObjectNode);
+                node.update(data);
+                return node.toString({ object: { indentationSize: Number(indentation) ?? 2 } });
+            }
+            // Fallback: create a new node by parsing the generated JSON string and output as string
+            const node = json5Parser.JsonParser.parse(jsonString, json5Parser.JsonObjectNode);
+            return node.toString({ object: { indentationSize: Number(indentation) ?? 2 } });
+        }
+        case 'yaml':
+            return yaml__default.default.stringify(data, { indent: Number(indentation) || 2, lineWidth: 0 });
+        case 'js':
+        case 'js-esm':
+            return `export default ${jsonString};\n`;
+        case 'js-cjs':
+            return `module.exports = ${jsonString};\n`;
+        case 'ts':
+            // Using `as const` provides better type inference for TypeScript users
+            return `export default ${jsonString} as const;\n`;
+        case 'json':
+        default:
+            return `${jsonString}\n`;
+    }
+}
+/**
+ * Infers the output format from the file path extension.
+ * @param filePath - The path to the translation file
+ * @param defaultFormat - The default format to return if no match (default: 'json')
+ * @returns The inferred output format
+ */
+function inferFormatFromPath(filePath, defaultFormat = 'json') {
+    if (filePath.endsWith('.json5'))
+        return 'json5';
+    if (filePath.endsWith('.yaml') || filePath.endsWith('.yml'))
+        return 'yaml';
+    if (filePath.endsWith('.ts'))
+        return 'ts';
+    if (filePath.endsWith('.js'))
+        return 'js';
+    if (filePath.endsWith('.json'))
+        return 'json';
+    return defaultFormat || 'json';
+}
+
+exports.ParseTranslationFileError = ParseTranslationFileError;
+exports.getOutputPath = getOutputPath;
+exports.inferFormatFromPath = inferFormatFromPath;
+exports.loadRawJson5Content = loadRawJson5Content;
+exports.loadTranslationFile = loadTranslationFile;
+exports.serializeTranslationFile = serializeTranslationFile;

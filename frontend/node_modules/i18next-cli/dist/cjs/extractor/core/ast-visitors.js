@@ -1,0 +1,1020 @@
+'use strict';
+
+var scopeManager = require('../parsers/scope-manager.js');
+var expressionResolver = require('../parsers/expression-resolver.js');
+var callExpressionHandler = require('../parsers/call-expression-handler.js');
+var jsxHandler = require('../parsers/jsx-handler.js');
+
+/**
+ * Array iteration methods whose callback we can bind, mapped to the position of
+ * the *element* parameter: `map(el, i)` → 0, `reduce((acc, el) => …)` → 1.
+ */
+const ITERATION_METHODS = {
+    map: 0,
+    forEach: 0,
+    flatMap: 0,
+    filter: 0,
+    find: 0,
+    some: 0,
+    every: 0,
+    reduce: 1,
+    reduceRight: 1,
+};
+/**
+ * AST visitor class that traverses JavaScript/TypeScript syntax trees to extract translation keys.
+ *
+ * This class implements a manual recursive walker that:
+ * - Maintains scope information for tracking useTranslation and getFixedT calls
+ * - Extracts keys from t() function calls with various argument patterns
+ * - Handles JSX Trans components with complex children serialization
+ * - Supports both string literals and selector API for type-safe keys
+ * - Processes pluralization and context variants
+ * - Manages namespace resolution from multiple sources
+ *
+ * The visitor respects configuration options for separators, function names,
+ * component names, and other extraction settings.
+ *
+ * @example
+ * ```typescript
+ * const visitors = new ASTVisitors(config, pluginContext, logger)
+ * visitors.visit(parsedAST)
+ *
+ * // The pluginContext will now contain all extracted keys
+ * ```
+ */
+class ASTVisitors {
+    pluginContext;
+    config;
+    logger;
+    hooks;
+    get objectKeys() {
+        return this.callExpressionHandler.objectKeys;
+    }
+    scopeManager;
+    expressionResolver;
+    callExpressionHandler;
+    jsxHandler;
+    currentFile = '';
+    currentCode = '';
+    /**
+     * Creates a new AST visitor instance.
+     *
+     * @param config - Toolkit configuration with extraction settings
+     * @param pluginContext - Context for adding discovered translation keys
+     * @param logger - Logger for warnings and debug information
+     */
+    constructor(config, pluginContext, logger, hooks, expressionResolver$1) {
+        this.pluginContext = pluginContext;
+        this.config = config;
+        this.logger = logger;
+        this.hooks = {
+            onBeforeVisitNode: hooks?.onBeforeVisitNode,
+            onAfterVisitNode: hooks?.onAfterVisitNode,
+            resolvePossibleKeyStringValues: hooks?.resolvePossibleKeyStringValues,
+            resolvePossibleContextStringValues: hooks?.resolvePossibleContextStringValues
+        };
+        this.scopeManager = new scopeManager.ScopeManager(config);
+        // `useTranslation(ns)` where `ns` is a param typed `'a' | 'b'` → first member
+        // (same rule as `TFunction<'a' | 'b'>`).
+        this.scopeManager.identifierFallback = (name) => this.expressionResolver.getVariableValues(name)?.[0];
+        // use shared resolver when provided so captured enums/objects are visible across files
+        this.expressionResolver = expressionResolver$1 ?? new expressionResolver.ExpressionResolver(this.hooks);
+        this.callExpressionHandler = new callExpressionHandler.CallExpressionHandler(config, pluginContext, logger, this.expressionResolver, () => this.getCurrentFile(), () => this.getCurrentCode(), (name) => this.scopeManager.resolveSimpleStringIdentifier(name));
+        this.jsxHandler = new jsxHandler.JSXHandler(config, pluginContext, this.expressionResolver, () => this.getCurrentFile(), () => this.getCurrentCode());
+    }
+    /**
+     * Lightweight pre-scan pass: populates the shared constant / type-alias / array tables
+     * (`sharedConstants` in ScopeManager; `sharedVariableTable` and `sharedTypeAliasTable`
+     * in ExpressionResolver) WITHOUT performing any key extraction.
+     *
+     * Callers should invoke this for ALL source files before calling `visit()` for any file,
+     * so that cross-file identifier references — e.g. `useTranslation(NS_CALENDAR)` where
+     * `NS_CALENDAR` is exported from a separate constants file — are already resolved when
+     * the hook call is encountered during the extraction pass.
+     *
+     * The per-file tables (variableTable, typeAliasTable) are reset on each call so that
+     * local bindings from one file do not bleed into another; the shared tables accumulate
+     * across all calls and are intentionally NOT cleared here.
+     */
+    preScanForConstants(node) {
+        this.expressionResolver.resetFileSymbols();
+        this._walkForConstants(node);
+    }
+    /**
+     * Recursive walker used exclusively by `preScanForConstants`.
+     * Dispatches only to constant-capturing handlers; never extracts translation keys.
+     */
+    _walkForConstants(node) {
+        if (!node || typeof node !== 'object')
+            return;
+        switch (node.type) {
+            case 'VariableDeclarator':
+                // String constants  → ScopeManager.sharedConstants
+                // as-const arrays/objects → ExpressionResolver.sharedVariableTable
+                this.scopeManager.handleVariableDeclarator(node);
+                this.expressionResolver.captureVariableDeclarator(node);
+                break;
+            case 'TSEnumDeclaration':
+            case 'TsEnumDeclaration':
+            case 'TsEnumDecl':
+                // Enums → ExpressionResolver.sharedEnumTable. Needed in pre-scan so
+                // that function bodies referencing enum members (e.g. `return
+                // OrganizationType.ROUTING`) can be resolved by the body-inference
+                // branch of captureFunctionDeclaration when we hit the function later
+                // in the same file.
+                this.expressionResolver.captureEnumDeclaration(node);
+                break;
+            case 'TsTypeAliasDeclaration':
+            case 'TSTypeAliasDeclaration':
+            case 'TsTypeAliasDecl':
+                // Type aliases → ExpressionResolver.sharedTypeAliasTable
+                this.expressionResolver.captureTypeAliasDeclaration(node);
+                break;
+            case 'TsInterfaceDeclaration':
+            case 'TSInterfaceDeclaration':
+            case 'TsInterfaceDecl':
+                // Interfaces → ExpressionResolver.objectTypeTable, so params typed by
+                // them (`{ size }: IProps`) resolve to their string-literal unions.
+                this.expressionResolver.captureInterfaceDeclaration(node);
+                break;
+            case 'FunctionDeclaration':
+            case 'FnDecl':
+                // Return-type annotations or inferred return values for t(fn()) patterns
+                this.expressionResolver.captureFunctionDeclaration(node);
+                break;
+        }
+        for (const key in node) {
+            if (key === 'span')
+                continue;
+            const child = node[key];
+            if (Array.isArray(child)) {
+                for (const item of child) {
+                    if (item && typeof item === 'object')
+                        this._walkForConstants(item);
+                }
+            }
+            else if (child && typeof child === 'object') {
+                this._walkForConstants(child);
+            }
+        }
+    }
+    /**
+     * Main entry point for AST traversal.
+     * Creates a root scope and begins the recursive walk through the syntax tree.
+     *
+     * @param node - The root module node to traverse
+     */
+    visit(node) {
+        // Reset any per-file scope state to avoid leaking scopes between files.
+        this.scopeManager.reset();
+        // Reset per-file captured variables in the expression resolver so variables from other files don't leak.
+        this.expressionResolver.resetFileSymbols();
+        this.scopeManager.enterScope(); // Create the root scope for the file
+        this.walk(node);
+        this.scopeManager.exitScope(); // Clean up the root scope
+    }
+    /**
+     * Recursively walks through AST nodes, handling scoping and visiting logic.
+     *
+     * This is the core traversal method that:
+     * 1. Manages function scopes (enter/exit)
+     * 2. Dispatches to specific handlers based on node type
+     * 3. Recursively processes child nodes
+     * 4. Maintains proper scope cleanup
+     *
+     * @param node - The current AST node to process
+     *
+     * @private
+     */
+    walk(node) {
+        if (!node)
+            return;
+        let isNewScope = false;
+        let isNewClassScope = false;
+        let paramTemporaries;
+        let paramDefaults;
+        let paramObjectTemporaries;
+        let paramArrayTemporaries;
+        // ENTER CLASS SCOPE for class declarations / expressions and pre-register
+        // class field initializers so that later `this.<field>` references inside
+        // method bodies can inherit the namespace/keyPrefix from the field.
+        if (node.type === 'ClassDeclaration' ||
+            node.type === 'ClassExpression' ||
+            node.type === 'ClassDecl' ||
+            node.type === 'ClassExpr') {
+            this.scopeManager.enterClassScope();
+            isNewClassScope = true;
+            const classBody = Array.isArray(node.body) ? node.body : (node.body?.body ?? []);
+            for (const member of classBody) {
+                if (!member || typeof member !== 'object')
+                    continue;
+                if (member.type === 'ClassProperty' ||
+                    member.type === 'PrivateProperty' ||
+                    member.type === 'PropertyDefinition' ||
+                    member.type === 'ClassPrivateProperty') {
+                    let fieldName;
+                    const key = member.key;
+                    if (key?.type === 'Identifier')
+                        fieldName = key.value ?? key.name;
+                    else if (key?.type === 'PrivateName')
+                        fieldName = '#' + (key.value ?? key.name ?? key.id?.value ?? key.id?.name);
+                    if (!fieldName)
+                        continue;
+                    this.scopeManager.registerClassField(fieldName, member.value);
+                }
+            }
+        }
+        // ENTER SCOPE for functions
+        // Accept many SWC/TS AST variants for function-like nodes (declarations, expressions, arrow functions)
+        if (node.type === 'Function' ||
+            node.type === 'FunctionDeclaration' ||
+            node.type === 'FunctionDecl' ||
+            node.type === 'FnDecl' ||
+            node.type === 'ArrowFunctionExpression' ||
+            node.type === 'FunctionExpression' ||
+            node.type === 'MethodDefinition' ||
+            node.type === 'ClassMethod' ||
+            node.type === 'ObjectMethod') {
+            this.scopeManager.enterScope();
+            isNewScope = true;
+            // `<Ns extends 'a' | 'b'>(t: TFunction<Ns>)` → constraint lookup for type params
+            const typeParamConstraints = {};
+            for (const tp of (node.typeParameters?.parameters ?? node.typeParameters?.params ?? [])) {
+                const name = tp?.name?.value ?? tp?.name?.name;
+                if (name && tp.constraint)
+                    typeParamConstraints[name] = tp.constraint;
+            }
+            const params = (node.params && Array.isArray(node.params)) ? node.params : (node.params || []);
+            for (const p of params) {
+                // handle common param shapes: Identifier, AssignmentPattern (default), RestElement ignored
+                let ident;
+                if (!p)
+                    continue;
+                // Destructured object param: `function f({ size }: IProps)`.
+                // Bind each destructured local name to its interface member's values.
+                const pat = p.pat ?? p.pattern ?? p;
+                if (pat.type === 'ObjectPattern') {
+                    const patType = pat.typeAnnotation?.typeAnnotation ?? pat.typeAnnotation;
+                    const members = this.expressionResolver.resolveTypeMembers(patType);
+                    for (const prop of (pat.properties ?? [])) {
+                        // `{ size }` / `{ size = 'all' }` → AssignmentPatternProperty (local name is the key)
+                        // `{ size: s }` / `{ size: s = 'all' }` → KeyValuePatternProperty
+                        const memberName = prop?.key?.value;
+                        let localNode = prop?.type === 'KeyValuePatternProperty' ? prop.value : prop?.key;
+                        if (localNode?.type === 'AssignmentPattern')
+                            localNode = localNode.left;
+                        const localName = localNode?.type === 'Identifier' ? localNode.value : undefined;
+                        if (!memberName || !localName)
+                            continue;
+                        // `({ ns = 'x' })` → `useTranslation(ns)` resolves to the default
+                        const defaultNode = prop?.type === 'AssignmentPatternProperty'
+                            ? prop.value
+                            : (prop?.value?.type === 'AssignmentPattern' ? prop.value.right : undefined);
+                        if (defaultNode?.type === 'StringLiteral') {
+                            this.scopeManager.setParamDefault(localName, defaultNode.value);
+                            if (!paramDefaults)
+                                paramDefaults = [];
+                            paramDefaults.push(localName);
+                        }
+                        // `({ t }: { t: TFunction<'ns'> })` → bind `t` to that namespace
+                        this.bindTFunctionParam(localName, this.getMemberTypeNode(patType, memberName), typeParamConstraints);
+                        if (!members?.[memberName])
+                            continue;
+                        this.expressionResolver.setTemporaryVariable(localName, members[memberName]);
+                        if (!paramTemporaries)
+                            paramTemporaries = [];
+                        paramTemporaries.push(localName);
+                    }
+                    continue;
+                }
+                // direct identifier (arrow fn params etc)
+                if (p.type === 'Identifier')
+                    ident = p;
+                // default params: (x = ...) -> AssignmentPattern.left
+                else if (p.type === 'AssignmentPattern' && p.left && p.left.type === 'Identifier')
+                    ident = p.left;
+                // rest: (...args)
+                else if (p.type === 'RestElement' && p.argument && p.argument.type === 'Identifier')
+                    ident = p.argument;
+                // SWC/TS often wrap params: { pat: Identifier } or { pattern: Identifier } or FnParam/Param
+                else if ((p.type === 'Param' || p.type === 'FnParam' || p.type === 'Arg') && p.pat && p.pat.type === 'Identifier')
+                    ident = p.pat;
+                else if ((p.type === 'Param' || p.type === 'FnParam' || p.type === 'Arg') && p.pattern && p.pattern.type === 'Identifier')
+                    ident = p.pattern;
+                else if (p.pat && p.pat.type === 'Identifier')
+                    ident = p.pat;
+                // function f(ns = 'x') → Param { pat: AssignmentPattern }
+                else if (p.pat?.type === 'AssignmentPattern' && p.pat.left?.type === 'Identifier')
+                    ident = p.pat.left;
+                else if (p.pattern && p.pattern.type === 'Identifier')
+                    ident = p.pattern;
+                // some parsers expose .param or .left.param shapes
+                else if ((p.left && p.left.param && p.left.param.type === 'Identifier'))
+                    ident = p.left.param;
+                else if ((p.param && p.param.type === 'Identifier'))
+                    ident = p.param;
+                if (!ident)
+                    continue;
+                const paramKey = (ident.value ?? ident.name);
+                if (!paramKey)
+                    continue;
+                // `(ns = 'x') =>` → `useTranslation(ns)` resolves to the default
+                const assign = p.type === 'AssignmentPattern' ? p : (p.pat?.type === 'AssignmentPattern' ? p.pat : undefined);
+                if (assign?.right?.type === 'StringLiteral') {
+                    this.scopeManager.setParamDefault(paramKey, assign.right.value);
+                    if (!paramDefaults)
+                        paramDefaults = [];
+                    paramDefaults.push(paramKey);
+                }
+                // Try to locate TypeScript type node carried on the identifier.
+                const rawTypeAnn = (ident.typeAnnotation ?? p.typeAnnotation ?? (p.left && p.left.typeAnnotation));
+                let typeAnn;
+                if (rawTypeAnn) {
+                    // SWC may wrap the actual TS type in a wrapper like TsTypeAnn / TsTypeAnnotation
+                    if (rawTypeAnn.type === 'TsTypeAnn' || rawTypeAnn.type === 'TsTypeAnnotation') {
+                        typeAnn = rawTypeAnn.typeAnnotation ?? rawTypeAnn;
+                    }
+                    else {
+                        typeAnn = rawTypeAnn;
+                    }
+                }
+                else {
+                    typeAnn = undefined;
+                }
+                this.bindTFunctionParam(paramKey, typeAnn, typeParamConstraints);
+                // `props: { t: TFunction<'ns'> }` → bind `props.t` so `props.t('key')` resolves
+                for (const { name, typeNode } of this.getObjectTypeMembers(typeAnn)) {
+                    this.bindTFunctionParam(`${paramKey}.${name}`, typeNode, typeParamConstraints);
+                }
+                // Capture parameter type annotations as temporary variables in the
+                // expression resolver so that dynamic bracket expressions like
+                // `t(($) => $.table.columns[field])` can resolve `field` to its
+                // possible string values (e.g. "name" | "age").
+                if (typeAnn) {
+                    const paramVals = this.expressionResolver.resolveTypeToStringValues(typeAnn);
+                    if (paramVals.length > 0) {
+                        this.expressionResolver.setTemporaryVariable(paramKey, paramVals);
+                        if (!paramTemporaries)
+                            paramTemporaries = [];
+                        paramTemporaries.push(paramKey);
+                    }
+                    else {
+                        // Object-shaped param (`props: IProps`) so `props.size` resolves.
+                        const members = this.expressionResolver.resolveTypeMembers(typeAnn);
+                        if (members) {
+                            this.expressionResolver.setTemporaryObjectVariable(paramKey, members);
+                            if (!paramObjectTemporaries)
+                                paramObjectTemporaries = [];
+                            paramObjectTemporaries.push(paramKey);
+                        }
+                        else {
+                            // Array-of-object param (`items: IProps[]`) so the callback
+                            // parameter of `items.map(...)` can be bound to the element type.
+                            const elementMembers = this.expressionResolver.resolveArrayElementMembers(typeAnn);
+                            if (elementMembers) {
+                                this.expressionResolver.setArrayElementMembers(paramKey, elementMembers);
+                                if (!paramArrayTemporaries)
+                                    paramArrayTemporaries = [];
+                                paramArrayTemporaries.push(paramKey);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        this.hooks.onBeforeVisitNode?.(node);
+        // --- VISIT LOGIC ---
+        // Handle specific node types
+        switch (node.type) {
+            case 'VariableDeclarator':
+                this.scopeManager.handleVariableDeclarator(node);
+                // Capture simple variable initializers so the expressionResolver can
+                // resolve identifiers / member expressions that reference them.
+                this.expressionResolver.captureVariableDeclarator(node);
+                break;
+            case 'TSEnumDeclaration':
+            case 'TsEnumDeclaration':
+            case 'TsEnumDecl':
+                // capture enums into resolver symbol table
+                this.expressionResolver.captureEnumDeclaration(node);
+                break;
+            // pattern 2: capture type aliases so `declare const x: Alias` can be resolved
+            case 'TsTypeAliasDeclaration':
+            case 'TSTypeAliasDeclaration':
+            case 'TsTypeAliasDecl':
+                this.expressionResolver.captureTypeAliasDeclaration(node);
+                break;
+            case 'TsInterfaceDeclaration':
+            case 'TSInterfaceDeclaration':
+            case 'TsInterfaceDecl':
+                this.expressionResolver.captureInterfaceDeclaration(node);
+                break;
+            // pattern 3: capture function return types so `t(fn())` can be resolved
+            case 'FunctionDeclaration':
+            case 'FnDecl':
+                this.expressionResolver.captureFunctionDeclaration(node);
+                break;
+            case 'CallExpression':
+                this.callExpressionHandler.handleCallExpression(node, this.scopeManager.getVarFromScope.bind(this.scopeManager));
+                break;
+            case 'NewExpression':
+                // Handle NewExpression similarly to CallExpression (e.g., new TranslatedError(...))
+                // NewExpression has the same structure: callee and arguments
+                this.callExpressionHandler.handleCallExpression({
+                    ...node,
+                    arguments: node.arguments || []
+                }, this.scopeManager.getVarFromScope.bind(this.scopeManager));
+                break;
+            case 'JSXElement':
+                this.jsxHandler.handleJSXElement(node, this.scopeManager.getVarFromScope.bind(this.scopeManager));
+                break;
+        }
+        this.hooks.onAfterVisitNode?.(node);
+        // --- END VISIT LOGIC ---
+        // Detect array iteration calls (.map / .forEach / .flatMap etc.) on a known
+        // as-const array so the callback parameter is bound to the array values while
+        // the callback body is walked.  We inject the binding BEFORE generic recursion
+        // and remove it AFTER, so the whole subtree sees the correct value.
+        let arrayCallbackCleanup;
+        if (node.type === 'CallExpression') {
+            const info = this.tryGetArrayIterationCallbackInfo(node);
+            if (info) {
+                this.expressionResolver.setTemporaryVariable(info.paramName, info.values);
+                arrayCallbackCleanup = () => this.expressionResolver.deleteTemporaryVariable(info.paramName);
+            }
+            else {
+                // `items.map(({ size }) => ...)` / `items.map(item => ...t(`${item.size}`))`
+                // where `items` is typed as an array of an object shape.
+                arrayCallbackCleanup = this.tryBindObjectArrayCallback(node);
+            }
+        }
+        else if (node.type === 'ForOfStatement') {
+            arrayCallbackCleanup = this.tryBindForOfLoop(node);
+        }
+        // --- RECURSION ---
+        // Recurse into the children of the current node
+        for (const key in node) {
+            if (key === 'span')
+                continue;
+            const child = node[key];
+            if (Array.isArray(child)) {
+                // Pre-scan array children in THREE passes:
+                //   Pass 1 — variables WITH init (arrays, objects, strings, fns) + enums
+                //   Pass 2 — type aliases + functions (may depend on pass-1 arrays)
+                //   Pass 3 — `declare const x: Type` (no init; depends on pass-2 type aliases)
+                // This ordering ensures e.g.:
+                //   const OPTS = ['a','b'] as const          → pass 1
+                //   type T = (typeof OPTS)[number]            → pass 2 (resolves OPTS)
+                //   declare const v: T                        → pass 3 (resolves T)
+                // ── Pass 1: variables with init ──────────────────────────────────────
+                for (const item of child) {
+                    if (!item || typeof item !== 'object')
+                        continue;
+                    // Direct declarator (rare)
+                    if (item.type === 'VariableDeclarator' && item.init) {
+                        this.scopeManager.handleVariableDeclarator(item);
+                        this.expressionResolver.captureVariableDeclarator(item);
+                        continue;
+                    }
+                    // enum declarations
+                    if (item.id && Array.isArray(item.members)) {
+                        this.expressionResolver.captureEnumDeclaration(item);
+                    }
+                    // Bare VariableDeclaration — only declarators that have an init
+                    if (item.type === 'VariableDeclaration' && Array.isArray(item.declarations)) {
+                        for (const decl of item.declarations) {
+                            if (decl?.type === 'VariableDeclarator' && decl.init) {
+                                this.scopeManager.handleVariableDeclarator(decl);
+                                this.expressionResolver.captureVariableDeclarator(decl);
+                            }
+                        }
+                    }
+                    // ExportDeclaration wrapping VariableDeclaration — only inited declarators
+                    if ((item.type === 'ExportDeclaration' || item.type === 'ExportNamedDeclaration') && item.declaration) {
+                        const inner = item.declaration;
+                        if (inner.type === 'VariableDeclaration' && Array.isArray(inner.declarations)) {
+                            for (const vd of inner.declarations) {
+                                if (vd?.type === 'VariableDeclarator' && vd.init) {
+                                    this.scopeManager.handleVariableDeclarator(vd);
+                                    this.expressionResolver.captureVariableDeclarator(vd);
+                                }
+                            }
+                        }
+                    }
+                }
+                // ── Pass 2: type aliases + functions ─────────────────────────────────
+                for (const item of child) {
+                    if (!item || typeof item !== 'object')
+                        continue;
+                    if (item.type === 'TsTypeAliasDeclaration' || item.type === 'TSTypeAliasDeclaration' || item.type === 'TsTypeAliasDecl') {
+                        this.expressionResolver.captureTypeAliasDeclaration(item);
+                    }
+                    if (item.type === 'FunctionDeclaration' || item.type === 'FnDecl') {
+                        this.expressionResolver.captureFunctionDeclaration(item);
+                    }
+                    if ((item.type === 'ExportDeclaration' || item.type === 'ExportNamedDeclaration') && item.declaration) {
+                        const inner = item.declaration;
+                        if (inner.type === 'TsTypeAliasDeclaration' || inner.type === 'TSTypeAliasDeclaration' || inner.type === 'TsTypeAliasDecl') {
+                            this.expressionResolver.captureTypeAliasDeclaration(inner);
+                        }
+                        if (inner.type === 'FunctionDeclaration' || inner.type === 'FnDecl') {
+                            this.expressionResolver.captureFunctionDeclaration(inner);
+                        }
+                    }
+                }
+                // ── Pass 3: `declare const x: Type` — no init, depends on type aliases ─
+                // Also re-processes ArrayPattern destructuring (e.g. useState<T>) whose
+                // type argument resolution failed in Pass 1 because typeAliasTable was empty.
+                for (const item of child) {
+                    if (!item || typeof item !== 'object')
+                        continue;
+                    // Direct declarator with no init
+                    if (item.type === 'VariableDeclarator' && !item.init) {
+                        this.scopeManager.handleVariableDeclarator(item);
+                        this.expressionResolver.captureVariableDeclarator(item);
+                        continue;
+                    }
+                    // ArrayPattern destructuring with init — re-run now that type aliases are populated
+                    if (item.type === 'VariableDeclarator' && item.init && item.id?.type === 'ArrayPattern') {
+                        this.expressionResolver.captureVariableDeclarator(item);
+                        continue;
+                    }
+                    // VariableDeclaration — process no-init declarators and re-process ArrayPattern ones
+                    if (item.type === 'VariableDeclaration' && Array.isArray(item.declarations)) {
+                        for (const decl of item.declarations) {
+                            if (!decl.init) {
+                                this.scopeManager.handleVariableDeclarator(decl);
+                                this.expressionResolver.captureVariableDeclarator(decl);
+                            }
+                            else if (decl.id?.type === 'ArrayPattern') {
+                                this.expressionResolver.captureVariableDeclarator(decl);
+                            }
+                        }
+                    }
+                    // ExportDeclaration wrapping — same logic
+                    if ((item.type === 'ExportDeclaration' || item.type === 'ExportNamedDeclaration') && item.declaration) {
+                        const inner = item.declaration;
+                        if (inner.type === 'VariableDeclaration' && Array.isArray(inner.declarations)) {
+                            for (const vd of inner.declarations) {
+                                if (!vd.init) {
+                                    this.scopeManager.handleVariableDeclarator(vd);
+                                    this.expressionResolver.captureVariableDeclarator(vd);
+                                }
+                                else if (vd.id?.type === 'ArrayPattern') {
+                                    this.expressionResolver.captureVariableDeclarator(vd);
+                                }
+                            }
+                        }
+                    }
+                }
+                for (const item of child) {
+                    // Be less strict: if it's a non-null object, walk it.
+                    // This allows traversal into nodes that might not have a `.type` property
+                    // but still contain other valid AST nodes.
+                    if (item && typeof item === 'object') {
+                        this.walk(item);
+                    }
+                }
+            }
+            else if (child && typeof child === 'object') {
+                // The condition for single objects should be the same as for array items.
+                // Do not require `child.type`. This allows traversal into class method bodies.
+                this.walk(child);
+            }
+        }
+        // --- END RECURSION ---
+        // Remove temporary callback param binding if one was injected for this node
+        arrayCallbackCleanup?.();
+        // LEAVE SCOPE for functions
+        if (isNewScope) {
+            // Remove temporary parameter type bindings
+            if (paramTemporaries) {
+                for (const name of paramTemporaries) {
+                    this.expressionResolver.deleteTemporaryVariable(name);
+                }
+            }
+            if (paramDefaults) {
+                for (const name of paramDefaults)
+                    this.scopeManager.deleteParamDefault(name);
+            }
+            if (paramObjectTemporaries) {
+                for (const name of paramObjectTemporaries) {
+                    this.expressionResolver.deleteTemporaryObjectVariable(name);
+                }
+            }
+            if (paramArrayTemporaries) {
+                for (const name of paramArrayTemporaries) {
+                    this.expressionResolver.deleteArrayElementMembers(name);
+                }
+            }
+            this.scopeManager.exitScope();
+        }
+        // LEAVE CLASS SCOPE for classes
+        if (isNewClassScope) {
+            this.scopeManager.exitClassScope();
+        }
+    }
+    /**
+     * If `typeAnn` is a `TFunction<Ns, KPrefix>` type reference, register
+     * `paramKey` in the current scope with that namespace / keyPrefix.
+     */
+    bindTFunctionParam(paramKey, typeAnn, typeParamConstraints = {}) {
+        // Small helpers to robustly extract the referenced type name and literal string
+        const extractTypeName = (ta) => {
+            if (!ta)
+                return undefined;
+            // Identifier style: { type: 'Identifier', value: 'TFunction' } OR { name: 'TFunction' }
+            if (ta.typeName && (ta.typeName.type === 'Identifier'))
+                return ta.typeName.value ?? ta.typeName.name;
+            if (ta.typeName && ta.typeName.type === 'TsQualifiedName') {
+                // Qualified like Foo.TFunction -> try right side
+                const right = (ta.typeName.right ?? ta.typeName);
+                return right?.value ?? right?.name;
+            }
+            if (ta.typeName && typeof ta.typeName === 'string')
+                return ta.typeName;
+            if (ta.type === 'Identifier')
+                return ta.value ?? ta.name;
+            if (ta.id)
+                return ta.id?.value ?? ta.id?.name ?? ta.id;
+            return undefined;
+        };
+        const extractStringLiteralValue = (node) => {
+            if (!node)
+                return undefined;
+            // Union (`'a' | 'b'`) or generic constrained to one (`<Ns extends 'a' | 'b'>`):
+            // use the first member, mirroring i18next's type-level behaviour (first ns wins).
+            // Named aliases (`TFunction<Namespace>`) are deliberately NOT resolved: an
+            // app-wide `Namespace` union would otherwise "win" with an arbitrary first entry.
+            if (node.type === 'TsUnionType')
+                return extractStringLiteralValue(node.types?.[0]);
+            if (node.type === 'TsTypeReference' && node.typeName?.type === 'Identifier') {
+                return extractStringLiteralValue(typeParamConstraints[node.typeName.value]);
+            }
+            // Handle: typeof SomeConst  → TsTypeQuery { exprName: { value: 'SomeConst' } }
+            if (node?.type === 'TsTypeQuery') {
+                const name = node.exprName?.value ?? node.exprName?.name;
+                if (name)
+                    return this.scopeManager.resolveSimpleStringIdentifier(name);
+            }
+            // shapes: TsLiteralType -> { literal: { type: 'StringLiteral', value: 'x' } }
+            if (node.type === 'TsLiteralType' && node.literal)
+                return node.literal.value ?? node.literal.raw;
+            if (node.type === 'StringLiteral' || node.type === 'Str' || node.type === 'Literal')
+                return node.value ?? node.raw ?? node.value;
+            if (node.literal && (node.literal.type === 'StringLiteral' || node.literal.type === 'Str'))
+                return node.literal.value;
+            // some SWC builds put the string directly on .value
+            if (typeof node.value === 'string')
+                return node.value;
+            // handle wrapped parameter like { params: [ ... ] } where a literal might be one level deeper
+            if (node.params && Array.isArray(node.params) && node.params[0])
+                return extractStringLiteralValue(node.params[0]);
+            if (node.typeArguments && Array.isArray(node.typeArguments) && node.typeArguments[0])
+                return extractStringLiteralValue(node.typeArguments[0]);
+            if (node.typeParameters && Array.isArray(node.typeParameters) && node.typeParameters[0])
+                return extractStringLiteralValue(node.typeParameters[0]);
+            if (node.typeParams && Array.isArray(node.typeParams) && node.typeParams[0])
+                return extractStringLiteralValue(node.typeParams[0]);
+            return undefined;
+        };
+        // `ReturnType<typeof useTranslation<'ns', 'kp'>>['t']` is `TFunction<'ns', 'kp'>` spelled indirectly.
+        if (typeAnn?.type === 'TsIndexedAccessType' && extractStringLiteralValue(typeAnn.indexType) === 't') {
+            const obj = typeAnn.objectType;
+            const query = obj?.type === 'TsTypeReference' && extractTypeName(obj) === 'ReturnType'
+                ? (obj.typeParams?.params?.[0] ?? obj.typeArguments?.params?.[0])
+                : undefined;
+            const hookName = query?.type === 'TsTypeQuery' ? (query.exprName?.value ?? query.exprName?.name) : undefined;
+            const hookNames = this.config.extract.useTranslationNames || ['useTranslation', 'getT', 'useT'];
+            if (hookName && hookNames.some(h => (typeof h === 'string' ? h : h.name) === hookName)) {
+                const params = query.typeArguments?.params ?? query.typeArgs?.params ?? [];
+                const ns = extractStringLiteralValue(params[0]);
+                const kp = extractStringLiteralValue(params[1]);
+                if (ns || kp)
+                    this.scopeManager.setVarInScope(paramKey, { defaultNs: ns, keyPrefix: kp });
+            }
+            return;
+        }
+        // Detect TsTypeReference like: TFunction<"my-custom-namespace">
+        if (typeAnn && (typeAnn.type === 'TsTypeReference' || typeAnn.type === 'TsTypeRef' || typeAnn.type === 'TsTypeReference')) {
+            const finalTypeName = extractTypeName(typeAnn);
+            if (finalTypeName === 'TFunction') {
+                // support multiple AST shapes for type parameters:
+                // - typeAnn.typeParameters?.params?.[0]
+                // - typeAnn.typeArguments?.params?.[0]
+                // - typeAnn.typeParams?.[0] / typeAnn.params?.[0]
+                const candidates = [
+                    typeAnn.typeParameters?.params?.[0],
+                    typeAnn.typeParameters?.[0],
+                    typeAnn.typeArguments?.params?.[0],
+                    typeAnn.typeArguments?.[0],
+                    typeAnn.typeParams?.params?.[0],
+                    typeAnn.typeParams?.[0],
+                    typeAnn.params?.[0],
+                    typeAnn.args?.[0],
+                    typeAnn.typeParameters, // fallback if it's directly the literal
+                    typeAnn.typeArguments,
+                    typeAnn.typeParams,
+                ];
+                let tp;
+                for (const c of candidates) {
+                    if (c) {
+                        tp = c;
+                        break;
+                    }
+                }
+                const ns = extractStringLiteralValue(tp);
+                // Extract the second type parameter for KPrefix
+                // We need to find the second element from the same type parameter list
+                const typeParams = typeAnn.typeParameters?.params ??
+                    typeAnn.typeArguments?.params ??
+                    typeAnn.typeParams?.params ??
+                    undefined;
+                let kpFromType;
+                if (typeParams && typeParams.length >= 2) {
+                    kpFromType = extractStringLiteralValue(typeParams[1]);
+                }
+                if (ns || kpFromType) {
+                    this.scopeManager.setVarInScope(paramKey, {
+                        defaultNs: ns,
+                        keyPrefix: kpFromType // honour TFunction<Ns, KPrefix>
+                    });
+                }
+            }
+        }
+    }
+    /**
+     * Find the raw type node of a named member on an object-shaped type
+     * annotation (inline `{ t: TFunction<'ns'> }` or a local interface / type
+     * alias name).
+     */
+    getMemberTypeNode(tsType, memberName) {
+        return this.getObjectTypeMembers(tsType).find(m => m.name === memberName)?.typeNode;
+    }
+    /** `{ name, typeNode }` for every property of an object-shaped type annotation. */
+    getObjectTypeMembers(tsType) {
+        if (!tsType)
+            return [];
+        // `A & { t: TFunction<'ns'> }` / `(A)` → union of the constituents' members
+        if (tsType.type === 'TsIntersectionType')
+            return (tsType.types ?? []).flatMap((t) => this.getObjectTypeMembers(t));
+        if (tsType.type === 'TsParenthesizedType')
+            return this.getObjectTypeMembers(tsType.typeAnnotation);
+        let members;
+        if (tsType.type === 'TsTypeLiteral')
+            members = tsType.members;
+        else if (tsType.type === 'TsTypeReference' && tsType.typeName?.type === 'Identifier') {
+            members = this.expressionResolver.getObjectTypeMembersRaw(tsType.typeName.value);
+        }
+        if (!Array.isArray(members))
+            return [];
+        const out = [];
+        for (const m of members) {
+            if (m?.type !== 'TsPropertySignature')
+                continue;
+            const name = m.key?.type === 'Identifier' || m.key?.type === 'StringLiteral' ? m.key.value : undefined;
+            if (name)
+                out.push({ name, typeNode: m.typeAnnotation?.typeAnnotation ?? m.typeAnnotation });
+        }
+        return out;
+    }
+    /**
+     * If `node` is a call like `ARRAY.map(param => ...)` where ARRAY is a known
+     * string-array constant, returns the callback's first parameter name and the
+     * array values so the caller can inject a temporary variable binding.
+     *
+     * Also handles:
+     *   `Object.keys(MAP).map/forEach(k => ...)`  → param bound to MAP's keys
+     *   `Object.values(MAP).map/forEach(v => ...)` → param bound to MAP's values
+     */
+    tryGetArrayIterationCallbackInfo(node) {
+        try {
+            const callee = node.callee;
+            if (callee?.type !== 'MemberExpression')
+                return undefined;
+            const prop = callee.property;
+            if (prop?.type !== 'Identifier')
+                return undefined;
+            const elementParamIndex = ITERATION_METHODS[prop.value];
+            if (elementParamIndex === undefined)
+                return undefined;
+            // The object must be an identifier whose value is a known string array
+            const obj = callee.object;
+            // ── Case 1: KNOWN_ARRAY.map(x => ...) ─────────────────────────────────
+            if (obj?.type === 'Identifier') {
+                const values = this.expressionResolver.getVariableValues(obj.value);
+                if (values && values.length > 0) {
+                    return this.extractCallbackParam(node, values, elementParamIndex);
+                }
+            }
+            // ── Case 2: Object.keys(MAP).map(k => ...) ────────────────────────────
+            //            Object.values(MAP).map(v => ...)
+            // callee.object is a CallExpression: Object.keys(...) / Object.values(...)
+            if (obj?.type === 'CallExpression') {
+                const innerCallee = obj.callee;
+                // Must be `Object.keys` or `Object.values`
+                if (innerCallee?.type === 'MemberExpression' &&
+                    innerCallee.object?.type === 'Identifier' &&
+                    innerCallee.object.value === 'Object' &&
+                    innerCallee.property?.type === 'Identifier' &&
+                    (innerCallee.property.value === 'keys' || innerCallee.property.value === 'values')) {
+                    const isKeys = innerCallee.property.value === 'keys';
+                    // The single argument to Object.keys/values must be a known identifier
+                    const mapArg = obj.arguments?.[0]?.expression;
+                    if (mapArg?.type === 'Identifier') {
+                        const mapEntry = this.expressionResolver.getObjectMap(mapArg.value);
+                        if (mapEntry) {
+                            const values = isKeys ? Object.keys(mapEntry) : Object.values(mapEntry);
+                            if (values.length > 0) {
+                                return this.extractCallbackParam(node, values, elementParamIndex);
+                            }
+                        }
+                    }
+                }
+            }
+            return undefined;
+        }
+        catch {
+            return undefined;
+        }
+    }
+    /**
+     * If `node` is `for (const unit of KNOWN_ARRAY)` — or the destructured
+     * `for (const { unit } of KNOWN_ARRAY_OF_OBJECTS)` — binds the loop variable
+     * for the duration of the loop body, the same way `.map()`/`.forEach()`
+     * callback parameters are bound.
+     *
+     * Returns a cleanup function, or undefined when nothing was bound.
+     */
+    tryBindForOfLoop(node) {
+        try {
+            if (node.right?.type !== 'Identifier')
+                return undefined;
+            const source = node.right.value;
+            const left = node.left;
+            const pat = left?.type === 'VariableDeclaration' ? left.declarations?.[0]?.id : left;
+            // `for (const unit of ['day', 'hour'] as const)`
+            if (pat?.type === 'Identifier') {
+                const values = this.expressionResolver.getVariableValues(source);
+                if (values?.length) {
+                    this.expressionResolver.setTemporaryVariable(pat.value, values);
+                    return () => this.expressionResolver.deleteTemporaryVariable(pat.value);
+                }
+                // `for (const item of items)` so `item.unit` resolves
+                const members = this.expressionResolver.getArrayElementMembers(source);
+                if (members) {
+                    this.expressionResolver.setTemporaryObjectVariable(pat.value, members);
+                    return () => this.expressionResolver.deleteTemporaryObjectVariable(pat.value);
+                }
+                return undefined;
+            }
+            // `for (const { unit } of [{ unit: 'day' }, …] as const)`
+            if (pat?.type === 'ObjectPattern') {
+                const members = this.expressionResolver.getArrayElementMembers(source);
+                if (!members)
+                    return undefined;
+                const bound = [];
+                for (const prop of (pat.properties ?? [])) {
+                    const memberName = prop?.key?.value;
+                    let localNode = prop?.type === 'KeyValuePatternProperty' ? prop.value : prop?.key;
+                    if (localNode?.type === 'AssignmentPattern')
+                        localNode = localNode.left;
+                    const localName = localNode?.type === 'Identifier' ? localNode.value : undefined;
+                    if (!memberName || !localName || !members[memberName])
+                        continue;
+                    this.expressionResolver.setTemporaryVariable(localName, members[memberName]);
+                    bound.push(localName);
+                }
+                if (bound.length === 0)
+                    return undefined;
+                return () => bound.forEach(name => this.expressionResolver.deleteTemporaryVariable(name));
+            }
+            return undefined;
+        }
+        catch {
+            return undefined;
+        }
+    }
+    /**
+     * If `node` is `items.map(cb)` (or forEach/flatMap/…) where `items` is typed
+     * as an array of an object shape (`items: IProps[]`), binds the callback
+     * parameter to the element type for the duration of the callback body:
+     *
+     *   items.map(({ size }) => t(`some|${size}`))   → `size` bound to the union
+     *   items.map(item => t(`some|${item.size}`))    → `item` bound to the members
+     *
+     * Returns a cleanup function, or undefined when nothing was bound.
+     */
+    tryBindObjectArrayCallback(node) {
+        try {
+            const callee = node.callee;
+            if (callee?.type !== 'MemberExpression')
+                return undefined;
+            const prop = callee.property;
+            if (prop?.type !== 'Identifier')
+                return undefined;
+            const elementParamIndex = ITERATION_METHODS[prop.value];
+            if (elementParamIndex === undefined)
+                return undefined;
+            if (callee.object?.type !== 'Identifier')
+                return undefined;
+            const members = this.expressionResolver.getArrayElementMembers(callee.object.value);
+            if (!members)
+                return undefined;
+            const callbackArg = node.arguments?.[0]?.expression;
+            const params = callbackArg?.params ?? callbackArg?.parameters ?? [];
+            const firstParam = params[elementParamIndex];
+            if (!firstParam)
+                return undefined;
+            const pat = firstParam.pat ?? firstParam.pattern ?? firstParam;
+            // Destructured element: `({ size }) => …` / `({ size: s }) => …`
+            if (pat.type === 'ObjectPattern') {
+                const bound = [];
+                for (const patProp of (pat.properties ?? [])) {
+                    const memberName = patProp?.key?.value;
+                    let localNode = patProp?.type === 'KeyValuePatternProperty' ? patProp.value : patProp?.key;
+                    if (localNode?.type === 'AssignmentPattern')
+                        localNode = localNode.left;
+                    const localName = localNode?.type === 'Identifier' ? localNode.value : undefined;
+                    if (!memberName || !localName || !members[memberName])
+                        continue;
+                    this.expressionResolver.setTemporaryVariable(localName, members[memberName]);
+                    bound.push(localName);
+                }
+                if (bound.length === 0)
+                    return undefined;
+                return () => bound.forEach(name => this.expressionResolver.deleteTemporaryVariable(name));
+            }
+            // Whole element: `item => …` so `item.size` resolves
+            if (pat.type === 'Identifier') {
+                this.expressionResolver.setTemporaryObjectVariable(pat.value, members);
+                return () => this.expressionResolver.deleteTemporaryObjectVariable(pat.value);
+            }
+            return undefined;
+        }
+        catch {
+            return undefined;
+        }
+    }
+    /**
+     * Extracts the element callback parameter identifier from an iteration call node
+     * and pairs it with the provided values array. `paramIndex` is the position of
+     * the element parameter (0 for map/forEach/…, 1 for reduce's `(acc, el)`).
+     */
+    extractCallbackParam(node, values, paramIndex = 0) {
+        const callbackArg = node.arguments?.[0]?.expression;
+        if (!callbackArg)
+            return undefined;
+        const params = callbackArg.params ?? callbackArg.parameters ?? [];
+        const firstParam = params[paramIndex];
+        if (!firstParam)
+            return undefined;
+        const ident = firstParam.type === 'Identifier'
+            ? firstParam
+            : firstParam.type === 'Param' && firstParam.pat?.type === 'Identifier'
+                ? firstParam.pat
+                : firstParam.type === 'AssignmentPattern' && firstParam.left?.type === 'Identifier'
+                    ? firstParam.left
+                    : null;
+        if (!ident)
+            return undefined;
+        return { paramName: ident.value, values };
+    }
+    /**
+     * Retrieves variable information from the scope chain.
+     * Searches from innermost to outermost scope.
+     *
+     * @param name - Variable name to look up
+     * @returns Scope information if found, undefined otherwise
+     *
+     * @private
+     */
+    getVarFromScope(name) {
+        return this.scopeManager.getVarFromScope(name);
+    }
+    /**
+     * Sets the current file path and code used by the extractor.
+     */
+    setCurrentFile(file, code) {
+        this.currentFile = file;
+        this.currentCode = code;
+    }
+    /**
+     * Returns the currently set file path.
+     *
+     * @returns The current file path as a string, or `undefined` if no file has been set.
+     * @remarks
+     * Use this to retrieve the file context that was previously set via `setCurrentFile`.
+     */
+    getCurrentFile() {
+        return this.currentFile;
+    }
+    /**
+     * @returns The full source code string for the file currently under processing.
+     */
+    getCurrentCode() {
+        return this.currentCode;
+    }
+}
+
+exports.ASTVisitors = ASTVisitors;

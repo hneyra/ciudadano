@@ -1,0 +1,878 @@
+'use strict';
+
+var astUtils = require('./ast-utils.js');
+
+class ScopeManager {
+    scopeStack = [];
+    config;
+    scope = new Map();
+    // Stack of class scopes; each entry maps a class field name (e.g. `myField`
+    // or `#privateField`) to the ScopeInfo derived from its initializer. Used to
+    // resolve `const { t } = this.field` and `const { t } = this.field()` patterns
+    // inside class methods.
+    thisFieldStack = [];
+    // Track simple local constants with string literal values to resolve identifier args
+    simpleConstants = new Map();
+    // Track simple local constant objects with string literal property values
+    simpleConstantObjects = new Map();
+    // `const NS = ['a', 'b']` → used by resolveNsArg for `useTranslation(NS)`.
+    simpleConstantArrays = new Map();
+    // `({ ns = 'x' }) =>` / `(ns = 'x') =>` param defaults, set/cleared per function by the visitor.
+    paramDefaults = new Map();
+    // Last-resort identifier resolution for `useTranslation(ns)` (e.g. first member of
+    // a param's union type), wired up by the visitor.
+    identifierFallback;
+    // Shared (cross-file) tables so that exported constants from one file can be
+    // resolved when imported in another. These are NOT cleared by reset().
+    sharedConstants = new Map();
+    sharedConstantObjects = new Map();
+    constructor(config) {
+        this.config = config;
+    }
+    /**
+     * Recursively unwraps TypeScript type assertion wrappers to reach the
+     * underlying expression node.
+     */
+    static unwrapTsExpression(node) {
+        if (!node)
+            return node;
+        switch (node.type) {
+            case 'TsConstAssertion':
+            case 'TsAsExpression':
+            case 'TsSatisfiesExpression':
+                return ScopeManager.unwrapTsExpression(node.expression);
+            default:
+                return node;
+        }
+    }
+    /**
+     * Extracts a string value from a variable declarator's TypeScript type
+     * annotation when it is a literal string type (e.g., `const ns: 'users'`).
+     */
+    static extractStringFromTypeAnnotation(node) {
+        if (!node?.id || node.id.type !== 'Identifier')
+            return undefined;
+        if ('typeAnnotation' in node.id) {
+            const rawTypeAnn = node.id.typeAnnotation;
+            if (!rawTypeAnn)
+                return undefined;
+            const tsType = rawTypeAnn.typeAnnotation;
+            if (tsType?.type === 'TsLiteralType' && tsType.literal?.type === 'StringLiteral') {
+                return tsType.literal.value;
+            }
+        }
+        return undefined;
+    }
+    /**
+     * Reset per-file scope state.
+     *
+     * This clears both the scope stack and the legacy scope map. It should be
+     * called at the start of processing each file so that scope info does not
+     * leak between files.
+     */
+    reset() {
+        this.scopeStack = [];
+        this.scope = new Map();
+        this.simpleConstants.clear();
+        this.simpleConstantObjects.clear();
+        this.simpleConstantArrays.clear();
+        this.paramDefaults.clear();
+        this.thisFieldStack = [];
+    }
+    /**
+     * Pushes a new class scope used for tracking class field → ScopeInfo
+     * mappings. Should be called when entering a ClassDeclaration or
+     * ClassExpression.
+     */
+    enterClassScope() {
+        this.thisFieldStack.push(new Map());
+    }
+    /**
+     * Pops the current class scope. Should be called when leaving a
+     * ClassDeclaration or ClassExpression.
+     */
+    exitClassScope() {
+        this.thisFieldStack.pop();
+    }
+    /**
+     * Records a class field's ScopeInfo so that later `this.<field>` or
+     * `this.<field>()` accesses inside the class can inherit the namespace
+     * and keyPrefix from its initializer.
+     *
+     * @param fieldName - Field name (private fields are prefixed with `#`)
+     * @param info - Scope information derived from the field's initializer
+     */
+    setThisField(fieldName, info) {
+        if (this.thisFieldStack.length > 0) {
+            this.thisFieldStack[this.thisFieldStack.length - 1].set(fieldName, info);
+        }
+    }
+    /**
+     * Looks up a class field's ScopeInfo from the innermost class scope outward.
+     *
+     * @param fieldName - Field name (private fields are prefixed with `#`)
+     * @returns Scope information if found, undefined otherwise
+     */
+    getThisField(fieldName) {
+        for (let i = this.thisFieldStack.length - 1; i >= 0; i--) {
+            if (this.thisFieldStack[i].has(fieldName)) {
+                return this.thisFieldStack[i].get(fieldName);
+            }
+        }
+        return undefined;
+    }
+    /**
+     * Enters a new variable scope by pushing a new scope map onto the stack.
+     * Used when entering functions to isolate variable declarations.
+     */
+    enterScope() {
+        this.scopeStack.push(new Map());
+    }
+    /**
+     * Exits the current variable scope by popping the top scope map.
+     * Used when leaving functions to clean up variable tracking.
+     */
+    exitScope() {
+        this.scopeStack.pop();
+    }
+    /**
+     * Stores variable information in the current scope.
+     * Used to track translation functions and their configuration.
+     *
+     * @param name - Variable name to store
+     * @param info - Scope information about the variable
+     */
+    setVarInScope(name, info) {
+        if (this.scopeStack.length > 0) {
+            this.scopeStack[this.scopeStack.length - 1].set(name, info);
+        }
+        else {
+            // No active scope (top-level). Preserve in legacy scope map so lookups work
+            // for top-level variables (e.g., const { getFixedT } = useTranslate(...))
+            this.scope.set(name, info);
+        }
+    }
+    /**
+     * Retrieves variable information from the scope chain.
+     * Searches from innermost to outermost scope.
+     *
+     * @param name - Variable name to look up
+     * @returns Scope information if found, undefined otherwise
+     */
+    getVarFromScope(name) {
+        // First check the proper scope stack (this is the primary source of truth)
+        for (let i = this.scopeStack.length - 1; i >= 0; i--) {
+            if (this.scopeStack[i].has(name)) {
+                const scopeInfo = this.scopeStack[i].get(name);
+                return scopeInfo;
+            }
+        }
+        // Then check the legacy scope tracking for useTranslation calls (for comment parsing)
+        const legacyScope = this.scope.get(name);
+        if (legacyScope) {
+            return legacyScope;
+        }
+        return undefined;
+    }
+    getUseTranslationConfig(name) {
+        const useTranslationNames = this.config.extract.useTranslationNames || ['useTranslation', 'getT', 'useT'];
+        for (const item of useTranslationNames) {
+            if (typeof item === 'string' && item === name) {
+                // Default behavior for simple string entries
+                return { name, nsArg: 0, keyPrefixArg: 1 };
+            }
+            if (typeof item === 'object' && item.name === name) {
+                // Custom configuration with specified or default argument positions
+                return {
+                    name: item.name,
+                    nsArg: item.nsArg ?? 0,
+                    keyPrefixArg: item.keyPrefixArg ?? 1,
+                };
+            }
+        }
+        return undefined;
+    }
+    /**
+     * Resolve simple identifier declared in-file to its string literal value, if known.
+     */
+    setParamDefault(name, value) {
+        this.paramDefaults.set(name, value);
+    }
+    deleteParamDefault(name) {
+        this.paramDefaults.delete(name);
+    }
+    resolveSimpleStringIdentifier(name) {
+        return this.simpleConstants.get(name) ?? this.sharedConstants.get(name);
+    }
+    /**
+     * Resolve a MemberExpression node (e.g., `ns.custom`) to its string value
+     * by looking up the object in `simpleConstantObjects`.
+     */
+    resolveSimpleMemberExpression(node) {
+        if (node.object.type !== 'Identifier') {
+            return undefined;
+        }
+        const map = this.simpleConstantObjects.get(node.object.value) ?? this.sharedConstantObjects.get(node.object.value);
+        if (!map) {
+            return undefined;
+        }
+        const prop = node.property;
+        if (prop.type === 'Identifier') {
+            return map[prop.value];
+        }
+        if (prop.type === 'Computed' && prop.expression.type === 'StringLiteral') {
+            return map[prop.expression.value];
+        }
+        return undefined;
+    }
+    /**
+     * Handles variable declarations that might define translation functions.
+     *
+     * Processes two patterns:
+     * 1. `const { t } = useTranslation(...)` - React i18next pattern
+     * 2. `const t = i18next.getFixedT(...)` - Core i18next pattern
+     *
+     * Extracts namespace and key prefix information for later use.
+     *
+     * @param node - Variable declarator node to process
+     */
+    handleVariableDeclarator(node) {
+        const init = node.init;
+        if (!init)
+            return;
+        // Record simple const/let string initializers for later resolution.
+        // Unwrap TS type assertion wrappers (as const, satisfies, as 'x') and fall
+        // back to the variable's type annotation when the init is not a string literal.
+        if (node.id.type === 'Identifier') {
+            const unwrapped = ScopeManager.unwrapTsExpression(init);
+            if (unwrapped?.type === 'StringLiteral') {
+                this.simpleConstants.set(node.id.value, unwrapped.value);
+                this.sharedConstants.set(node.id.value, unwrapped.value);
+            }
+            else if (unwrapped?.type === 'ObjectExpression' && Array.isArray(unwrapped.properties)) {
+                const map = {};
+                for (const p of unwrapped.properties) {
+                    if (p.type !== 'KeyValueProperty') {
+                        continue;
+                    }
+                    const keyName = p.key.type === 'Identifier'
+                        ? p.key.value
+                        : p.key.type === 'StringLiteral'
+                            ? p.key.value
+                            : undefined;
+                    if (!keyName) {
+                        continue;
+                    }
+                    const val = ScopeManager.unwrapTsExpression(p.value);
+                    if (val?.type === 'StringLiteral') {
+                        map[keyName] = val.value;
+                    }
+                }
+                if (Object.keys(map).length > 0) {
+                    this.simpleConstantObjects.set(node.id.value, map);
+                    this.sharedConstantObjects.set(node.id.value, map);
+                }
+            }
+            else if (unwrapped?.type === 'ArrayExpression') {
+                const arr = unwrapped.elements
+                    .map((el) => ScopeManager.unwrapTsExpression(el?.expression))
+                    .filter((e) => e?.type === 'StringLiteral')
+                    .map((e) => e.value);
+                if (arr.length > 0 && arr.length === unwrapped.elements.length) {
+                    this.simpleConstantArrays.set(node.id.value, arr);
+                }
+            }
+            else {
+                const fromType = ScopeManager.extractStringFromTypeAnnotation(node);
+                if (fromType !== undefined) {
+                    this.simpleConstants.set(node.id.value, fromType);
+                    this.sharedConstants.set(node.id.value, fromType);
+                }
+            }
+            // continue processing; still may be a useTranslation/getFixedT call below
+        }
+        // Handle: const t = useCallback((key, opts) => tLocal(key, opts), [...])  OR
+        //         const t = (key, opts) => tLocal(key, opts)
+        // A wrapper that forwards its first parameter as the key to an already-scoped
+        // translation function inherits that function's scope.
+        if (node.id.type === 'Identifier') {
+            const wrapped = this.resolveDelegatingWrapperScope(init);
+            if (wrapped) {
+                this.setVarInScope(node.id.value, wrapped);
+                return;
+            }
+        }
+        // Handle: const { t } = this.#field  OR  const { t } = this.#field()
+        // Resolve the source `this.<field>` to its previously-registered ScopeInfo
+        // and propagate it onto the destructured variables.
+        const thisFieldName = ScopeManager.extractThisFieldName(init);
+        if (thisFieldName !== undefined) {
+            const sourceScope = this.getThisField(thisFieldName);
+            if (sourceScope) {
+                this.attachScopeToDestructuredVars(node, sourceScope);
+                return;
+            }
+        }
+        // Determine the actual call expression, looking inside AwaitExpressions.
+        const callExpr = init.type === 'AwaitExpression' && init.argument.type === 'CallExpression'
+            ? init.argument
+            : init.type === 'CallExpression'
+                ? init
+                : null;
+        if (!callExpr)
+            return;
+        const callee = callExpr.callee;
+        // Handle: const { t } = useTranslation(...)
+        if (callee.type === 'Identifier') {
+            const hookConfig = this.getUseTranslationConfig(callee.value);
+            if (hookConfig) {
+                this.handleUseTranslationDeclarator(node, callExpr, hookConfig);
+                // ALSO store in the legacy scope for comment parsing compatibility
+                this.handleUseTranslationForComments(node, callExpr, hookConfig);
+                return;
+            }
+        }
+        // Handle: const t = getFixedT(...) where getFixedT is a previously declared variable
+        // (e.g., `const { getFixedT } = useTranslate('helloservice')`)
+        if (callee.type === 'Identifier') {
+            const sourceScope = this.getVarFromScope(callee.value);
+            if (sourceScope) {
+                // Propagate the source scope (keyPrefix/defaultNs) and augment it with
+                // arguments passed to this call (e.g., namespace argument).
+                this.handleGetFixedTFromVariableDeclarator(node, callExpr, callee.value);
+                return;
+            }
+        }
+        // Handle: const t = i18next.getFixedT(...)
+        if (callee.type === 'MemberExpression' &&
+            callee.property.type === 'Identifier' &&
+            callee.property.value === 'getFixedT') {
+            this.handleGetFixedTDeclarator(node, callExpr);
+        }
+    }
+    /**
+     * Handles useTranslation calls for comment scope resolution.
+     * This is a separate method to store scope info in the legacy scope map
+     * that the comment parser can access.
+     *
+     * @param node - Variable declarator with useTranslation call
+     * @param callExpr - The CallExpression node representing the useTranslation invocation
+     * @param hookConfig - Configuration describing argument positions for namespace and keyPrefix
+     */
+    handleUseTranslationForComments(node, callExpr, hookConfig) {
+        let variableName;
+        // Handle simple assignment: let t = useTranslation()
+        if (node.id.type === 'Identifier') {
+            variableName = node.id.value;
+        }
+        // Handle array destructuring: const [t, i18n] = useTranslation()
+        if (node.id.type === 'ArrayPattern') {
+            const firstElement = node.id.elements[0];
+            if (firstElement?.type === 'Identifier') {
+                variableName = firstElement.value;
+            }
+        }
+        // Handle object destructuring: const { t } or { t: t1 } = useTranslation()
+        if (node.id.type === 'ObjectPattern') {
+            for (const prop of node.id.properties) {
+                // Support both 't' and 'getFixedT' (and preserve existing behavior for 't').
+                if (prop.type === 'AssignmentPatternProperty' && prop.key.type === 'Identifier' && (prop.key.value === 't' || prop.key.value === 'getFixedT')) {
+                    variableName = prop.key.value;
+                    break;
+                }
+                if (prop.type === 'KeyValuePatternProperty' && prop.key.type === 'Identifier' && (prop.key.value === 't' || prop.key.value === 'getFixedT') && prop.value.type === 'Identifier') {
+                    variableName = prop.value.value;
+                    break;
+                }
+            }
+        }
+        // If we couldn't find a `t` function being declared, exit
+        if (!variableName)
+            return;
+        // Position-driven extraction: respect hookConfig positions (nsArg/keyPrefixArg).
+        // nsArg === -1 means "no namespace arg"; keyPrefixArg === -1 means "no keyPrefix arg".
+        const nsArgIndex = hookConfig.nsArg ?? 0;
+        const kpArgIndex = hookConfig.keyPrefixArg ?? 1;
+        let defaultNs;
+        let keyPrefix;
+        // Early detection of react-i18next common form: useTranslation(lng, ns)
+        // Only apply for the built-in hook name to avoid interfering with custom hooks.
+        const first = callExpr.arguments?.[0]?.expression;
+        const second = callExpr.arguments?.[1]?.expression;
+        const third = callExpr.arguments?.[2]?.expression;
+        const looksLikeLanguage = (s) => /^[a-z]{2,3}([-_][A-Za-z0-9-]+)?$/i.test(s);
+        const isBuiltInLngNsForm = hookConfig.name === 'useTranslation' &&
+            first?.type === 'StringLiteral' &&
+            second?.type === 'StringLiteral' &&
+            looksLikeLanguage(first.value);
+        let kpArg;
+        if (isBuiltInLngNsForm) {
+            // treat as useTranslation(lng, ns, [options])
+            defaultNs = second.value;
+            // prefer third arg as keyPrefix (may be undefined)
+            kpArg = third;
+        }
+        else {
+            // Position-driven extraction: respect hookConfig positions (nsArg/keyPrefixArg).
+            if (nsArgIndex !== -1) {
+                // Comment scope only cares about the primary ns — selector multi-ns
+                // rewriting is handled by the runtime extractor scope, not comments.
+                defaultNs = this.resolveNsArg(callExpr.arguments?.[nsArgIndex]?.expression).defaultNs;
+            }
+            kpArg = kpArgIndex === -1 ? undefined : callExpr.arguments?.[kpArgIndex]?.expression;
+        }
+        if (kpArg?.type === 'ObjectExpression') {
+            const kp = astUtils.getObjectPropValue(kpArg, 'keyPrefix');
+            if (typeof kp === 'string') {
+                keyPrefix = kp;
+            }
+            else if (kp && typeof kp === 'object' && kp.type === 'Identifier') {
+                // ← FIX B: resolve { keyPrefix: I18N_PREFIX } where the value is an Identifier
+                keyPrefix = this.resolveSimpleStringIdentifier(kp.value);
+            }
+        }
+        else if (kpArg?.type === 'StringLiteral') {
+            keyPrefix = kpArg.value;
+        }
+        else if (kpArg?.type === 'Identifier') {
+            keyPrefix = this.resolveSimpleStringIdentifier(kpArg.value);
+        }
+        else if (kpArg?.type === 'TemplateLiteral') {
+            const tpl = kpArg;
+            if ((tpl.expressions || []).length === 0) {
+                keyPrefix = tpl.quasis?.[0]?.cooked ?? undefined;
+            }
+        }
+        // Store in the legacy scope map for comment parsing
+        if (defaultNs || keyPrefix) {
+            this.scope.set(variableName, { defaultNs, keyPrefix });
+        }
+    }
+    /**
+     * Processes useTranslation hook declarations to extract scope information.
+     *
+     * Handles various destructuring patterns:
+     * - `const [t] = useTranslation('ns')` - Array destructuring
+     * - `const { t } = useTranslation('ns')` - Object destructuring
+     * - `const { t: myT } = useTranslation('ns')` - Aliased destructuring
+     *
+     * Extracts namespace from the first argument and keyPrefix from options.
+     *
+     * @param node - Variable declarator with useTranslation call
+     * @param callExpr - The CallExpression node representing the useTranslation invocation
+     * @param hookConfig - Configuration describing argument positions for namespace and keyPrefix
+     */
+    handleUseTranslationDeclarator(node, callExpr, hookConfig) {
+        // Position-driven extraction: respect hookConfig positions (nsArg/keyPrefixArg).
+        const nsArgIndex = hookConfig.nsArg ?? 0;
+        const kpArgIndex = hookConfig.keyPrefixArg ?? 1;
+        let defaultNs;
+        let namespaces;
+        let keyPrefix;
+        // Early detect useTranslation(lng, ns) for built-in hook name only
+        const first = callExpr.arguments?.[0]?.expression;
+        const second = callExpr.arguments?.[1]?.expression;
+        const third = callExpr.arguments?.[2]?.expression;
+        const looksLikeLanguage = (s) => /^[a-z]{2,3}([-_][A-Za-z0-9-]+)?$/i.test(s);
+        const isBuiltInLngNsForm = hookConfig.name === 'useTranslation' &&
+            first?.type === 'StringLiteral' &&
+            second?.type === 'StringLiteral' &&
+            looksLikeLanguage(first.value);
+        let kpArg;
+        if (isBuiltInLngNsForm) {
+            defaultNs = second.value;
+            kpArg = third;
+        }
+        else {
+            if (nsArgIndex !== -1) {
+                const resolved = this.resolveNsArg(callExpr.arguments?.[nsArgIndex]?.expression);
+                defaultNs = resolved.defaultNs;
+                namespaces = resolved.namespaces;
+            }
+            kpArg = kpArgIndex === -1 ? undefined : callExpr.arguments?.[kpArgIndex]?.expression;
+        }
+        if (kpArg?.type === 'ObjectExpression') {
+            const kp = astUtils.getObjectPropValue(kpArg, 'keyPrefix', this.resolveSimpleStringIdentifier.bind(this));
+            if (typeof kp === 'string') {
+                keyPrefix = kp;
+            }
+        }
+        else if (kpArg?.type === 'StringLiteral') {
+            keyPrefix = kpArg.value;
+        }
+        else if (kpArg?.type === 'Identifier') {
+            keyPrefix = this.resolveSimpleStringIdentifier(kpArg.value);
+        }
+        else if (kpArg?.type === 'TemplateLiteral') {
+            const tpl = kpArg;
+            if ((tpl.expressions || []).length === 0) {
+                keyPrefix = tpl.quasis?.[0]?.cooked ?? undefined;
+            }
+        }
+        const info = { defaultNs, namespaces, keyPrefix };
+        // Attach scope info to all destructured properties (custom functions, t, getFixedT, etc.)
+        if (node.id.type === 'ObjectPattern') {
+            for (const prop of node.id.properties) {
+                if (prop.type === 'AssignmentPatternProperty' && prop.key.type === 'Identifier') {
+                    this.setVarInScope(prop.key.value, info);
+                }
+                if (prop.type === 'KeyValuePatternProperty' && prop.value.type === 'Identifier') {
+                    this.setVarInScope(prop.value.value, info);
+                }
+            }
+        }
+        else if (node.id.type === 'Identifier') {
+            this.setVarInScope(node.id.value, info);
+        }
+        else if (node.id.type === 'ArrayPattern') {
+            const firstElement = node.id.elements[0];
+            if (firstElement?.type === 'Identifier') {
+                this.setVarInScope(firstElement.value, info);
+            }
+        }
+    }
+    /**
+     * Processes getFixedT function declarations to extract scope information.
+     *
+     * Handles the pattern: `const t = i18next.getFixedT(lng, ns, keyPrefix)`
+     * - Ignores the first argument (language)
+     * - Extracts namespace from the second argument
+     * - Extracts key prefix from the third argument
+     *
+     * @param node - Variable declarator with getFixedT call
+     * @param callExpr - The CallExpression node representing the getFixedT invocation
+     */
+    handleGetFixedTDeclarator(node, callExpr) {
+        // Ensure we are assigning to a simple variable, e.g., const t = ...
+        if (node.id.type !== 'Identifier' || !node.init || node.init.type !== 'CallExpression')
+            return;
+        const variableName = node.id.value;
+        const args = callExpr.arguments;
+        // getFixedT(lng, ns, keyPrefix)
+        // We ignore the first argument (lng) for key extraction.
+        const defaultNs = this.resolveStringArg(args[1]?.expression);
+        const keyPrefix = this.resolveStringArg(args[2]?.expression);
+        if (defaultNs || keyPrefix) {
+            this.setVarInScope(variableName, { defaultNs, keyPrefix });
+        }
+    }
+    /**
+     * Resolves a call argument expression to a string value by handling string
+     * literals, previously-declared local/shared constants (Identifier), member
+     * expressions referencing constant objects, and simple template literals
+     * without interpolation. Returns undefined when the expression cannot be
+     * resolved statically.
+     */
+    /**
+     * Resolve the `ns` argument of useTranslation to `{ defaultNs, namespaces }`.
+     *
+     * - String literal / identifier / member-expr → single `defaultNs`, no array.
+     * - Array expression → first element becomes `defaultNs`, every statically
+     *   resolvable element ends up in `namespaces` (preserving order).
+     *
+     * `namespaces` is only set when the input was an array form, so consumers can
+     * distinguish `useTranslation('a')` (single, `namespaces` undefined) from
+     * `useTranslation(['a'])` (single-element array, `namespaces = ['a']`).
+     * The runtime selector rule from v25.8.19 only applies when length > 1, so
+     * either single form behaves identically downstream.
+     */
+    resolveNsArg(nsNode) {
+        if (!nsNode)
+            return {};
+        nsNode = ScopeManager.unwrapTsExpression(nsNode); // `[...] as const`, `satisfies`, `as X`
+        if (nsNode.type === 'StringLiteral')
+            return { defaultNs: nsNode.value };
+        if (nsNode.type === 'Identifier') {
+            const arr = this.simpleConstantArrays.get(nsNode.value);
+            if (arr)
+                return { defaultNs: arr[0], namespaces: arr };
+            return {
+                defaultNs: this.paramDefaults.get(nsNode.value) ??
+                    this.resolveSimpleStringIdentifier(nsNode.value) ??
+                    this.identifierFallback?.(nsNode.value)
+            };
+        }
+        if (nsNode.type === 'MemberExpression')
+            return { defaultNs: this.resolveSimpleMemberExpression(nsNode) };
+        // `useTranslation(ns ?? 'fallback')` / `useTranslation(ns || 'fallback')`:
+        // prefer a statically resolvable left side, otherwise use the fallback.
+        if (nsNode.type === 'BinaryExpression' && (nsNode.operator === '??' || nsNode.operator === '||')) {
+            const left = this.resolveNsArg(nsNode.left);
+            return left.defaultNs !== undefined ? left : this.resolveNsArg(nsNode.right);
+        }
+        if (nsNode.type === 'ArrayExpression') {
+            const namespaces = [];
+            for (const el of nsNode.elements) {
+                const expr = el?.expression;
+                if (!expr)
+                    continue;
+                if (expr.type === 'StringLiteral')
+                    namespaces.push(expr.value);
+                else if (expr.type === 'Identifier') {
+                    const resolved = this.resolveSimpleStringIdentifier(expr.value);
+                    if (resolved !== undefined)
+                        namespaces.push(resolved);
+                }
+                else if (expr.type === 'MemberExpression') {
+                    const resolved = this.resolveSimpleMemberExpression(expr);
+                    if (resolved !== undefined)
+                        namespaces.push(resolved);
+                }
+            }
+            return { defaultNs: namespaces[0], namespaces: namespaces.length > 0 ? namespaces : undefined };
+        }
+        return {};
+    }
+    /**
+     * If `init` is a function (optionally wrapped in `useCallback(fn, deps)`) whose
+     * first parameter is passed as the first argument to a call of an already-scoped
+     * variable (e.g. `tLocal(key, opts)`), return that variable's ScopeInfo.
+     */
+    resolveDelegatingWrapperScope(init) {
+        let fn = ScopeManager.unwrapTsExpression(init);
+        if (fn?.type === 'CallExpression' && fn.callee?.type === 'Identifier' && fn.callee.value === 'useCallback') {
+            fn = fn.arguments?.[0]?.expression;
+        }
+        if (fn?.type !== 'ArrowFunctionExpression' && fn?.type !== 'FunctionExpression')
+            return undefined;
+        const first = fn.params?.[0];
+        const pat = first?.pat ?? first;
+        const keyParam = pat?.type === 'Identifier' ? pat.value : undefined;
+        if (!keyParam)
+            return undefined;
+        let found;
+        const visit = (n) => {
+            if (found || !n || typeof n !== 'object')
+                return;
+            if (Array.isArray(n)) {
+                for (const c of n)
+                    visit(c);
+                return;
+            }
+            if (n.type === 'CallExpression' &&
+                n.callee?.type === 'Identifier' &&
+                n.arguments?.[0]?.expression?.type === 'Identifier' &&
+                n.arguments[0].expression.value === keyParam) {
+                const scope = this.getVarFromScope(n.callee.value);
+                if (scope) {
+                    found = scope;
+                    return;
+                }
+            }
+            for (const k of Object.keys(n)) {
+                if (k === 'span')
+                    continue;
+                visit(n[k]);
+            }
+        };
+        visit(fn.body);
+        return found;
+    }
+    resolveStringArg(node) {
+        if (!node)
+            return undefined;
+        const unwrapped = ScopeManager.unwrapTsExpression(node);
+        if (unwrapped.type === 'StringLiteral')
+            return unwrapped.value;
+        if (unwrapped.type === 'Identifier')
+            return this.resolveSimpleStringIdentifier(unwrapped.value);
+        if (unwrapped.type === 'MemberExpression')
+            return this.resolveSimpleMemberExpression(unwrapped);
+        if (unwrapped.type === 'TemplateLiteral') {
+            const tpl = unwrapped;
+            if ((tpl.expressions || []).length === 0) {
+                return tpl.quasis?.[0]?.cooked ?? undefined;
+            }
+        }
+        return undefined;
+    }
+    /**
+     * Handles cases where a getFixedT-like function is a variable (from a custom hook)
+     * and is invoked to produce a bound `t` function, e.g.:
+     *   const { getFixedT } = useTranslate('prefix')
+     *   const t = getFixedT('en', 'ns')
+     *
+     * We combine the original source variable's scope (keyPrefix/defaultNs) with
+     * any namespace/keyPrefix arguments provided to this call and attach the
+     * resulting scope to the newly declared variable.
+     */
+    handleGetFixedTFromVariableDeclarator(node, callExpr, sourceVarName) {
+        if (node.id.type !== 'Identifier')
+            return;
+        const targetVarName = node.id.value;
+        const sourceScope = this.getVarFromScope(sourceVarName);
+        if (!sourceScope)
+            return;
+        const args = callExpr.arguments;
+        // getFixedT(lng, ns, keyPrefix)
+        const nsFromCall = this.resolveStringArg(args[1]?.expression);
+        const keyPrefixFromCall = this.resolveStringArg(args[2]?.expression);
+        // Merge: call args take precedence over source scope values
+        const finalNs = nsFromCall ?? sourceScope.defaultNs;
+        const finalKeyPrefix = keyPrefixFromCall ?? sourceScope.keyPrefix;
+        if (finalNs || finalKeyPrefix) {
+            this.setVarInScope(targetVarName, { defaultNs: finalNs, keyPrefix: finalKeyPrefix });
+        }
+    }
+    /**
+     * Returns the field name being referenced when an expression takes the form
+     * `this.<field>` or `this.<field>()`. Strips the call wrapper if present and
+     * prefixes private fields with `#`.
+     *
+     * Returns undefined if the expression is not such an access.
+     */
+    static extractThisFieldName(init) {
+        let memberExpr;
+        if (init.type === 'MemberExpression') {
+            memberExpr = init;
+        }
+        else if (init.type === 'CallExpression' && init.callee.type === 'MemberExpression') {
+            memberExpr = init.callee;
+        }
+        if (!memberExpr)
+            return undefined;
+        if (memberExpr.object.type !== 'ThisExpression')
+            return undefined;
+        const prop = memberExpr.property;
+        if (prop?.type === 'Identifier')
+            return prop.value;
+        if (prop?.type === 'PrivateName')
+            return '#' + prop.value;
+        return undefined;
+    }
+    /**
+     * Attaches the given ScopeInfo to all destructured variables of a variable
+     * declarator (`const { t } = ...`, `const [t] = ...`, or `const t = ...`).
+     */
+    attachScopeToDestructuredVars(node, info) {
+        if (node.id.type === 'ObjectPattern') {
+            for (const prop of node.id.properties) {
+                if (prop.type === 'AssignmentPatternProperty' && prop.key.type === 'Identifier') {
+                    this.setVarInScope(prop.key.value, info);
+                }
+                if (prop.type === 'KeyValuePatternProperty' && prop.value.type === 'Identifier') {
+                    this.setVarInScope(prop.value.value, info);
+                    // Also store under the pattern key name so legacy comment-scope
+                    // lookups by the original property name continue to work.
+                    if (prop.key.type === 'Identifier' && (prop.key.value === 't' || prop.key.value === 'getFixedT')) {
+                        this.scope.set(prop.value.value, { defaultNs: info.defaultNs, keyPrefix: info.keyPrefix });
+                    }
+                }
+            }
+        }
+        else if (node.id.type === 'Identifier') {
+            this.setVarInScope(node.id.value, info);
+        }
+        else if (node.id.type === 'ArrayPattern') {
+            const firstElement = node.id.elements[0];
+            if (firstElement?.type === 'Identifier') {
+                this.setVarInScope(firstElement.value, info);
+            }
+        }
+    }
+    /**
+     * Registers a class field's initializer with the current class scope so that
+     * later `const { t } = this.<field>` or `const { t } = this.<field>()` calls
+     * inside the class body inherit the namespace and keyPrefix from the field
+     * initializer.
+     *
+     * Recognizes the same useTranslation-like patterns supported on regular
+     * variable declarations (configured via `useTranslationNames`).
+     *
+     * @param fieldName - Field name (private fields are prefixed with `#`)
+     * @param value - The field initializer expression
+     */
+    registerClassField(fieldName, value) {
+        if (!value)
+            return;
+        if (this.thisFieldStack.length === 0)
+            return;
+        const callExpr = value.type === 'AwaitExpression' && value.argument.type === 'CallExpression'
+            ? value.argument
+            : value.type === 'CallExpression'
+                ? value
+                : null;
+        if (!callExpr)
+            return;
+        const callee = callExpr.callee;
+        if (callee.type !== 'Identifier')
+            return;
+        const hookConfig = this.getUseTranslationConfig(callee.value);
+        if (!hookConfig)
+            return;
+        const info = this.computeScopeInfoFromHookCall(callExpr, hookConfig);
+        if (info.defaultNs || info.keyPrefix) {
+            this.setThisField(fieldName, info);
+        }
+    }
+    /**
+     * Computes ScopeInfo (defaultNs, keyPrefix) for a useTranslation-style call
+     * given a hook configuration that describes argument positions. Mirrors the
+     * extraction performed by handleUseTranslationDeclarator without attaching
+     * the result to any variable.
+     */
+    computeScopeInfoFromHookCall(callExpr, hookConfig) {
+        const nsArgIndex = hookConfig.nsArg ?? 0;
+        const kpArgIndex = hookConfig.keyPrefixArg ?? 1;
+        let defaultNs;
+        let keyPrefix;
+        const first = callExpr.arguments?.[0]?.expression;
+        const second = callExpr.arguments?.[1]?.expression;
+        const third = callExpr.arguments?.[2]?.expression;
+        const looksLikeLanguage = (s) => /^[a-z]{2,3}([-_][A-Za-z0-9-]+)?$/i.test(s);
+        const isBuiltInLngNsForm = hookConfig.name === 'useTranslation' &&
+            first?.type === 'StringLiteral' &&
+            second?.type === 'StringLiteral' &&
+            looksLikeLanguage(first.value);
+        let kpArg;
+        if (isBuiltInLngNsForm) {
+            defaultNs = second.value;
+            kpArg = third;
+        }
+        else {
+            if (nsArgIndex !== -1) {
+                const nsNode = callExpr.arguments?.[nsArgIndex]?.expression;
+                if (nsNode?.type === 'StringLiteral') {
+                    defaultNs = nsNode.value;
+                }
+                else if (nsNode?.type === 'Identifier') {
+                    defaultNs = this.resolveSimpleStringIdentifier(nsNode.value);
+                }
+                else if (nsNode?.type === 'MemberExpression') {
+                    defaultNs = this.resolveSimpleMemberExpression(nsNode);
+                }
+                else if (nsNode?.type === 'ArrayExpression') {
+                    const firstEl = nsNode.elements[0]?.expression;
+                    if (firstEl?.type === 'StringLiteral') {
+                        defaultNs = firstEl.value;
+                    }
+                    else if (firstEl?.type === 'Identifier') {
+                        defaultNs = this.resolveSimpleStringIdentifier(firstEl.value);
+                    }
+                }
+            }
+            kpArg = kpArgIndex === -1 ? undefined : callExpr.arguments?.[kpArgIndex]?.expression;
+        }
+        if (kpArg?.type === 'ObjectExpression') {
+            const kp = astUtils.getObjectPropValue(kpArg, 'keyPrefix', this.resolveSimpleStringIdentifier.bind(this));
+            if (typeof kp === 'string') {
+                keyPrefix = kp;
+            }
+        }
+        else if (kpArg?.type === 'StringLiteral') {
+            keyPrefix = kpArg.value;
+        }
+        else if (kpArg?.type === 'Identifier') {
+            keyPrefix = this.resolveSimpleStringIdentifier(kpArg.value);
+        }
+        else if (kpArg?.type === 'TemplateLiteral') {
+            const tpl = kpArg;
+            if ((tpl.expressions || []).length === 0) {
+                keyPrefix = tpl.quasis?.[0]?.cooked ?? undefined;
+            }
+        }
+        return { defaultNs, keyPrefix };
+    }
+}
+
+exports.ScopeManager = ScopeManager;

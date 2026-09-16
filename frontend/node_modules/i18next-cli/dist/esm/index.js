@@ -1,0 +1,17 @@
+export { defineConfig } from './config.js';
+export { extract, runExtractor } from './extractor/core/extractor.js';
+export { findKeys } from './extractor/core/key-finder.js';
+export { getTranslations } from './extractor/core/translation-manager.js';
+import 'node:module';
+export { recommendedAcceptedAttributes, recommendedAcceptedTags, runLinter } from './linter.js';
+export { runSyncer } from './syncer.js';
+export { runStatus, runUnusedReport } from './status.js';
+export { runTypesGenerator } from './types-generator.js';
+export { runRenameKey } from './rename-key.js';
+export { runInstrumenter, writeExtractedKeys } from './instrumenter/core/instrumenter.js';
+import './utils/jsx-attributes.js';
+import 'magic-string';
+export { runLocalize } from './localize/localize.js';
+import 'node:fs/promises';
+import 'node:path';
+export { AGENT_PROMPT } from './localize/agent-prompt.js';
