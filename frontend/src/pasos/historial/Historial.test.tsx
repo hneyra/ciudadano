@@ -201,6 +201,7 @@ describe('sin haber pagado nada en esta visita', () => {
         ultimo: {
           ids: ['pred26'],
           insoluto: '293.72',
+          reajuste: '0.00',
           interes: '0.00',
           gastos: '0.00',
           total: '293.72',

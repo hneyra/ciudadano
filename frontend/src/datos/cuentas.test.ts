@@ -41,6 +41,7 @@ describe('cuentaDe', () => {
   it('con los cuatro conceptos da las cifras recalculadas del artboard', () => {
     expect(cuentaDe(DEUDAS)).toStrictEqual({
       insoluto: '3041.92',
+      reajuste: '0.00',
       interes: '413.32',
       gastos: '108.00',
       total: '3563.24',
@@ -51,6 +52,7 @@ describe('cuentaDe', () => {
   it('sin nada marcado da cero, no un fallo', () => {
     expect(cuentaDe([])).toStrictEqual({
       insoluto: '0.00',
+      reajuste: '0.00',
       interes: '0.00',
       gastos: '0.00',
       total: '0.00',
@@ -61,6 +63,7 @@ describe('cuentaDe', () => {
   it('con una seleccion parcial suma solo lo marcado', () => {
     expect(cuentaDe([deuda('arb26'), deuda('veh24')])).toStrictEqual({
       insoluto: '905.60',
+      reajuste: '0.00',
       interes: '200.88',
       gastos: '96.00',
       total: '1202.48',
@@ -187,5 +190,66 @@ describe('conAmnistiaDe y cifraSinSimbolo (issue 9)', () => {
     expect(cifraSinSimbolo('1854.6')).toBe('1,854.60');
     expect(cifraSinSimbolo('413.32')).toBe('413.32');
     expect(cifraSinSimbolo('3149.92')).toBe('3,149.92');
+  });
+});
+
+/**
+ * **El reajuste del servidor entra en las cuentas** (issue 26).
+ *
+ * El artboard no lo tiene y `/portal/situacion` si. Se le dio sitio propio en el modelo en vez de
+ * sumarlo a `gastos` —«Gastos y costas» es lo que cuesta cobrar, y el reajuste es la actualizacion
+ * del tributo—, y la contrapartida de esa decision es esta: **si no se sumara, seria dinero que se
+ * debe y no se cobra**. Las cifras estan escritas a mano: 1842.60 + 12.40 + 212.44 + 12.00.
+ */
+describe('el reajuste (issue 26)', () => {
+  const conReajuste = { insoluto: '1842.60', reajuste: '12.40', interes: '212.44', gastos: '12.00' };
+
+  it('cuenta en el total del concepto', () => {
+    expect(totalDe(conReajuste)).toBe('2079.44');
+  });
+
+  it('no lo condona la amnistia, que solo perdona el interes', () => {
+    expect(conAmnistiaDe(conReajuste)).toBe('1867.00');
+  });
+
+  it('y va con el recargo, que es lo que se suma por no pagar a tiempo', () => {
+    expect(recargoDe(conReajuste)).toBe('236.84');
+  });
+
+  it('en la cuenta de la seleccion sale como su propia cifra, no escondido en los gastos', () => {
+    expect(cuentaDe([conReajuste, { insoluto: '291.60', reajuste: '0.00', interes: '18.44', gastos: '0.00' }])).toStrictEqual(
+      {
+        insoluto: '2134.20',
+        reajuste: '12.40',
+        interes: '230.88',
+        gastos: '12.00',
+        total: '2389.48',
+        conAmnistia: '2158.60',
+      },
+    );
+  });
+
+  it('y lo del artboard, que no lo trae, suma igual que antes: el reajuste es «0.00»', () => {
+    // Sumar ninguno, no un cero inventado en los datos.
+    expect(cuentaDe(DEUDAS).reajuste).toBe('0.00');
+    expect(cuentaDe(DEUDAS).total).toBe('3563.24');
+  });
+});
+
+/**
+ * **Un concepto sin estado no se cuenta como vencido** (issue 26).
+ *
+ * `DeudaDelServidor.estado` es `null`: el contrato no dice si una obligacion esta vencida. Contarla
+ * como vencida —o como al dia— seria afirmar algo que nadie sabe.
+ */
+describe('el resumen con estados que no se saben (issue 26)', () => {
+  it('con `estado: null` los conceptos se cuentan, y los vencidos no', () => {
+    const sinEstado = [
+      { insoluto: '1842.60', reajuste: '12.40', interes: '212.44', gastos: '12.00', estado: null },
+      { insoluto: '291.60', reajuste: '0.00', interes: '18.44', gastos: '0.00', estado: null },
+    ];
+
+    expect(resumenDe(sinEstado).conceptos).toBe(2);
+    expect(resumenDe(sinEstado).vencidas).toBe(0);
   });
 });
