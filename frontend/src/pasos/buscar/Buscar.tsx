@@ -17,10 +17,12 @@ import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 
 import { ORDENANZA } from '../../datos/demostracion.ts';
+import { hayPlataforma, useLaFuente } from '../../datos/fuente.ts';
 import { AvisoConFilo } from '../../piezas/AvisoConFilo.tsx';
 import { MEDIDAS_DE_CONTROL, Rotulo } from '../../piezas/Rotulo.tsx';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
 import { type TipoDeDocumento, vivas } from '../../recorrido/recorrido.ts';
+import { LaConsulta } from './LaConsulta.tsx';
 import { TRAZOS_DEL_ARTBOARD, type TrazoDelArtboard } from './trazos.ts';
 
 /**
@@ -106,6 +108,17 @@ export function Buscar() {
   const { estado, despachar } = useRecorrido();
   const idDelError = useId();
   const idDeCapacidades = useId();
+  /**
+   * **Con plataforma, la consulta va delante de todo** (issue 27).
+   *
+   * `hayPlataforma` mira la fuente inyectada y no `import.meta.env`: la pregunta que la pantalla
+   * hace es «¿hay a quien consultar?», la contesta el dato, y asi los dos modos se prueban
+   * inyectando una fuente en vez de trucando el entorno.
+   *
+   * En demostracion NO cambia nada: `LaConsulta` no se monta, no hay peticion y la pantalla es la
+   * de siempre.
+   */
+  const conPlataforma = hayPlataforma(useLaFuente());
 
   const esquema = useMemo(
     () =>
@@ -179,6 +192,8 @@ export function Buscar() {
 
   return (
     <div>
+      {conPlataforma ? <LaConsulta /> : null}
+
       <div className="border border-linea bg-superficie shadow-sombra-1">
         <div className="px-[26px] pt-[26px] pb-[22px]">
           <h1 className="m-0 text-[27px] font-bold tracking-[-0.01em] text-pretty text-azul">

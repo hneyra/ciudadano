@@ -3,7 +3,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
 
 import { Aplicacion } from '../aplicacion.tsx';
-import { FuenteActiva, type FuenteDelPortal, fuenteDeDemostracion } from '../datos/fuente.ts';
+import { FuenteActiva, type FuenteDelPortal } from '../datos/fuente.ts';
+// La de demostracion, importada A PROPOSITO de forma estatica: esto es andamiaje de pruebas y no
+// entra en el paquete (solo lo importan los `*.test.tsx`). Que siga siendo asi —y que ningun archivo
+// de produccion lo importe— lo vigila `verificaciones/la-demostracion-no-viaja-al-bundle.test.ts`.
+import { fuenteDeDemostracion } from '../datos/fuenteDeDemostracion.ts';
 import { type Enrutador, crearEnrutador } from '../enrutador.tsx';
 import i18n, { ABRE, CIERRA, IDIOMA_POR_OMISION } from '../i18n/i18n.ts';
 import { precargarLasPantallas } from '../pasos/pantallas.tsx';

@@ -12,7 +12,10 @@ import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import escudo from '../../diseno/escudo-catacaos.png';
+import { claimsDelCiudadano, haySesion } from '../api/claims.ts';
+import { entrar, salir } from '../arranque.ts';
 import { USUARIO } from '../datos/demostracion.ts';
+import { hayPlataforma, useLaFuente } from '../datos/fuente.ts';
 import { useRecorrido } from '../recorrido/ProveedorDelRecorrido.tsx';
 import { inicio } from '../recorrido/recorrido.ts';
 
@@ -69,11 +72,117 @@ import { inicio } from '../recorrido/recorrido.ts';
 export const ICONO_SOLO_EN_EL_CELULAR =
   'max-[881px]:my-[6px] max-[881px]:size-[44px] max-[881px]:justify-center max-[881px]:gap-0 max-[881px]:px-0';
 
+/**
+ * **Quien tiene la sesion abierta**, venga de la demostracion o del token (issue 27).
+ *
+ * `codigo` y `correo` son `string | null` porque **el token no los trae**: el realm del ciudadano
+ * pone `tipo_documento` y `numero_documento`, y ni el codigo de contribuyente ni el correo. Se
+ * declaran anulables —y no opcionales— para que el menu tenga que decidir que hace cuando no los
+ * hay, que es no dibujar esa linea. Rellenarlos con los de la demostracion pondria el correo de
+ * otra persona bajo el nombre de quien entro.
+ */
+interface QuienEntro {
+  readonly iniciales: string;
+  readonly nombre: string;
+  /** «DNI 44218937», o vacio si el token no dice con que documento. */
+  readonly documento: string;
+  readonly codigo: string | null;
+  readonly correo: string | null;
+}
+
+/**
+ * Las dos primeras iniciales del nombre, para el circulo de la barra.
+ *
+ * El artboard las trae escritas (`USUARIO.iniciales`); del token hay que sacarlas, porque un claim
+ * de iniciales no existe. Van `aria-hidden`: el nombre accesible del disparador es el nombre entero.
+ */
+function inicialesDe(nombre: string): string {
+  return nombre
+    .split(/\s+/)
+    .filter((parte) => parte !== '')
+    .slice(0, 2)
+    .map((parte) => parte.slice(0, 1).toLocaleUpperCase('es'))
+    .join('');
+}
+
+/** Quien entro segun el artboard: la persona de `USUARIO`, con su codigo y su correo. */
+function deLaDemostracion(autenticado: boolean): QuienEntro | null {
+  if (!autenticado) return null;
+  return {
+    iniciales: USUARIO.iniciales,
+    nombre: USUARIO.nombre,
+    documento: `${USUARIO.tipoDeDocumento} ${USUARIO.numeroDeDocumento}`,
+    codigo: USUARIO.codigo,
+    correo: USUARIO.correo,
+  };
+}
+
+/**
+ * Quien entro segun el token, o `null` si no hay ninguno.
+ *
+ * `t` entra como argumento porque lo unico que hay que traducir aqui es el nombre de respaldo: un
+ * realm puede no mandar `name`, y el circulo de la barra no puede quedarse vacio.
+ */
+function delToken(t: (texto: string) => string): QuienEntro | null {
+  if (!haySesion()) return null;
+  const claims = claimsDelCiudadano();
+  const nombre = claims.nombre ?? t('Su cuenta');
+  const documento =
+    claims.tipoDeDocumento === null || claims.numeroDeDocumento === null
+      ? ''
+      : `${claims.tipoDeDocumento} ${claims.numeroDeDocumento}`;
+  return { iniciales: inicialesDe(nombre), nombre, documento, codigo: null, correo: null };
+}
+
 export function Barra() {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
+  const fuente = useLaFuente();
+  const conPlataforma = hayPlataforma(fuente);
   // Se lee cuando el menu ya se cerro: un `ref`, y no el estado de un dibujo que ya no es el ultimo.
   const elFocoVaALasUnidades = useRef(false);
+
+  /**
+   * **Con plataforma, quien entro sale del TOKEN; en demostracion, del artboard.**
+   *
+   * El token se lee en cada dibujo y no se guarda en el estado: lo fija el canje del arranque
+   * —antes de montar— y a partir de ahi solo cambia yendose de la pagina (`entrar()` navega fuera,
+   * `salir()` tambien). Un estado que lo copiara no tendria ningun momento en que refrescarse, y el
+   * dia que lo tuviera seria una copia del token viviendo mas de lo que vive el token.
+   */
+  const quien: QuienEntro | null = conPlataforma ? delToken(t) : deLaDemostracion(estado.autenticado);
+
+  /**
+   * **«Iniciar sesión»**: la puerta de verdad cuando hay plataforma, el paso «Mis datos» cuando no.
+   *
+   * `entrar()` se llama y no se espera: cuando todo va bien el navegador se va de esta pagina, y la
+   * promesa solo trae algo cuando **no se pudo ni llegar al emisor** (`FallaDeLaPuerta`). Eso se
+   * avisa, porque si no el boton se pulsa y no ocurre nada visible.
+   */
+  const iniciarSesion = () => {
+    if (!conPlataforma) {
+      despachar({ tipo: 'irA', paso: 'identificar' });
+      return;
+    }
+    void entrar().then((falla) => {
+      if (falla !== null) avisar(t('No pudimos llevarle al acceso: {{motivo}}.', { motivo: falla.motivo }));
+    });
+  };
+
+  /**
+   * **«Cerrar sesión»**: `salir()` con plataforma —cierra aqui Y en el emisor, con `id_token_hint`,
+   * que es lo que impide que el siguiente arranque entre solo con la misma cuenta en un equipo
+   * compartido— y el reductor en demostracion, donde no hay ninguna sesion que cerrar en ningun
+   * sitio. Con plataforma no se levanta el aviso de «Sesión cerrada.»: la pagina se va.
+   */
+  const cerrarSesion = () => {
+    if (conPlataforma) {
+      salir();
+      return;
+    }
+    despachar({ tipo: 'cerrarSesion' });
+    avisar(t('Sesión cerrada.'));
+  };
 
   return (
     <header data-noprint="1" className="relative z-[79] flex flex-wrap items-stretch bg-azul text-sobre-azul">
@@ -94,7 +203,7 @@ export function Barra() {
         </span>
       </button>
 
-      {estado.autenticado ? (
+      {quien !== null ? (
         <Menu>
           <DisparadorDelMenu
             className={cn(
@@ -107,13 +216,11 @@ export function Barra() {
               aria-hidden="true"
               className="grid size-[30px] shrink-0 place-items-center rounded-full bg-barra-realce text-[12px] font-bold"
             >
-              {USUARIO.iniciales}
+              {quien.iniciales}
             </span>
             <span className="text-left leading-[1.2] max-[881px]:sr-only">
-              <span className="block whitespace-nowrap text-[13.5px] font-bold">{USUARIO.nombre}</span>
-              <span className="block whitespace-nowrap text-[11.5px] text-sobre-barra-2">
-                {`${USUARIO.tipoDeDocumento} ${USUARIO.numeroDeDocumento}`}
-              </span>
+              <span className="block whitespace-nowrap text-[13.5px] font-bold">{quien.nombre}</span>
+              <span className="block whitespace-nowrap text-[11.5px] text-sobre-barra-2">{quien.documento}</span>
             </span>
             <Icono nombre="chevronAbajo" tamano={12} grosor={2.6} />
           </DisparadorDelMenu>
@@ -126,12 +233,24 @@ export function Barra() {
               despachar({ tipo: 'verPrediosYVehiculos' });
             }}
           >
+            {/*
+              El codigo de contribuyente y el correo **solo se dibujan si los hay**: el token del
+              realm del ciudadano no trae ninguno de los dos (`src/api/claims.ts`), y rellenarlos con
+              los del artboard pondria el correo de otra persona debajo del nombre de quien entro.
+              Lo que siempre hay es el documento, que es lo que identifica la consulta.
+            */}
             <div className="border-b border-linea-2 px-4 py-3 text-left">
-              <p className="m-0 text-[14px] font-bold text-tinta">{USUARIO.nombre}</p>
-              <p className="mt-[3px] mb-0 text-[12.5px] text-tinta-3">
-                {t('Contribuyente {{codigo}}', { codigo: USUARIO.codigo })}
-              </p>
-              <p className="mt-[2px] mb-0 text-[12.5px] text-tinta-3">{USUARIO.correo}</p>
+              <p className="m-0 text-[14px] font-bold text-tinta">{quien.nombre}</p>
+              {quien.codigo === null ? (
+                <p className="mt-[3px] mb-0 text-[12.5px] text-tinta-3">{quien.documento}</p>
+              ) : (
+                <p className="mt-[3px] mb-0 text-[12.5px] text-tinta-3">
+                  {t('Contribuyente {{codigo}}', { codigo: quien.codigo })}
+                </p>
+              )}
+              {quien.correo === null ? null : (
+                <p className="mt-[2px] mb-0 text-[12.5px] text-tinta-3">{quien.correo}</p>
+              )}
             </div>
             <OpcionDelMenu className="px-4 py-3 text-[14.5px]" onSelect={() => despachar({ tipo: 'irA', paso: 'historial' })}>
               {t('Mis pagos')}
@@ -148,14 +267,7 @@ export function Barra() {
             <OpcionDelMenu className="px-4 py-3 text-[14.5px]" onSelect={() => avisar(t('Abriría el cambio de clave.'))}>
               {t('Cambiar mi clave')}
             </OpcionDelMenu>
-            <OpcionDelMenu
-              peligrosa
-              className="px-4 py-3 text-[14.5px]"
-              onSelect={() => {
-                despachar({ tipo: 'cerrarSesion' });
-                avisar(t('Sesión cerrada.'));
-              }}
-            >
+            <OpcionDelMenu peligrosa className="px-4 py-3 text-[14.5px]" onSelect={cerrarSesion}>
               {t('Cerrar sesión')}
             </OpcionDelMenu>
           </ListaDelMenu>
@@ -163,7 +275,7 @@ export function Barra() {
       ) : (
         <button
           type="button"
-          onClick={() => despachar({ tipo: 'irA', paso: 'identificar' })}
+          onClick={iniciarSesion}
           className={cn(
             'my-[10px] mr-[18px] flex cursor-pointer items-center gap-[9px] rounded-sm border border-sobre-barra/40 bg-barra-control px-[18px] text-[14px] text-sobre-azul',
             'hover:bg-barra-hover',

@@ -23,6 +23,21 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    /**
+     * **La bandera de `.env.development`, puesta a mano** (issue 27).
+     *
+     * Vitest corre en modo `test`, y Vite carga `.env.development` **solo** en modo `development`:
+     * sin esta linea, `import.meta.env.VITE_KAMAYUK_SIN_PLATAFORMA` seria `undefined` en las
+     * pruebas y el portal montado por ellas elegiria la fuente de la plataforma — o sea, las 427
+     * pruebas saldrian a la red y a Keycloak, que es justo lo que este issue promete que no pasa.
+     *
+     * No se declara `mode: 'development'` en su lugar porque eso cambiaria ademas `NODE_ENV` y el
+     * modo de React; lo que hace falta es una variable, y aqui se pone una.
+     *
+     * Que diga lo MISMO que `.env.development` no se confia a la vista: lo compara
+     * `verificaciones/la-demostracion-no-viaja-al-bundle.test.ts`.
+     */
+    env: { VITE_KAMAYUK_SIN_PLATAFORMA: 'true' },
     // Sin globales: un `describe` que aparece de la nada no dice de donde sale, y el
     // compilador tampoco. Aqui cada cosa se importa.
     globals: false,

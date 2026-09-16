@@ -9,7 +9,9 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:con-plataforma": "VITE_KAMAYUK_SIN_PLATAFORMA=false vite",
     "build": "vite build",
+    "build:arnes": "NODE_ENV=development vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

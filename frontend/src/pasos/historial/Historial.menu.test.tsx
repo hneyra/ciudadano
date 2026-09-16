@@ -85,7 +85,8 @@ describe('el menu de la sesion lleva al historial', () => {
     const aLaVista = vi.spyOn(Element.prototype, 'scrollIntoView');
     let contestar: (valor: typeof HISTORIAL) => void = () => {};
     const lenta: FuenteDelPortal = {
-      situacion: () => Promise.reject(new Error('no se usa')),
+      // Sin plataforma no hay consulta que hacer: el historial se lee igual (issue 27).
+      consulta: null,
       historial: () => new Promise((resolver) => (contestar = resolver)),
       unidades: () => Promise.resolve(UNIDADES),
     };
