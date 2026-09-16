@@ -46,8 +46,8 @@ import { PROHIBICIONES, REGLAS_EXIGIDAS, SALVO_EN_ESTE_ARBOL } from '../eslint.p
  *     fork el dia que se hace, cuando la copia todavia es identica y la comparacion pasaria.
  *
  * Lo que NO se compara es `salvo`: es lo unico que este arbol pone de su parte, y se comprueba
- * contra `SALVO_EN_ESTE_ARBOL` —no contra la libreria—, porque `[]` aqui, `src/api/` en `rentas` y
- * `paquetes/api/` en la libreria son correctas cada una en su arbol.
+ * contra `SALVO_EN_ESTE_ARBOL` —no contra la libreria—, porque `src/api/` aqui y en `rentas`, y
+ * `paquetes/api/` en la libreria, son correctas cada una en su arbol.
  */
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
@@ -151,18 +151,20 @@ describe('lo unico que este arbol pone es la ruta', () => {
     );
   });
 
-  it('las rutas de este arbol NO son las de la libreria: aqui no se exceptua ninguna', () => {
-    // Es el centinela de la parametrizacion, adaptado a este arbol. En `rentas` comprueba que las
-    // rutas de alli y las de la libreria no coincidan; aqui la afirmacion es mas fuerte, porque
-    // este portal no llama a `fetch` en ningun sitio y ninguna prohibicion exceptua nada.
+  it('las rutas de este arbol NO son las de la libreria', () => {
+    // Es el centinela de la parametrizacion. Hasta el issue 13 aqui no se exceptuaba nada —el
+    // portal no llamaba a `fetch` en ningun sitio—; hoy la excepcion es `src/api/`, que es una ruta
+    // de ESTE arbol y no la de la libreria.
     //
-    // Si un dia se colara el `salvo` de la libreria tal cual —`paquetes/api/`, que aqui no existe—
-    // la regla quedaria apagada en un directorio fantasma y nada se pondria rojo salvo esto.
-    const alla = DEL_PRODUCTO.flatMap((p) => [...(p.salvo ?? [])]);
-    const aqui = PROHIBICIONES.flatMap((p) => [...(p.salvo ?? [])]);
+    // Si un dia se colara el `salvo` de la libreria tal cual —`paquetes/api/`, que aqui no
+    // existe— la regla quedaria apagada en un directorio fantasma y encendida en el de verdad, y
+    // nada se pondria rojo salvo esto.
+    const alla = [...new Set(DEL_PRODUCTO.flatMap((p) => [...(p.salvo ?? [])]))];
+    const aqui = [...new Set(PROHIBICIONES.flatMap((p) => [...(p.salvo ?? [])]))];
 
     expect(alla.length, 'la libreria dejo de exceptuar nada: esta prueba ya no discrimina').toBeGreaterThan(0);
-    expect(aqui).toEqual([]);
+    expect(aqui).toEqual(['src/api/']);
+    expect(aqui.filter((ruta) => alla.includes(ruta))).toEqual([]);
   });
 });
 

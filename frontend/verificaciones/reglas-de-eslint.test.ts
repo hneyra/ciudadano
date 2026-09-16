@@ -154,25 +154,23 @@ describe('la lista de prohibiciones y la de muestras no se separan', () => {
   });
 });
 
-describe('`fetch` no esta exceptuado en ningun sitio de ESTE arbol', () => {
-  // ADAPTADO de `rentas`, donde este bloque comprueba que `src/api/` es el unico directorio que
-  // puede llamar a `fetch`. Este portal es solo demostracion: no hay cliente HTTP, y la excepcion
-  // que la libreria declara se situa en `[]` (`eslint.prohibiciones.mjs`). Lo que se comprueba es
-  // que eso significa lo que parece —la regla encendida en todo el arbol— y no una regla apagada.
+describe('`fetch` esta exceptuado en `src/api/`, y SOLO ahi', () => {
+  // ADAPTADO de `rentas`, que exceptua el mismo directorio y por lo mismo. Hasta el issue 13 aqui
+  // la lista estaba vacia —el portal era solo demostracion y no habia nada a lo que pedir—; con el
+  // cliente HTTP y la puerta PKCE puestas, lo que se comprueba es que la excepcion cae donde dice y
+  // no se derrama al resto del arbol.
   const conExcepcion = PROHIBICIONES.filter((p) => p.salvo !== undefined);
 
-  it('solo `fetch-fuera-del-cliente` tiene excepcion, y su lista esta vacia', () => {
+  it('solo `fetch-fuera-del-cliente` tiene excepcion, y es un unico directorio', () => {
     // Se comprueba la LISTA ENTERA, no su tamano: anadir un prefijo exige decir cual.
     expect(conExcepcion.map((p) => p.clave)).toEqual(['fetch-fuera-del-cliente']);
-    expect(conExcepcion.flatMap((p) => [...(p.salvo ?? [])])).toEqual([]);
-    expect(DONDE_SE_LLAMA_A_FETCH).toEqual([]);
+    expect(conExcepcion.flatMap((p) => [...(p.salvo ?? [])])).toEqual(['src/api/']);
+    expect(DONDE_SE_LLAMA_A_FETCH).toEqual(['src/api/']);
   });
 
-  it.each(['src/pantallas/cualquiera.ts', 'src/api/cliente.ts', 'src/datos/recibos.ts'])(
+  it.each(['src/pantallas/cualquiera.ts', 'src/datos/recibos.ts', 'src/marco/Barra.tsx'])(
     'un `fetch` en %s se senala',
     async (ruta) => {
-      // `src/api/` va en la lista a proposito: es el directorio que `rentas` exceptua, y si su
-      // `salvo` se colara aqui tal cual, este es el caso que saldria verde con la regla apagada.
       const mensajes = await mensajesDe(
         archivoDeLaMuestra('fetch-fuera-del-cliente') as string,
         join(RAIZ, ruta),
@@ -181,6 +179,18 @@ describe('`fetch` no esta exceptuado en ningun sitio de ESTE arbol', () => {
       expect(mensajes.join('\n')).toMatch(/Las peticiones pasan por «solicitar»/);
     },
   );
+
+  it('y en `src/api/` NO se senala: es la mitad que hace que la excepcion signifique algo', async () => {
+    // Sin este caso, una excepcion que no se aplicara —mal escrita, con otra forma de ruta— dejaria
+    // la regla encendida en todas partes y las pruebas de arriba seguirian verdes. Es el mismo
+    // filo que el `<Importe>` CON fecha de mas abajo.
+    const mensajes = await mensajesDe(
+      archivoDeLaMuestra('fetch-fuera-del-cliente') as string,
+      join(RAIZ, 'src/api/cliente.ts'),
+    );
+
+    expect(mensajes.join('\n')).not.toMatch(/Las peticiones pasan por «solicitar»/);
+  });
 });
 
 describe('las reglas no senalan codigo correcto', () => {
