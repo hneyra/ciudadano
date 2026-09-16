@@ -100,6 +100,7 @@ describe('confirmarPago', () => {
     expect(pagado.ultimo).toStrictEqual({
       ids: ['pred26', 'pred24', 'veh24'],
       insoluto: '2750.32',
+      reajuste: '0.00',
       interes: '394.88',
       gastos: '108.00',
       total: '3253.20',
@@ -201,6 +202,7 @@ describe('el sello no se mueve', () => {
     expect(despues.ultimo).toStrictEqual({
       ids: ['pred26', 'arb26', 'pred24', 'veh24'],
       insoluto: '3041.92',
+      reajuste: '0.00',
       interes: '413.32',
       gastos: '108.00',
       total: '3563.24',
@@ -239,6 +241,7 @@ describe('`vivas` es la base de todo lo demas', () => {
     // 291.60 + 1842.60 + 614.00 = 2748.20 · 18.44 + 212.44 + 182.44 = 413.32 · 108.00
     expect(resumen(conUnPago)).toStrictEqual({
       insoluto: '2748.20',
+      reajuste: '0.00',
       interes: '413.32',
       gastos: '108.00',
       total: '3269.52',

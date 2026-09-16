@@ -101,6 +101,38 @@ describe('y las prohibiciones de importes muerden en src/datos/', () => {
     expect(await mensajesEn(conNumber, 'src/datos/tipos.ts')).toContain(mensajeDe('importe-declarado-number'));
   });
 
+  it('`Number(obligacion.insoluto)` en el adaptador de la situacion sale rojo', async () => {
+    // El adaptador (issue 26) es el sitio donde un importe del servidor podria convertirse «solo
+    // para compararlo». Que la prohibicion muerde AHI se mide aqui, y no se supone.
+    const convertido = `
+      export const insoluto = (obligacion: { insoluto: string }) => Number(obligacion.insoluto);
+    `;
+
+    expect(await mensajesEn(convertido, 'src/datos/deLaSituacion.ts')).toContain(
+      mensajeDe('importe-convertido-a-number'),
+    );
+  });
+
+  it('un importe sumado con `+` en el adaptador de la situacion sale rojo', async () => {
+    const aMano = `
+      export function total(a: { insoluto: string }, b: { interes: string }) {
+        return a.insoluto + b.interes;
+      }
+    `;
+
+    expect(await mensajesEn(aMano, 'src/datos/deLaSituacion.ts')).toContain(mensajeDe('aritmetica-con-importes'));
+  });
+
+  it('un importe declarado `number` en src/datos/contrato.ts sale rojo', async () => {
+    const conNumber = `
+      export interface ObligacionDelContrato {
+        readonly total: number;
+      }
+    `;
+
+    expect(await mensajesEn(conNumber, 'src/datos/contrato.ts')).toContain(mensajeDe('importe-declarado-number'));
+  });
+
   it('`Number(deuda.insoluto)` en src/datos/demostracion.ts sale rojo', async () => {
     const convertido = `
       export const insoluto = (deuda: { insoluto: string }) => Number(deuda.insoluto);
@@ -141,7 +173,7 @@ describe('hueco medido: `gastos` y `conAmnistia` no son dinero para la libreria'
 });
 
 describe('las cuentas y los datos no traen React', () => {
-  it.each(['cuentas.ts', 'demostracion.ts', 'tipos.ts'])('%s', (archivo) => {
+  it.each(['cuentas.ts', 'demostracion.ts', 'tipos.ts', 'contrato.ts', 'deLaSituacion.ts'])('%s', (archivo) => {
     const importados = importadosPor(readFileSync(join(DATOS, archivo), 'utf8'));
     // Que el lector lee: sin esto, un lector roto que no devolviera nada pasaria en verde.
     expect(importados).toContain('@kamayuk/formato');
