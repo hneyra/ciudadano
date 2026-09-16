@@ -684,7 +684,15 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
+"@kamayuk/api@link:../../kamayuk-lib/paquetes/api":
+  version "0.0.0"
+  uid ""
+
 "@kamayuk/formato@link:../../kamayuk-lib/paquetes/formato":
+  version "0.0.0"
+  uid ""
+
+"@kamayuk/sesion@link:../../kamayuk-lib/paquetes/sesion":
   version "0.0.0"
   uid ""
 

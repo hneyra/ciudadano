@@ -1,6 +1,8 @@
 import { ProveedorDeTema, type ConfiguracionDeTema } from '@kamayuk/ui';
+import { useTranslation } from 'react-i18next';
 import { RouterProvider } from 'react-router-dom';
 
+import { vueltaFallida, type VueltaFallida } from './arranque.ts';
 import type { Enrutador } from './enrutador.tsx';
 import { ProveedorDelRecorrido } from './recorrido/ProveedorDelRecorrido.tsx';
 import type { EstadoDelRecorrido } from './recorrido/recorrido.ts';
@@ -26,6 +28,46 @@ const TEMA: ConfiguracionDeTema = {
 };
 
 /**
+ * **La puerta no contesto** (issue 13), portada de `rentas/frontend/src/aplicacion.tsx`.
+ *
+ * Se dibuja **solo** cuando el portal volvio del emisor de identidad y el canje no se pudo hacer:
+ * un `?error=` del propio emisor, un `state` que no cuadra, un codigo que el emisor rechaza. En
+ * cualquier otro arranque —o sea, en todos los de hoy— esta pantalla no existe y el portal abre en
+ * su primer paso, como siempre.
+ *
+ * Y hace falta porque el fallo, sin ella, **no se ve**: la libreria limpia la URL siempre —un
+ * codigo usado no vale dos veces, y dejarlo en la barra hace que recargar de un error que no tiene
+ * nada que ver con lo que paso—, asi que lo unico que quedaria seria la pantalla de siempre, como
+ * si nadie hubiera intentado entrar.
+ *
+ * Los dos datos del emisor —`motivo` y `detalle`— van tal cual, que es lo que hace falta para
+ * arreglarlo: sin ellos el aviso diria «algo fallo» y habria que mirar la consola del navegador de
+ * quien lo sufrio.
+ */
+function LaPuertaNoContesto({ falla }: { readonly falla: VueltaFallida }) {
+  const { t } = useTranslation();
+
+  return (
+    <div className="grid min-h-screen place-items-center bg-fondo p-[30px]">
+      <div className="max-w-[64ch] border border-mal-borde bg-mal-fondo p-[20px] text-[14px] leading-[1.6]">
+        <p className="m-0 font-bold text-mal-tinta">{t('No se pudo abrir su sesión')}</p>
+        <p className="mt-[10px] mb-0 text-tinta-2">
+          {t('Volvimos del sistema de identidad sin poder entrar: {{motivo}}. {{detalle}}', {
+            motivo: falla.motivo,
+            detalle: falla.detalle,
+          })}
+        </p>
+        <p className="mt-[10px] mb-0 text-tinta-2 text-pretty">
+          {t(
+            'Vuelva a cargar la página e inténtelo otra vez. Si sigue igual, puede consultar y pagar en la ventanilla de la municipalidad.',
+          )}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/**
  * **El portal**: el tema, el estado del recorrido y el enrutador, en ese orden.
  *
  * · **El proveedor del tema envuelve TODO**, y es lo primero que se monta: lo que se dibuje sin el
@@ -37,6 +79,12 @@ const TEMA: ConfiguracionDeTema = {
  *
  * La barra, la franja y el pie son `src/marco/`; cada paso, su pantalla en `src/pasos/`.
  * `inicial` es para las pruebas: empezar con sesion o en un paso dado sin recorrerlo entero.
+ *
+ * **El proveedor del tema envuelve TODO, incluida la pantalla de la puerta caida** (issue 13, de
+ * rentas#111). Podria envolver solo el recorrido y seria mas corto. Seria tambien un fallo
+ * visible: quien eligio oscuro y se encuentra con que no pudo entrar leeria ese aviso —el unico
+ * momento en que el portal de verdad no esta— con la paleta de otro. La pantalla que explica una
+ * averia es exactamente la que no debe parecer de otro programa.
  */
 export interface AplicacionProps {
   readonly enrutador: Enrutador;
@@ -44,11 +92,19 @@ export interface AplicacionProps {
 }
 
 export function Aplicacion({ enrutador, inicial }: AplicacionProps) {
+  // Se lee aqui y no en `main.tsx` porque el montaje no lleva argumentos a proposito: ver
+  // `src/arranque.ts`. Al llegar aqui la pasada de arranque ya termino, asi que el valor esta fijo.
+  const falla = vueltaFallida();
+
   return (
     <ProveedorDeTema configuracion={TEMA}>
-      <ProveedorDelRecorrido inicial={inicial}>
-        <RouterProvider router={enrutador} />
-      </ProveedorDelRecorrido>
+      {falla !== null ? (
+        <LaPuertaNoContesto falla={falla} />
+      ) : (
+        <ProveedorDelRecorrido inicial={inicial}>
+          <RouterProvider router={enrutador} />
+        </ProveedorDelRecorrido>
+      )}
     </ProveedorDeTema>
   );
 }

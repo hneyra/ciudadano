@@ -54,17 +54,26 @@ async function delProducto() {
 const { PROHIBICIONES: DEL_PRODUCTO, REGLAS_EXIGIDAS: EXIGIDAS } = await delProducto();
 
 /**
- * Donde `fetch` es legitimo AQUI: **en ningun sitio**.
+ * Donde `fetch` es legitimo AQUI: **en `src/api/` y en ningun otro sitio** (issue 13).
  *
- * En `rentas` es `['src/api/']`, porque alli viven el cliente HTTP y la puerta PKCE. Este portal
- * es solo demostracion —sin backend y sin login real—, sus datos salen de `src/datos/` y no hay
- * nada a lo que pedir. La lista vacia no apaga la regla: la deja **encendida en todo el arbol**,
- * que es exactamente lo que se quiere. Un `fetch` que aparezca en una pantalla sale rojo, y el dia
- * que haga falta un cliente de verdad, se decide aqui donde vive y con su porque.
+ * Hasta el issue 13 la lista estaba **vacia**, y era correcto: el portal era solo demostracion, sus
+ * datos salian de `src/datos/` y no habia nada a lo que pedir. Ese dia llego, y lo que cambia es
+ * este dato y no `eslint.config.js`, que es para lo que el mecanismo se dejo entero.
+ *
+ * El prefijo es el mismo que en `rentas`, y por el mismo motivo: ahi viven el cliente HTTP y la
+ * puerta PKCE. Que sea **UNO** es lo que sostiene todo lo que se enchufa en el —el token, el
+ * `problem+json`, la clave de idempotencia—: un `fetch` suelto en una pantalla no se salta una
+ * convencion, se salta las tres.
+ *
+ * Y aqui la excepcion es mas fina de lo que parece: los archivos de `src/api/` **tampoco** llaman a
+ * `fetch`. Lo hace `@kamayuk/api` dentro del clon hermano, que tiene su propia excepcion alla. La
+ * lista se pone igual porque es donde la llamada tendria su sitio si algun dia hiciera falta, y
+ * porque sin ella una pantalla podria colarla en `src/api/` con el mismo rojo que en cualquier otro
+ * directorio — o sea, ninguna diferencia entre el sitio pensado y el resto.
  *
  * @type {readonly string[]}
  */
-export const DONDE_SE_LLAMA_A_FETCH = [];
+export const DONDE_SE_LLAMA_A_FETCH = ['src/api/'];
 
 /**
  * Lo UNICO que este arbol pone de su parte: donde cae cada excepcion.

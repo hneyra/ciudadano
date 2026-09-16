@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { I18nextProvider } from 'react-i18next';
 
 import { Aplicacion } from './aplicacion.tsx';
+import { arrancar } from './arranque.ts';
 import { crearEnrutador } from './enrutador.tsx';
 import i18n from './i18n/i18n.ts';
 // El UNICO sitio donde se importa una hoja de estilos. `src/estilos.css` no define ni un color:
@@ -31,14 +32,24 @@ const consultas = new QueryClient();
 /** El enrutador, por lo mismo: fuera del render, una sola vez (ver `src/enrutador.tsx`). */
 const enrutador = crearEnrutador();
 
-// Sin `arrancar()` delante, a diferencia de `rentas`: alli el canje del codigo de autorizacion tiene
-// que ocurrir antes de montar. Aqui no hay login real, asi que se monta directamente.
-createRoot(raiz).render(
-  <StrictMode>
-    <I18nextProvider i18n={i18n}>
-      <QueryClientProvider client={consultas}>
-        <Aplicacion enrutador={enrutador} />
-      </QueryClientProvider>
-    </I18nextProvider>
-  </StrictMode>,
-);
+/**
+ * **Primero quien pregunta, y solo entonces quien dibuja** (issue 13).
+ *
+ * `arrancar()` canjea el codigo de autorizacion si venimos del emisor, y **monta siempre**: este
+ * portal no va a la puerta al arrancar, porque su recorrido entero funciona en modo demostracion.
+ * El porque entero, en `src/arranque.ts`.
+ *
+ * El montaje va como funcion y no en la linea de abajo para que sea LO ULTIMO que pasa: lo que
+ * tenga que ocurrir antes de que React monte no puede colarse despues.
+ */
+await arrancar(() => {
+  createRoot(raiz).render(
+    <StrictMode>
+      <I18nextProvider i18n={i18n}>
+        <QueryClientProvider client={consultas}>
+          <Aplicacion enrutador={enrutador} />
+        </QueryClientProvider>
+      </I18nextProvider>
+    </StrictMode>,
+  );
+});

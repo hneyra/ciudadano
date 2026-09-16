@@ -23,7 +23,9 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.0",
+    "@kamayuk/api": "link:../../kamayuk-lib/paquetes/api",
     "@kamayuk/formato": "link:../../kamayuk-lib/paquetes/formato",
+    "@kamayuk/sesion": "link:../../kamayuk-lib/paquetes/sesion",
     "@kamayuk/ui": "link:../../kamayuk-lib/paquetes/ui",
     "@tanstack/react-query": "^5.102.8",
     "class-variance-authority": "^0.7.1",

@@ -20,11 +20,6 @@ import { PROHIBICIONES } from './eslint.prohibiciones.mjs';
  * Y ese archivo **tampoco las escribe**: las deriva de `@kamayuk/verificaciones`, que es donde
  * viven las nueve del producto desde `kamayuk-lib`#4, y les pone las rutas de este arbol. En
  * `rentas` hubo una copia y diverge; aqui se nace sin ella.
- *
- * <h2>Lo que `rentas` tiene y aqui no</h2>
- *
- * El bloque de `public/**\/*.js`: alli existe por `public/configuracion.js`, las senias del
- * ambiente que se cargan antes del paquete. Este portal no tiene `public/` ni senias que leer.
  */
 
 /** Las prohibiciones que valen en todo el arbol. */
@@ -105,6 +100,22 @@ export default tseslint.config(
   },
 
   ...bloquesDeExcepcion,
+
+  {
+    // `public/` es codigo de NAVEGADOR que Vite copia tal cual, sin transformar ni empaquetar:
+    // no es un modulo, no pasa por TypeScript y por eso no lo alcanza el bloque de arriba, que
+    // solo mira `.ts`/`.tsx`. Sin esta linea `window` sale como `no-undef`.
+    //
+    // Se le dan globales de navegador y NO se mete en `ignores`, a proposito: `configuracion.js`
+    // es lo primero que ejecuta la pagina —antes que el paquete— y un error de sintaxis ahi deja
+    // la aplicacion entera en blanco. Es justo el archivo que mas conviene que alguien revise.
+    files: ['public/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: { ...globals.browser },
+    },
+  },
 
   {
     // Las pruebas y los arneses corren en Node y hablan DE las prohibiciones: una prueba

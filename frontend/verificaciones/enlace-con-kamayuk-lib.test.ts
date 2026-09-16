@@ -54,17 +54,19 @@ describe('el enlace con el clon hermano esta bien puesto', () => {
     // La lista se escribe entera, no se cuenta: anadir un paquete exige decir cual, y este
     // rojo es la unica senal de que la superficie de dependencia del frontend acaba de crecer.
     //
-    // Son TRES y no los seis de `rentas`, a proposito: `@kamayuk/shell` es un armazon de
-    // back-office que este portal no usa, y `@kamayuk/sesion` y `@kamayuk/api` son la identidad y
-    // el cliente HTTP de un sistema con backend, que este portal —solo demostracion— no tiene.
+    // Son CINCO desde el issue 13, y no los seis de `rentas`: el que falta es `@kamayuk/shell`, un
+    // armazon de back-office que este portal no usa (su sitio lo ocupan el recorrido y su marco).
+    // `@kamayuk/api` y `@kamayuk/sesion` entraron con el cliente HTTP y la puerta PKCE.
     expect(enlaces.map((e) => e.paquete).sort()).toEqual([
+      '@kamayuk/api',
       '@kamayuk/formato',
+      '@kamayuk/sesion',
       '@kamayuk/ui',
       // El unico que NO entra en el paquete: trae las nueve prohibiciones de ESLint. Por eso va
-      // en `devDependencies` y los otros dos no.
+      // en `devDependencies` y los otros cuatro no.
       '@kamayuk/verificaciones',
     ]);
-    // Y todos apuntan al mismo clon hermano: tres rutas a tres sitios distintos serian tres
+    // Y todos apuntan al mismo clon hermano: cinco rutas a cinco sitios distintos serian cinco
     // dependencias que mantener, no una.
     expect(new Set(enlaces.map((e) => e.declarada.split('/paquetes/')[0]))).toEqual(
       new Set(['../../kamayuk-lib']),

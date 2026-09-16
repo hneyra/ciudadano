@@ -77,8 +77,26 @@ describe('las peerDependencies de `@kamayuk/*` estan instaladas aqui', () => {
   it('EL CENTINELA: los paquetes enlazados piden algo', () => {
     // Sin esto, un `package.json` que dejara de declarar `peerDependencies` —o un enlace roto que
     // devolviera un objeto vacio— dejaria la comprobacion de abajo recorriendo la lista vacia y
-    // pasando en verde. La libreria pide nueve solo en `@kamayuk/ui`.
+    // pasando en verde. La libreria pide once solo en `@kamayuk/ui`.
     expect(PETICIONES.length, 'ningun paquete enlazado pidio nada').toBeGreaterThanOrEqual(9);
+  });
+
+  it('se miran los CINCO enlaces, y hoy solo uno pide algo', () => {
+    // Los cinco se inspeccionan; que cuatro no declaren `peerDependencies` es un dato medido, no un
+    // descuido: `@kamayuk/api`, `@kamayuk/sesion`, `@kamayuk/formato` y `@kamayuk/verificaciones`
+    // son TypeScript sin dependencias —`@kamayuk/sesion` alcanza a `@kamayuk/api` por ruta
+    // relativa dentro del hermano, no por su nombre—. Por eso el issue 13 no anadio ni una
+    // dependencia al `package.json`: el `yarn.lock` crecio en dos enlaces y nada mas.
+    //
+    // El dia que alguno declare la primera, este rojo lo dice — y entonces hay que declararla aqui.
+    expect(ENLACES.map((e) => e.paquete).sort()).toEqual([
+      '@kamayuk/api',
+      '@kamayuk/formato',
+      '@kamayuk/sesion',
+      '@kamayuk/ui',
+      '@kamayuk/verificaciones',
+    ]);
+    expect([...new Set(PETICIONES.map((p) => p.paquete))]).toEqual(['@kamayuk/ui']);
   });
 
   it('no falta ninguna', () => {

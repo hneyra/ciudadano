@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { clavesDeLaEscalera } from '../src/api/escalera.ts';
 import { clavesDelHistorial } from '../src/pasos/historial/textosDelHistorial.ts';
 import { clavesDeLosMedios } from '../src/pasos/pagar/textosDeLosMedios.ts';
 import { RAIZ } from './artboards.ts';
@@ -318,6 +319,13 @@ const LITERALES = [
   'Sus predios y vehículos, con los datos sobre los que se calcula cada tributo. Si algo no coincide con la realidad, puede pedir que se rectifique.',
   'El autovalúo lo determina Catastro con el arancel de su calle y los valores unitarios del año; la deuda y las cuotas las lleva Rentas; los pagos se registran en Caja.',
 
+  // ── La puerta de identidad (issue 13) ───────────────────────────────────────────────────────
+  // No estan en el artboard: el artboard no tiene login real. Es lo que `src/aplicacion.tsx`
+  // dibuja cuando el portal vuelve del emisor y el canje no se pudo hacer.
+  'No se pudo abrir su sesión',
+  'Volvimos del sistema de identidad sin poder entrar: {{motivo}}. {{detalle}}',
+  'Vuelva a cargar la página e inténtelo otra vez. Si sigue igual, puede consultar y pagar en la ventanilla de la municipalidad.',
+
   // Los plurales: cada forma que i18next pide para `es` (`_one`, `_many`, `_other`). Lo que dice
   // cada una esta en `PLURALES`.
   ...Object.keys(PLURALES_DEL_PASO_2),
@@ -327,6 +335,11 @@ const LITERALES = [
   ...clavesDeLosMedios(),
   // Lo que dicen los pagos anteriores y las unidades del historial (issue 10), derivado del dato.
   ...clavesDelHistorial(),
+  // Lo que dice la escalera de identidad (issue 13), derivado de su tabla: los tres textos de cada
+  // uno de los siete peldanos. La pantalla los traduce con una variable —la clave del peldano solo
+  // se sabe en ejecucion—, asi que `i18next-cli` no los ve y escribirlos aqui a mano dejaria el
+  // olvido sin rojo.
+  ...clavesDeLaEscalera(),
 ];
 
 /** Lo que tiene que decir cada forma plural, con el mecanismo de `rentas`. */
@@ -359,6 +372,11 @@ describe('el locale `es` esta completo y no se aparta', () => {
     // Y la derivada de `HISTORIAL` y `UNIDADES` (issue 10), por lo mismo.
     expect(Object.keys(esperado), 'la lista no trae lo que dicen los pagos y las unidades').toEqual(
       expect.arrayContaining(['BCP con código', '8.20 m de frontis', 'Base imponible']),
+    );
+    // Y la derivada de la escalera de identidad (issue 13): si la tabla se vaciara, sus 21 claves
+    // faltarian del locale sin que el resto de la lista lo notara.
+    expect(Object.keys(esperado), 'la lista no trae lo que dice la escalera').toEqual(
+      expect.arrayContaining(['Su sesión ya no está abierta', 'El portal no está respondiendo']),
     );
   });
 
