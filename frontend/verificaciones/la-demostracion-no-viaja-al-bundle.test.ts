@@ -68,19 +68,33 @@ const ANDAMIAJE = 'src/pruebas/portal.tsx';
 /**
  * Los archivos de produccion que hoy alcanzan `src/datos/demostracion.ts` —los DATOS, no la fuente—.
  *
- * Son los del recorrido de la demostracion, que el issue 28 se lleva. Escritos aqui **para que crecer
- * la lista sea una decision**: sin esto, un import mas pasaria sin que nada lo dijera y el «no viaja al
- * bundle» del titulo se iria quedando cada vez menos cierto.
+ * Son los del recorrido de la demostracion, que sigue viviendo en el paquete: el portal construido
+ * con la bandera encendida ES ese recorrido. Escritos aqui **para que crecer la lista sea una
+ * decision**: sin esto, un import mas pasaria sin que nada lo dijera y el «no viaja al bundle» del
+ * titulo se iria quedando cada vez menos cierto.
+ *
+ * <h2>Lo que el issue 28 movio, y por que la lista no menguo</h2>
+ *
+ * · `src/pasos/buscar/Buscar.tsx` **sale**: lo unico que sacaba de la demostracion era `ORDENANZA`,
+ *   el aviso de la amnistia, y eso se mudo a `src/piezas/PortadaDelPortal.tsx`, que las dos puertas
+ *   de entrada comparten (el paso 1 de demostracion y el «Entrar» con plataforma).
+ * · `src/piezas/PortadaDelPortal.tsx` **entra** por lo mismo.
+ * · `src/recorrido/recorrido.ts` **se queda**, y ahora tambien por `CONTRIBUYENTE`: el estado del
+ *   recorrido arranca con la deuda y el contribuyente del artboard, y con plataforma los sustituye
+ *   `situacionLeida`. Sacar los datos del paquete pide que el recorrido no tenga estado inicial de
+ *   demostracion, que es otra entrega.
+ *
+ * El neto es cero: uno entra, uno sale.
  */
 const ALCANZAN_LA_DEMOSTRACION: readonly string[] = [
   DEMOSTRACION,
   'src/marco/Barra.tsx',
-  'src/pasos/buscar/Buscar.tsx',
   'src/pasos/comprobante/Comprobante.tsx',
   'src/pasos/deudas/Deudas.tsx',
   'src/pasos/historial/textosDelHistorial.ts',
   'src/pasos/pagar/Pagar.tsx',
   'src/pasos/pagar/textosDeLosMedios.ts',
+  'src/piezas/PortadaDelPortal.tsx',
   'src/recorrido/recorrido.ts',
 ];
 
@@ -242,7 +256,7 @@ describe('AC1 — la bandera esta declarada, y dice lo mismo en los tres sitios 
 });
 
 describe('AC1 — los DATOS del artboard: quienes los alcanzan hoy, y no uno mas', () => {
-  it('la lista es exactamente la del recorrido de la demostracion, que se lleva el issue 28', () => {
+  it('la lista es exactamente la del recorrido de la demostracion, y no uno mas', () => {
     const alcanzan = deProduccion
       .filter((ruta) => importa(ruta, /(^|\/)demostracion\.ts$/))
       .sort((a, b) => a.localeCompare(b, 'es'));
@@ -251,8 +265,8 @@ describe('AC1 — los DATOS del artboard: quienes los alcanzan hoy, y no uno mas
       alcanzan,
       'Cambio quien alcanza `src/datos/demostracion.ts` desde produccion.\n' +
         '  Los datos del artboard estan en el paquete por estos archivos, y no por la fuente. Si la\n' +
-        '  lista CRECE, hay que decidirlo a proposito; si MENGUA —que es lo que hara el issue 28—,\n' +
-        '  se actualiza aqui y se cuenta en el PR.',
+        '  lista CRECE, hay que decidirlo a proposito; si MENGUA, se actualiza aqui y se cuenta en\n' +
+        '  el PR.',
     ).toEqual([...ALCANZAN_LA_DEMOSTRACION].sort((a, b) => a.localeCompare(b, 'es')));
   });
 });

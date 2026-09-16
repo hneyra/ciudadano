@@ -55,6 +55,13 @@ export default tseslint.config(
   {
     ignores: [
       '**/dist/**',
+      // Los otros dos paquetes que el arnes construye: el de produccion, que
+      // `e2e/la-demostracion-no-viaja-al-bundle.spec.ts` compara con el de demostracion (issue 27),
+      // y el CON PLATAFORMA, que el segundo servidor de `playwright.config.ts` sirve (issue 28).
+      // Los dos son bundles minificados en el disco: sin esto, `yarn lint` los linta y sale con
+      // miles de errores («'window' is not defined»), como paso con `playwright-report/`.
+      '**/dist-de-produccion/**',
+      '**/dist-con-plataforma/**',
       '**/node_modules/**',
       // Lo que deja el arnes (issue 11): el informe HTML con el visor de trazas empaquetado, y las
       // trazas. No se versionan (`.gitignore`), pero estan en el disco: medido, tras una corrida con

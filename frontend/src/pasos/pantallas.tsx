@@ -3,11 +3,11 @@ import { type ComponentType, type LazyExoticComponent, lazy } from 'react';
 import type { Paso } from '../recorrido/recorrido.ts';
 
 /**
- * **Las seis pantallas del recorrido, cada una en su trozo del bundle** (issue 11, nota del revisor).
+ * **Las pantallas del recorrido, cada una en su trozo del bundle** (issue 11, nota del revisor).
  *
  * <h2>Por que</h2>
  *
- * Con las seis importadas de forma estatica, `vite build` emitia UN trozo de JavaScript de 792.30 kB y
+ * Con todas importadas de forma estatica, `vite build` emitia UN trozo de JavaScript de 792.30 kB y
  * avisaba «Some chunks are larger than 500 kB after minification». Subir `chunkSizeWarningLimit`
  * callaria el aviso sin cambiar lo que el telefono del contribuyente descarga y compila antes de ver
  * la primera pantalla. Asi que se reparte: cada pantalla es un `import()` —un trozo propio— y las
@@ -23,9 +23,9 @@ import type { Paso } from '../recorrido/recorrido.ts';
  *
  * · **En el navegador**, sin mas, cada paso nuevo parpadearia en blanco el tiempo de pedir su trozo,
  *   y en mitad de un pago con mala cobertura ese hueco es donde se pierde la conexion. Por eso el
- *   enrutador pide las seis en cuanto se dibuja la primera (`precargarLasPantallas`).
+ *   enrutador las pide todas en cuanto se dibuja la primera (`precargarLasPantallas`).
  * · **En las pruebas de `vitest`**, que montan el portal y preguntan `getByRole` en el acto, la
- *   pantalla aun no estaria. `src/pruebas/portal.tsx` precarga las seis antes de montar.
+ *   pantalla aun no estaria. `src/pruebas/portal.tsx` las precarga todas antes de montar.
  *
  * Y para que precargar sirva de algo, el cargador que ve `lazy` devuelve, cuando el modulo ya llego,
  * una **promesa ya cumplida que contesta en el acto** (`cumplida`): `lazy` la da por resuelta dentro de
@@ -76,8 +76,9 @@ export function perezosa(cargar: () => Promise<ComponentType>): PantallaPerezosa
   return { Pantalla, precargar: pedir };
 }
 
-/** Las seis, por paso. Cada `import()` es un trozo del bundle. */
+/** Las siete, por paso. Cada `import()` es un trozo del bundle. */
 export const PANTALLAS: Readonly<Record<Paso, PantallaPerezosa>> = {
+  entrar: perezosa(() => import('./entrar/Entrar.tsx').then((m) => m.Entrar)),
   buscar: perezosa(() => import('./buscar/Buscar.tsx').then((m) => m.Buscar)),
   deudas: perezosa(() => import('./deudas/Deudas.tsx').then((m) => m.Deudas)),
   identificar: perezosa(() => import('./identificar/Identificar.tsx').then((m) => m.Identificar)),
@@ -86,7 +87,7 @@ export const PANTALLAS: Readonly<Record<Paso, PantallaPerezosa>> = {
   historial: perezosa(() => import('./historial/Historial.tsx').then((m) => m.Historial)),
 };
 
-/** Pide los seis trozos a la vez. */
+/** Pide todos los trozos a la vez. */
 export async function precargarLasPantallas(): Promise<void> {
   await Promise.all(Object.values(PANTALLAS).map((pantalla) => pantalla.precargar()));
 }

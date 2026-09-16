@@ -30,6 +30,7 @@ import type { Paso } from './recorrido.ts';
 
 /** La ruta de cada paso. */
 export const RUTA_DEL_PASO: Readonly<Record<Paso, `/${string}`>> = {
+  entrar: '/entrar',
   buscar: '/buscar',
   deudas: '/deudas',
   identificar: '/identificar',

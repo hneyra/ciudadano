@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { pasosConTotal, totalDe } from '../../datos/cuentas.ts';
 import { FECHA_DE_CORTE, MEDIOS } from '../../datos/demostracion.ts';
 import type { CampoDelMedio, MedioDePago } from '../../datos/tipos.ts';
+import { AvisoDePagoSimulado } from '../../piezas/AvisoDePagoSimulado.tsx';
 import { MEDIDAS_DE_CONTROL, Rotulo } from '../../piezas/Rotulo.tsx';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
 import { cuentaPorPagar, destinoDelComprobante, porPagar } from '../../recorrido/recorrido.ts';
@@ -299,7 +300,11 @@ function PanelDelMedio({ medio }: { readonly medio: MedioDePago }) {
             nada && 'bg-linea text-tinta-2 hover:bg-linea hover:brightness-100',
           )}
         >
-          {t(medio.boton)}
+          {/*
+            Con plataforma el boton REPITE que el pago es simulado (issue 28): es lo ultimo que se lee
+            antes de pulsar, y el aviso de arriba puede haber quedado fuera de la pantalla.
+          */}
+          {estado.conPlataforma ? t('Simular el pago: no se cobra nada') : t(medio.boton)}
         </Boton>
       </div>
     </section>
@@ -359,7 +364,10 @@ function Resumen() {
               <li key={deuda.id} className="flex items-baseline gap-3 border-b border-linea-2 px-[18px] py-3">
                 <span className="min-w-0 flex-1">
                   <span className="block text-[14px] text-pretty">{deuda.concepto}</span>
-                  <span className="mt-[2px] block text-[12.5px] text-tinta-3">{deuda.cuotas}</span>
+                  {/* El contrato del portal no trae cuotas (issue 26): sin ellas no se dibuja la linea. */}
+                  {deuda.cuotas === null ? null : (
+                    <span className="mt-[2px] block text-[12.5px] text-tinta-3">{deuda.cuotas}</span>
+                  )}
                 </span>
                 <Cifra valor={totalDe(deuda)} className="flex-[0_0_auto] text-[14px]" />
               </li>
@@ -423,6 +431,11 @@ export function Pagar() {
       className="grid grid-cols-[minmax(0,1fr)_minmax(0,320px)] items-start gap-[18px] max-[821px]:grid-cols-[minmax(0,1fr)]"
     >
       <div className="min-w-0">
+        {/*
+          Con plataforma no hay cobro detras: la decision D-14 sigue abierta y no existe endpoint de
+          pago (issue 28). El aviso va arriba del todo y no se cierra.
+        */}
+        {estado.conPlataforma ? <AvisoDePagoSimulado /> : null}
         <h1 className="m-0 mb-[6px] text-[24px] font-bold text-pretty text-azul">{t('¿Cómo quiere pagar?')}</h1>
         <p className="mt-0 mb-[18px] max-w-[62ch] text-[15.5px] leading-[1.6] text-pretty text-tinta-2">
           {t(

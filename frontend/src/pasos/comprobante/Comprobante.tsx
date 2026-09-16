@@ -15,7 +15,8 @@ import { useTranslation } from 'react-i18next';
 
 import escudo from '../../../diseno/escudo-catacaos.png';
 import { cifraSinSimbolo, conAmnistiaDe } from '../../datos/cuentas.ts';
-import { CONTRIBUYENTE, ORDENANZA } from '../../datos/demostracion.ts';
+import { ORDENANZA } from '../../datos/demostracion.ts';
+import { AvisoDePagoSimulado } from '../../piezas/AvisoDePagoSimulado.tsx';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
 import { type PagoSellado, conceptosDelPago, vivas } from '../../recorrido/recorrido.ts';
 import { rotuloDelMedio } from '../pagar/textosDeLosMedios.ts';
@@ -140,9 +141,11 @@ function BandaDeExito({ pago }: { readonly pago: PagoSellado }) {
 /** El recibo: lo unico que se imprime (lineas 491-534 y 1287-1322). */
 function Recibo({ pago }: { readonly pago: PagoSellado }) {
   const { t } = useTranslation();
+  const { estado } = useRecorrido();
   const idDelTitulo = useId();
   const medio = useRotuloDelMedio(pago);
   const { comprobante } = pago;
+  const quien = estado.contribuyente;
 
   const columnas = [
     { rotulo: t('Concepto'), cifra: false },
@@ -178,8 +181,14 @@ function Recibo({ pago }: { readonly pago: PagoSellado }) {
         <Meta rotulo={t('Número de operación')}>{comprobante.operacion}</Meta>
         <Meta rotulo={t('Fecha y hora')}>{`${formatearFecha(comprobante.fecha)} · ${comprobante.hora}`}</Meta>
         <Meta rotulo={t('Medio de pago')}>{medio}</Meta>
-        <Meta rotulo={t('Contribuyente')}>{CONTRIBUYENTE.nombre}</Meta>
-        <Meta rotulo={t('Código')}>{CONTRIBUYENTE.codigo}</Meta>
+        {/*
+          Quien es sale del RECORRIDO y no de `CONTRIBUYENTE` (issue 28): en demostracion son los
+          mismos dos valores del artboard, y con plataforma los que dijo el servidor. Escritos aqui,
+          un recibo de un pago hecho con plataforma llevaria el nombre y el codigo de otra persona.
+          El codigo solo si lo hay: con dos municipalidades detras no hay uno que valga por los dos.
+        */}
+        {quien === null ? null : <Meta rotulo={t('Contribuyente')}>{quien.nombre}</Meta>}
+        {quien?.codigo == null ? null : <Meta rotulo={t('Código')}>{quien.codigo}</Meta>}
         <Meta rotulo={t('Enviado a')}>{pago.destino ?? t('su correo')}</Meta>
       </dl>
 
@@ -194,12 +203,13 @@ function Recibo({ pago }: { readonly pago: PagoSellado }) {
           </tr>
         </TablaCabecera>
         <TablaCuerpo>
-          {conceptosDelPago(pago).map((deuda) => (
+          {conceptosDelPago(estado, pago).map((deuda) => (
             <TablaFila key={deuda.id}>
               <TablaCelda identifica className={cn('font-bold', CELDA_DEL_RECIBO)}>
                 {deuda.concepto}
               </TablaCelda>
               <TablaCelda className={CELDA_DEL_RECIBO}>{deuda.unidad}</TablaCelda>
+              {/* El contrato del portal no trae cuotas (issue 26): la celda queda vacia, no inventada. */}
               <TablaCelda className={CELDA_DEL_RECIBO}>{deuda.cuotas}</TablaCelda>
               <TablaCelda cifra className={CELDA_DEL_RECIBO}>
                 {cifraSinSimbolo(conAmnistiaDe(deuda))}
@@ -338,6 +348,11 @@ export function Comprobante() {
 
   return (
     <div>
+      {/*
+        Con plataforma, este recibo NO acredita ningun pago: no hay cobro detras (issue 28). Va
+        arriba del todo y antes de la banda de exito, que es la que dice «Su pago se registró».
+      */}
+      {estado.conPlataforma ? <AvisoDePagoSimulado /> : null}
       <BandaDeExito pago={pago} />
       <Recibo pago={pago} />
       <Acciones pago={pago} />

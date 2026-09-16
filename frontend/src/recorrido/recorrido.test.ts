@@ -1,11 +1,11 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
-import { COMPROBANTE, DEUDAS, USUARIO } from '../datos/demostracion.ts';
+import { COMPROBANTE, CONTRIBUYENTE, DEUDAS, USUARIO } from '../datos/demostracion.ts';
 import {
   type AccionDelRecorrido,
   ESTADO_INICIAL,
   type EstadoDelRecorrido,
-  PASOS_NUMERADOS,
+  PASOS_DE_LA_DEMOSTRACION,
   cuenta,
   conceptosDelPago,
   cuentaPendiente,
@@ -46,6 +46,15 @@ describe('el estado inicial', () => {
   it('es el de las lineas 927-940 del artboard', () => {
     expect(ESTADO_INICIAL).toStrictEqual({
       paso: 'buscar',
+      // No son del artboard: los pone el issue 28, y en demostracion valen lo de siempre —los datos
+      // del artboard, y ninguna plataforma detras—.
+      conPlataforma: false,
+      deudas: DEUDAS,
+      contribuyente: {
+        nombre: CONTRIBUYENTE.nombre,
+        codigo: CONTRIBUYENTE.codigo,
+        documento: `${CONTRIBUYENTE.tipoDeDocumento} ${CONTRIBUYENTE.numeroDeDocumento}`,
+      },
       tipoDeDocumento: 'Código de contribuyente',
       numero: '',
       marcadas: { pred26: true, arb26: true, pred24: true, veh24: true },
@@ -361,10 +370,10 @@ describe('a donde lleva cada cosa', () => {
 
 describe('`pasoAlcanzable`', () => {
   it('solo permite los pasos numerados hasta el actual, inclusive', () => {
-    for (const [i, actual] of PASOS_NUMERADOS.entries()) {
+    for (const [i, actual] of PASOS_DE_LA_DEMOSTRACION.entries()) {
       const estado = recorrido(ESTADO_INICIAL, { tipo: 'irA', paso: actual });
-      const alcanzables = PASOS_NUMERADOS.filter((paso) => pasoAlcanzable(estado, paso));
-      expect(alcanzables, `desde «${actual}»`).toEqual(PASOS_NUMERADOS.slice(0, i + 1));
+      const alcanzables = PASOS_DE_LA_DEMOSTRACION.filter((paso) => pasoAlcanzable(estado, paso));
+      expect(alcanzables, `desde «${actual}»`).toEqual(PASOS_DE_LA_DEMOSTRACION.slice(0, i + 1));
     }
   });
 
@@ -397,7 +406,7 @@ describe('`pasoAlcanzable`', () => {
   it('el historial exige sesion, y desde el ninguna ruta numerada es alcanzable', () => {
     const enElHistorial = tras([{ tipo: 'entrar' }, { tipo: 'irA', paso: 'historial' }]);
     expect(pasoAlcanzable(enElHistorial, 'historial')).toBe(true);
-    expect(PASOS_NUMERADOS.filter((paso) => pasoAlcanzable(enElHistorial, paso))).toEqual([]);
+    expect(PASOS_DE_LA_DEMOSTRACION.filter((paso) => pasoAlcanzable(enElHistorial, paso))).toEqual([]);
     expect(ultimoAlcanzable(enElHistorial)).toBe('historial');
   });
 });
@@ -453,10 +462,10 @@ describe('`conceptosDelPago` (issue 9)', () => {
     ]);
     const sello = pagado.ultimo;
     if (sello === null) throw new Error('confirmarPago no sello nada');
-    expect(ids(conceptosDelPago(sello))).toEqual(['arb26', 'veh24']);
+    expect(ids(conceptosDelPago(pagado, sello))).toEqual(['arb26', 'veh24']);
 
     const despues = tras([{ tipo: 'irA', paso: 'deudas' }, { tipo: 'alternar', id: 'pred24' }, { tipo: 'marcarTodo' }], pagado);
     expect(despues.ultimo).toBe(sello);
-    expect(ids(conceptosDelPago(sello))).toEqual(['arb26', 'veh24']);
+    expect(ids(conceptosDelPago(despues, sello))).toEqual(['arb26', 'veh24']);
   });
 });

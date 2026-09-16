@@ -4,7 +4,7 @@ import { Navigate, type RouteObject, createHashRouter, useNavigate } from 'react
 import { Marco } from './marco/Marco.tsx';
 import { PANTALLAS, precargarLasPantallas } from './pasos/pantallas.tsx';
 import { useRecorrido } from './recorrido/ProveedorDelRecorrido.tsx';
-import { type Paso, pasoAlcanzable, ultimoAlcanzable } from './recorrido/recorrido.ts';
+import { type Paso, TODOS_LOS_PASOS, pasoAlcanzable, ultimoAlcanzable } from './recorrido/recorrido.ts';
 import { RUTA_DEL_PASO } from './recorrido/rutas.ts';
 
 /**
@@ -57,14 +57,17 @@ function AlPasoActual() {
   return <Navigate replace to={RUTA_DEL_PASO[ultimoAlcanzable(estado)]} />;
 }
 
-const PASOS: readonly Paso[] = ['buscar', 'deudas', 'identificar', 'pagar', 'comprobante', 'historial'];
-
 export const RUTAS: RouteObject[] = [
   {
     element: <Marco />,
     children: [
       { index: true, element: <AlPasoActual /> },
-      ...PASOS.map((paso) => ({ path: RUTA_DEL_PASO[paso].slice(1), element: <PantallaDelPaso paso={paso} /> })),
+      // Los de los DOS recorridos: una ruta que no existiera daria un 404 del enrutador en vez de la
+      // redireccion de `PantallaDelPaso`, que es quien dice a donde se puede ir.
+      ...TODOS_LOS_PASOS.map((paso) => ({
+        path: RUTA_DEL_PASO[paso].slice(1),
+        element: <PantallaDelPaso paso={paso} />,
+      })),
       { path: '*', element: <AlPasoActual /> },
     ],
   },

@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { clavesDeLaEscalera } from '../src/api/escalera.ts';
+import { clavesDeLaUnidad } from '../src/datos/deLaSituacion.ts';
 import { clavesDelHistorial } from '../src/pasos/historial/textosDelHistorial.ts';
 import { clavesDeLosMedios } from '../src/pasos/pagar/textosDeLosMedios.ts';
 import { RAIZ } from './artboards.ts';
@@ -340,14 +341,41 @@ const LITERALES = [
   'No encontramos deuda a su nombre',
   'Con {{tipoDeDocumento}} {{numeroDeDocumento}} no figura ninguna deuda en las municipalidades del sistema.',
   'Si cree que es un error, acérquese con su documento a la ventanilla de la municipalidad: allí lo revisan en el momento.',
-  'Lo que encontramos a su nombre',
-  'Todavía no puede pagar aquí lo que el portal consulta: por ahora, acérquese con su documento a la ventanilla de la municipalidad.',
   // El boton del peldano que pide identidad, y lo que se dice si no se pudo ni llegar al emisor.
   'Entrar',
   'No pudimos llevarle al acceso: {{motivo}}.',
   // El nombre de respaldo de la barra: un realm puede no mandar `name`, y el circulo no puede
   // quedarse vacio (`src/marco/Barra.tsx`).
   'Su cuenta',
+
+  // ── El recorrido con plataforma (issue 28) ──────────────────────────────────────────────────
+  // Paso 1 · Entrar (`src/pasos/entrar/Entrar.tsx`). No esta en el artboard: alli el paso 1 es
+  // buscar por documento, y el backend ya no ofrece eso (ADR-0020).
+  'Entre con su cuenta del portal',
+  'Su deuda está a nombre de su documento, así que lo primero es saber quién pregunta. Al entrar verá lo que debe en todas las municipalidades del sistema, y podrá pagar todo o solo lo que elija.',
+  'Entrar con mi cuenta',
+  'Si todavía no tiene cuenta, se la abren en la ventanilla de la municipalidad con su documento: aquí no se puede crear. Es a propósito, porque nadie puede acreditar desde una pantalla que usted es usted.',
+  // La franja: la etiqueta del paso 1 con plataforma es la misma clave «Entrar» de arriba, y el
+  // aviso de un paso HECHO que ya no se abre, que en demostracion no existia.
+  'Ese paso ya está hecho y no hace falta repetirlo.',
+  // Paso 2 con plataforma (`src/pasos/deudas/LaConsulta.tsx`): la deuda del servidor.
+  'Reintentar la consulta',
+  'Lo que suma el portal',
+  'Código {{codigo}} · {{documento}}',
+  'Reajuste',
+  'al {{fecha}}',
+  'El portal no publica el desglose de este concepto.',
+  'El servidor da el saldo del tributo entero: cuántas cuotas son, cuándo vence cada una y qué servicios componen el arbitrio no viajan en la respuesta. En la ventanilla de la municipalidad se lo detallan.',
+  // Pasos 4 y 5: el pago es simulado y se dice (`src/piezas/AvisoDePagoSimulado.tsx`).
+  'El pago en línea todavía no está disponible: esta pantalla es una demostración.',
+  'Puede recorrerla entera, pero no se cobra nada y su deuda no cambia. Para pagar de verdad, acérquese con su documento a la ventanilla de la municipalidad.',
+  'Simular el pago: no se cobra nada',
+  // «Mis pagos» con plataforma: lo que el backend no publica, dicho.
+  'El portal todavía no publica su historial de pagos: por ahora solo sabe lo que debe hoy. Los pagos anteriores están en la ventanilla de la municipalidad, con su comprobante.',
+  'Los predios que el portal publica a su nombre. El autovalúo, los metros de frontis y la tabla que se le aplica no viajan en la respuesta: se los detallan en la ventanilla.',
+  'Código catastral {{codigo}}',
+  '{{porcentaje}} % de titularidad',
+  'El portal todavía no publica sus vehículos: aquí solo están los predios.',
 
   // Los plurales: cada forma que i18next pide para `es` (`_one`, `_many`, `_other`). Lo que dice
   // cada una esta en `PLURALES`.
@@ -358,6 +386,10 @@ const LITERALES = [
   ...clavesDeLosMedios(),
   // Lo que dicen los pagos anteriores y las unidades del historial (issue 10), derivado del dato.
   ...clavesDelHistorial(),
+  // Lo que el ADAPTADOR escribe cuando el contrato no deja identificar la unidad (issue 26). La
+  // pantalla las traduce con una variable —`unidad` es a veces el predio de verdad, que es dato—,
+  // asi que `i18next-cli` no las ve.
+  ...clavesDeLaUnidad(),
   // Lo que dice la escalera de identidad (issue 13), derivado de su tabla: los tres textos de cada
   // uno de los siete peldanos. La pantalla los traduce con una variable —la clave del peldano solo
   // se sabe en ejecucion—, asi que `i18next-cli` no los ve y escribirlos aqui a mano dejaria el
@@ -400,6 +432,11 @@ describe('el locale `es` esta completo y no se aparta', () => {
     // faltarian del locale sin que el resto de la lista lo notara.
     expect(Object.keys(esperado), 'la lista no trae lo que dice la escalera').toEqual(
       expect.arrayContaining(['Su sesión ya no está abierta', 'El portal no está respondiendo']),
+    );
+    // Y la derivada del adaptador (issue 28): si `SIN_DETALLE` se vaciara, sus tres claves faltarian
+    // del locale sin que el resto de la lista lo notara.
+    expect(Object.keys(esperado), 'la lista no trae lo que dice el adaptador de la situacion').toEqual(
+      expect.arrayContaining(['Sin detalle del predio', 'Sin unidad asociada']),
     );
   });
 

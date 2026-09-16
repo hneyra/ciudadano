@@ -11,6 +11,7 @@ import type {
   EstadoDeLaSituacion,
   MunicipalidadDelPortal,
   PredioDelPortal,
+  QuienDebe,
   SaldosDeLaMunicipalidad,
   SituacionDelServidor,
 } from './tipos.ts';
@@ -89,6 +90,20 @@ const SIN_DETALLE = {
   vehiculo: 'Sin detalle del vehículo',
   ninguna: 'Sin unidad asociada',
 } as const;
+
+/**
+ * Lo que de `SIN_DETALLE` **escribe el portal y no el servidor**, para el inventario del locale
+ * (issue 28).
+ *
+ * `unidad` es un campo mixto: unas veces es el predio de verdad —«Casa habitación · Calle Santa
+ * Rosa 116», que es dato y no se traduce— y otras una de estas tres frases, que las redacta este
+ * archivo. La pantalla las pasa por `t()` con una variable, asi que `i18next-cli` no las ve:
+ * `verificaciones/el-locale-esta-completo.test.ts` las DERIVA de aqui, como las de los medios de
+ * pago y las del historial.
+ */
+export function clavesDeLaUnidad(): readonly string[] {
+  return Object.values(SIN_DETALLE);
+}
 
 /** El separador con que el artboard une tipo y direccion: «Casa habitación · Calle Santa Rosa 116». */
 const PUNTO = ' · ';
@@ -250,6 +265,31 @@ export function deLaSituacion(respuesta: SituacionDelContrato): SituacionDelServ
     notaDelTotal: respuesta.notaDelTotal,
     municipalidades,
     deudas,
+  };
+}
+
+/**
+ * **A nombre de quien esta la deuda que contesto el servidor** (issue 28).
+ *
+ * El contrato no trae un contribuyente unico: trae uno **por municipalidad**, cada una con su nombre
+ * y su codigo de padron. Esta funcion decide, y decide poco a proposito:
+ *
+ * · el **nombre** es el de la primera municipalidad que contesto. Con varias suele ser el mismo
+ *   —es la misma persona— y componer una lista de nombres para una cabecera que dice «Contribuyente»
+ *   seria peor que ensenar uno;
+ * · el **codigo** solo si TODAS dicen el mismo. Cada padron numera por su cuenta, y ensenar el de
+ *   Catacaos como si fuera «su codigo» con dos municipalidades detras es decirle a alguien que
+ *   busque en su recibo un numero que en la mitad de sus recibos no esta;
+ * · el **documento** sale de la respuesta entera, que es donde vive: es el del token.
+ */
+export function quienDebeDe(situacion: SituacionDelServidor): QuienDebe {
+  const municipalidades = situacion.municipalidades;
+  const primera = municipalidades[0];
+  const codigos = new Set(municipalidades.map((municipalidad) => municipalidad.codigoDelContribuyente));
+  return {
+    nombre: primera?.nombreDelContribuyente ?? '',
+    codigo: codigos.size === 1 ? (primera?.codigoDelContribuyente ?? null) : null,
+    documento: `${situacion.tipoDeDocumento} ${situacion.numeroDeDocumento}`,
   };
 }
 

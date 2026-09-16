@@ -2,8 +2,9 @@ import { avisar } from '@kamayuk/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
 
+import { haySesion } from '../api/claims.ts';
 import { Aplicacion } from '../aplicacion.tsx';
-import { FuenteActiva, type FuenteDelPortal } from '../datos/fuente.ts';
+import { FuenteActiva, type FuenteDelPortal, hayPlataforma } from '../datos/fuente.ts';
 // La de demostracion, importada A PROPOSITO de forma estatica: esto es andamiaje de pruebas y no
 // entra en el paquete (solo lo importan los `*.test.tsx`). Que siga siendo asi —y que ningun archivo
 // de produccion lo importe— lo vigila `verificaciones/la-demostracion-no-viaja-al-bundle.test.ts`.
@@ -11,7 +12,7 @@ import { fuenteDeDemostracion } from '../datos/fuenteDeDemostracion.ts';
 import { type Enrutador, crearEnrutador } from '../enrutador.tsx';
 import i18n, { ABRE, CIERRA, IDIOMA_POR_OMISION } from '../i18n/i18n.ts';
 import { precargarLasPantallas } from '../pasos/pantallas.tsx';
-import { ESTADO_INICIAL, type EstadoDelRecorrido } from '../recorrido/recorrido.ts';
+import { type EstadoDelRecorrido, estadoInicial } from '../recorrido/recorrido.ts';
 
 /**
  * **Montar el portal entero en una prueba**, entrando por un hash como entraria el navegador.
@@ -122,13 +123,20 @@ export function montarElPortal({ hash = '#/buscar', estado = {}, fuente = fuente
   remendarRequest();
   remendarResizeObserver();
   window.history.replaceState(null, '', `/${hash}`);
+  // El estado de partida se calcula como en `ProveedorDelRecorrido`, y `estado` lo retoca encima:
+  // con la fuente de la plataforma, una prueba que no dijera nada arrancaria en el recorrido de la
+  // demostracion y estaria midiendo el otro portal.
+  const base = estadoInicial({
+    conPlataforma: hayPlataforma(fuente),
+    autenticado: hayPlataforma(fuente) && haySesion(),
+  });
   const enrutador = crearEnrutador();
   montados.push(enrutador);
   const consultas = new QueryClient();
   const utilidades = render(
     <QueryClientProvider client={consultas}>
       <FuenteActiva value={fuente}>
-        <Aplicacion enrutador={enrutador} inicial={{ ...ESTADO_INICIAL, ...estado }} />
+        <Aplicacion enrutador={enrutador} inicial={{ ...base, ...estado }} />
       </FuenteActiva>
     </QueryClientProvider>,
   );
