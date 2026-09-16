@@ -131,6 +131,25 @@ export interface Contribuyente {
   readonly vehiculos: number;
 }
 
+/**
+ * **A nombre de quien esta la deuda del recorrido** (issue 28).
+ *
+ * Lo poco de `Contribuyente` que las dos formas de leer saben decir. En demostracion sale del
+ * artboard; con plataforma, de `GET /portal/situacion` (`quienDebeDe`, en `deLaSituacion.ts`). Vive
+ * en el estado del recorrido porque el comprobante lo sella en papel: con `CONTRIBUYENTE` escrito en
+ * la pantalla, un recibo de un pago hecho con plataforma llevaria el nombre y el codigo de OTRA
+ * persona.
+ *
+ * `codigo` y `documento` son anulables porque puede no haberlos: el codigo lo pone cada
+ * municipalidad, y con varias detras no hay uno solo que valga.
+ */
+export interface QuienDebe {
+  readonly nombre: string;
+  readonly codigo: string | null;
+  /** «DNI 03593174», ya compuesto. `null` si no se sabe con que documento. */
+  readonly documento: string | null;
+}
+
 /** La persona que entra con su cuenta (no tiene por que ser el contribuyente). */
 export interface Usuario {
   readonly iniciales: string;

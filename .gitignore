@@ -4,6 +4,9 @@ dist/
 # El paquete de PRODUCCION que construye `e2e/la-demostracion-no-viaja-al-bundle.spec.ts` para
 # compararlo con el de demostracion que sirve el arnes (issue 27). Vive un camino y se borra.
 dist-de-produccion/
+# El paquete CON PLATAFORMA que sirve el segundo servidor del arnes (issue 28), para
+# `e2e/recorrido-con-plataforma.spec.ts`. Se construye en cada corrida.
+dist-con-plataforma/
 
 # La cache de Vite: es de una maquina y de una corrida.
 .vite/

@@ -56,13 +56,14 @@ afterEach(async () => {
 describe('sin sesion', () => {
   it('«Iniciar sesión» va a la PUERTA, y no al paso «Mis datos»', async () => {
     const ida = vi.spyOn(identidad, 'entrar').mockResolvedValue(null);
-    montarElPortal({ fuente: conPlataforma() });
+    montarElPortal({ hash: '#/entrar', fuente: conPlataforma() });
 
     fireEvent.click(within(barra()).getByRole('button', { name: 'Iniciar sesión' }));
 
     await waitFor(() => expect(ida).toHaveBeenCalledTimes(1));
-    // Y no se movio el recorrido: quien va a la puerta se va de la pagina, no cambia de paso.
-    expect(window.location.hash).toBe('#/buscar');
+    // Y no se movio el recorrido: quien va a la puerta se va de la pagina, no cambia de paso. El
+    // primer paso con plataforma es «Entrar» desde el issue 28, no «Buscar mi deuda».
+    expect(window.location.hash).toBe('#/entrar');
   });
 
   it('y si no se pudo ni llegar al emisor, se dice en vez de no hacer nada visible', async () => {
@@ -71,7 +72,7 @@ describe('sin sesion', () => {
       url: 'http://localhost:18180/realms/kamayuk-ciudadano/.well-known/openid-configuration',
       motivo: 'la peticion no llego a completarse',
     });
-    montarElPortal({ fuente: conPlataforma() });
+    montarElPortal({ hash: '#/entrar', fuente: conPlataforma() });
 
     fireEvent.click(within(barra()).getByRole('button', { name: 'Iniciar sesión' }));
 
@@ -84,7 +85,7 @@ describe('sin sesion', () => {
 describe('con sesion', () => {
   it('el nombre y el documento salen del TOKEN, no de la demostracion', async () => {
     identidad.fijarToken(tokenCon({ name: 'Rufina Medina Medina', tipo_documento: 'DNI', numero_documento: '03593174' }));
-    montarElPortal({ fuente: conPlataforma() });
+    montarElPortal({ hash: '#/deudas', fuente: conPlataforma() });
 
     const disparador = within(barra()).getByRole('button', { expanded: false, name: /Rufina Medina Medina/ });
     expect(disparador).toHaveTextContent('DNI 03593174');
@@ -107,7 +108,7 @@ describe('con sesion', () => {
   it('«Cerrar sesión» llama a `salir()`: tambien en el emisor, con `id_token_hint`', async () => {
     const salida = vi.spyOn(identidad, 'salir').mockImplementation(() => {});
     identidad.fijarToken(tokenCon({ name: 'Rufina Medina Medina', tipo_documento: 'DNI', numero_documento: '03593174' }));
-    montarElPortal({ fuente: conPlataforma() });
+    montarElPortal({ hash: '#/deudas', fuente: conPlataforma() });
 
     const disparador = within(barra()).getByRole('button', { expanded: false, name: /Rufina Medina Medina/ });
     act(() => disparador.focus());
@@ -121,7 +122,7 @@ describe('con sesion', () => {
 
   it('sin `name` en el token, la barra no se queda muda: se la nombra por su cuenta', async () => {
     identidad.fijarToken(tokenCon({ tipo_documento: 'CE', numero_documento: '001234567' }));
-    montarElPortal({ fuente: conPlataforma() });
+    montarElPortal({ hash: '#/deudas', fuente: conPlataforma() });
 
     const disparador = within(barra()).getByRole('button', { expanded: false, name: /Su cuenta/ });
     expect(disparador).toHaveTextContent('CE 001234567');

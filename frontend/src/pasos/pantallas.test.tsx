@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { Suspense } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { PASOS_NUMERADOS } from '../recorrido/recorrido.ts';
+import { TODOS_LOS_PASOS } from '../recorrido/recorrido.ts';
 import { PANTALLAS, perezosa, precargarLasPantallas } from './pantallas.tsx';
 
 /**
@@ -76,14 +76,15 @@ describe('una pantalla perezosa', () => {
   });
 });
 
-describe('las seis del recorrido', () => {
-  it('hay una por paso: los cinco numerados y el historial', () => {
-    expect(Object.keys(PANTALLAS).sort()).toEqual([...PASOS_NUMERADOS, 'historial'].sort());
+describe('las del recorrido', () => {
+  it('hay una por paso de los DOS recorridos, y ni una de mas', () => {
+    expect(Object.keys(PANTALLAS).sort()).toEqual([...TODOS_LOS_PASOS].sort());
   });
 
-  // Con plazo: es la primera vez que este archivo transforma las seis pantallas y lo que importan.
+  // Con plazo: es la primera vez que este archivo transforma todas las pantallas y lo que importan.
   it('y cada una carga la pantalla de su paso', { timeout: 30_000 }, async () => {
-    const [buscar, deudas, identificar, pagar, comprobante, historial] = await Promise.all([
+    const [entrar, buscar, deudas, identificar, pagar, comprobante, historial] = await Promise.all([
+      import('./entrar/Entrar.tsx'),
       import('./buscar/Buscar.tsx'),
       import('./deudas/Deudas.tsx'),
       import('./identificar/Identificar.tsx'),
@@ -92,6 +93,7 @@ describe('las seis del recorrido', () => {
       import('./historial/Historial.tsx'),
     ]);
 
+    expect(await PANTALLAS.entrar.precargar()).toBe(entrar.Entrar);
     expect(await PANTALLAS.buscar.precargar()).toBe(buscar.Buscar);
     expect(await PANTALLAS.deudas.precargar()).toBe(deudas.Deudas);
     expect(await PANTALLAS.identificar.precargar()).toBe(identificar.Identificar);

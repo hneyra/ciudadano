@@ -120,6 +120,28 @@ export const MOTIVO = ELEGIDO.motivo;
  */
 export const URL_DEL_ARNES = `http://localhost:${PUERTO}/portal/`;
 
+/**
+ * **El segundo servidor del arnes: el paquete CON PLATAFORMA** (issue 28).
+ *
+ * El arnes sirve el paquete de demostracion, porque lo que recorre es el recorrido del artboard
+ * (`playwright.config.ts`). El recorrido con plataforma es otro portal —empieza por entrar y la
+ * deuda la trae el servidor—, y el unico sitio donde existe es el paquete de PRODUCCION. Asi que se
+ * construye aparte, se sirve aparte, y `e2e/recorrido-con-plataforma.spec.ts` lo recorre con un
+ * backend falso puesto por el propio arnes (`page.route`).
+ *
+ * El puerto es **el siguiente**, y no otro derivado: la banda tiene 999 puertos y la derivacion ya
+ * separa los arboles; pedir un segundo hash daria dos numeros sueltos que hay que mirar por separado
+ * cuando algo se atasca, y este se puede nombrar de memoria. Si el ultimo de la banda cae aqui, se
+ * vuelve al primero.
+ */
+export const PUERTO_CON_PLATAFORMA = PUERTO === ULTIMO ? PRIMERO : PUERTO + 1;
+
+/** Donde se construye el paquete con plataforma. No se versiona (`.gitignore`). */
+export const DIST_CON_PLATAFORMA = 'dist-con-plataforma';
+
+/** La raiz del paquete con plataforma, servido por el segundo `vite preview`. */
+export const URL_CON_PLATAFORMA = `http://localhost:${PUERTO_CON_PLATAFORMA}/portal/`;
+
 /** Las dos caras de «localhost». Vite escucha en `::1`; un servidor ajeno puede estar en cualquiera. */
 const LOOPBACK = ['127.0.0.1', '::1'];
 
@@ -232,18 +254,31 @@ function leerDeProc(pid, que) {
  * @returns {Promise<void>}
  */
 export async function comprobarQueElPuertoEstaLibre() {
-  if (!(await estaOcupado(PUERTO))) return;
-  const dueno = quienLoTiene(PUERTO);
+  // Los DOS: el del paquete de demostracion y el del paquete con plataforma (issue 28). Si el
+  // segundo estuviera ocupado, su `vite preview` moriria por `--strictPort` DESPUES de que el
+  // primero levantara, y la corrida seguiria midiendo lo que sirva el intruso.
+  for (const puerto of [PUERTO, PUERTO_CON_PLATAFORMA]) await comprobarUno(puerto);
+}
+
+/**
+ * @param {number} puerto
+ * @returns {Promise<void>}
+ */
+async function comprobarUno(puerto) {
+  if (!(await estaOcupado(puerto))) return;
+  const dueno = quienLoTiene(puerto);
   throw new Error(
-    `El puerto ${PUERTO} ya esta ocupado, y el arnes no puede medir su propio bundle en el.\n\n` +
-      `  puerto   ${PUERTO}, ${MOTIVO}\n` +
+    `El puerto ${puerto} ya esta ocupado, y el arnes no puede medir su propio bundle en el.\n\n` +
+      `  puerto   ${puerto}, ${puerto === PUERTO ? MOTIVO : `el siguiente al del arnes (${MOTIVO})`}\n` +
       `  lo tiene ${dueno?.descripcion ?? NADIE}\n\n` +
       'El arnes NO se mueve de puerto: con `--strictPort` y un `baseURL` fijo, servir en otro\n' +
       'seria medir el bundle de quien tenga este (rentas#148). Asi que: o se libera el puerto\n' +
       '—si es un `vite preview` que quedo vivo de una corrida anterior, se mata—\n' +
       (dueno === null ? '' : `\n    kill ${dueno.pid}\n`) +
       '\n...o se dice cual usar:\n\n' +
-      `    ${VARIABLE}=${PUERTO === ULTIMO ? PRIMERO : PUERTO + 1} yarn e2e\n`,
+      // Se sugiere el de DESPUES del segundo servidor: el siguiente al del arnes ya lo usa el
+      // paquete con plataforma (issue 28), y pedirlo daria el mismo choque un paso mas alla.
+      `    ${VARIABLE}=${PUERTO_CON_PLATAFORMA === ULTIMO ? PRIMERO : PUERTO_CON_PLATAFORMA + 1} yarn e2e\n`,
   );
 }
 

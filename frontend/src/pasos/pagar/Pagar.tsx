@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { pasosConTotal, totalDe } from '../../datos/cuentas.ts';
 import { FECHA_DE_CORTE, MEDIOS } from '../../datos/demostracion.ts';
 import type { CampoDelMedio, MedioDePago } from '../../datos/tipos.ts';
+import { AvisoDePagoSimulado } from '../../piezas/AvisoDePagoSimulado.tsx';
 import { MEDIDAS_DE_CONTROL, Rotulo } from '../../piezas/Rotulo.tsx';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
 import { cuentaPorPagar, destinoDelComprobante, porPagar } from '../../recorrido/recorrido.ts';
@@ -243,24 +244,71 @@ function Bancos({ medio }: { readonly medio: MedioDePago }) {
   );
 }
 
+/**
+ * Confirmar, que es lo unico que los dos paneles comparten: el del artboard y el que se dibuja con
+ * plataforma, donde no hay medio que elegir.
+ *
+ * Sin nada que pagar no se sella nada, y se avisa con la frase del artboard (linea 1255). El aviso
+ * de despues **no promete un correo con plataforma**: no hay cobro, y no se envia nada.
+ */
+function useConfirmarElPago(): { readonly nada: boolean; readonly confirmar: () => void } {
+  const { t } = useTranslation();
+  const { estado, despachar } = useRecorrido();
+  const nada = porPagar(estado).length === 0;
+
+  return {
+    nada,
+    confirmar: () => {
+      if (nada) {
+        avisar(t('No hay nada que pagar.'));
+        return;
+      }
+      // El destino se lee ANTES de despachar: es el que el reductor sella en `ultimo`.
+      const destino = destinoDelComprobante(estado) ?? t('su correo');
+      const conPlataforma = estado.conPlataforma;
+      despachar({ tipo: 'confirmarPago' });
+      avisar(
+        conPlataforma
+          ? t('Pago simulado. No se cobró nada y su deuda no ha cambiado.')
+          : t('Pago registrado. Le enviamos el comprobante a {{destino}}.', { destino }),
+      );
+    },
+  };
+}
+
+/** El boton verde de confirmar, con las medidas y el color del artboard. */
+function BotonDeConfirmar({
+  rotulo,
+  nada,
+  alConfirmar,
+}: {
+  readonly rotulo: string;
+  readonly nada: boolean;
+  readonly alConfirmar: () => void;
+}) {
+  return (
+    <Boton
+      type="button"
+      variante="primario"
+      aria-disabled={nada}
+      onClick={alConfirmar}
+      className={cn(
+        // El verde del artboard es `--ok-tinta`; su hover (`#326032`) no es token: se oscurece el mismo.
+        'min-h-[48px] px-7 py-0 text-[16px] bg-ok-tinta hover:bg-ok-tinta hover:brightness-90',
+        nada && 'bg-linea text-tinta-2 hover:bg-linea hover:brightness-100',
+      )}
+    >
+      {rotulo}
+    </Boton>
+  );
+}
+
 /** El panel del medio elegido, con su pie y el boton de confirmar (lineas 380-449 y 1215-1244). */
 function PanelDelMedio({ medio }: { readonly medio: MedioDePago }) {
   const { t } = useTranslation();
-  const { estado, despachar } = useRecorrido();
   const idDelTitulo = useId();
-  const nada = porPagar(estado).length === 0;
+  const { nada, confirmar } = useConfirmarElPago();
   const campos = medio.campos ?? [];
-
-  const confirmar = () => {
-    if (nada) {
-      avisar(t('No hay nada que pagar.'));
-      return;
-    }
-    // El destino se lee ANTES de despachar: es el que el reductor sella en `ultimo`.
-    const destino = destinoDelComprobante(estado) ?? t('su correo');
-    despachar({ tipo: 'confirmarPago' });
-    avisar(t('Pago registrado. Le enviamos el comprobante a {{destino}}.', { destino }));
-  };
 
   return (
     <section aria-labelledby={idDelTitulo} className="border border-linea bg-superficie">
@@ -288,19 +336,7 @@ function PanelDelMedio({ medio }: { readonly medio: MedioDePago }) {
         <p className="m-0 min-w-[180px] flex-1 text-[13.5px] leading-[1.55] text-pretty text-tinta-3">
           {t(medio.aviso)}
         </p>
-        <Boton
-          type="button"
-          variante="primario"
-          aria-disabled={nada}
-          onClick={confirmar}
-          className={cn(
-            // El verde del artboard es `--ok-tinta`; su hover (`#326032`) no es token: se oscurece el mismo.
-            'min-h-[48px] px-7 py-0 text-[16px] bg-ok-tinta hover:bg-ok-tinta hover:brightness-90',
-            nada && 'bg-linea text-tinta-2 hover:bg-linea hover:brightness-100',
-          )}
-        >
-          {t(medio.boton)}
-        </Boton>
+        <BotonDeConfirmar rotulo={t(medio.boton)} nada={nada} alConfirmar={confirmar} />
       </div>
     </section>
   );
@@ -359,7 +395,10 @@ function Resumen() {
               <li key={deuda.id} className="flex items-baseline gap-3 border-b border-linea-2 px-[18px] py-3">
                 <span className="min-w-0 flex-1">
                   <span className="block text-[14px] text-pretty">{deuda.concepto}</span>
-                  <span className="mt-[2px] block text-[12.5px] text-tinta-3">{deuda.cuotas}</span>
+                  {/* El contrato del portal no trae cuotas (issue 26): sin ellas no se dibuja la linea. */}
+                  {deuda.cuotas === null ? null : (
+                    <span className="mt-[2px] block text-[12.5px] text-tinta-3">{deuda.cuotas}</span>
+                  )}
                 </span>
                 <Cifra valor={totalDe(deuda)} className="flex-[0_0_auto] text-[14px]" />
               </li>
@@ -392,18 +431,28 @@ function Resumen() {
       )}
 
       <div className="border-t border-linea-2 px-[18px] py-[13px]">
+        {/*
+          Con plataforma NO se envia ningun comprobante: no hay cobro detras (issue 28, revision).
+          Prometer un correo que nadie va a mandar es afirmar un hecho que no va a ocurrir, y da
+          igual que haya un aviso al lado.
+        */}
         <p className="m-0 text-[12.5px] leading-[1.55] text-pretty text-tinta-3">
-          {t('El comprobante se enviará a {{destino}}.', { destino })}
+          {estado.conPlataforma
+            ? t('Aquí no se envía ningún comprobante: el portal todavía no cobra en línea.')
+            : t('El comprobante se enviará a {{destino}}.', { destino })}
         </p>
         <Boton
           type="button"
           variante="fantasma"
-          onClick={() => despachar({ tipo: 'irA', paso: estado.numero === '' ? 'buscar' : 'deudas' })}
+          onClick={() =>
+            // Con plataforma `buscar` no existe: se vuelve siempre a elegir que pago.
+            despachar({ tipo: 'irA', paso: !estado.conPlataforma && estado.numero === '' ? 'buscar' : 'deudas' })
+          }
           className="mt-[10px] min-h-0 p-0 text-[13.5px] underline hover:bg-transparent print:hidden"
         >
           {conceptos.length > 0
             ? t('Cambiar lo que voy a pagar')
-            : estado.numero === ''
+            : !estado.conPlataforma && estado.numero === ''
               ? t('Buscar mi deuda')
               : t('Elegir qué pago')}
         </Boton>
@@ -412,35 +461,113 @@ function Resumen() {
   );
 }
 
-export function Pagar() {
+/**
+ * **Paso 3 con plataforma: no hay medio de pago que ofrecer** (issue 28, revision).
+ *
+ * <h2>Por que el selector de los cuatro medios NO se dibuja</h2>
+ *
+ * Porque los cuatro medios del artboard no son cuatro rotulos: son **datos accionables**. El de Yape
+ * publica un numero de telefono —«Número para yapear 969 032 194, a nombre de la Municipalidad
+ * Distrital de Catacaos»— y el del banco, un codigo de pago «válido por 72 horas». En el portal de
+ * demostracion eso es utileria de una ficcion que la pagina entera declara. En un portal construido
+ * para una municipalidad, con la deuda de verdad delante y el total de verdad al lado, es una
+ * instruccion: alguien puede yapear S/ 3,785.20 a ese numero. No existe ese cobro, y ese numero no
+ * es de nadie que vaya a devolverlo.
+ *
+ * Lo mismo con las promesas de cada panel —«el comprobante se emite de inmediato», «el pago aparece
+ * en un minuto», «se aplica al día siguiente hábil»—: son hechos futuros que el portal no puede
+ * cumplir porque no hay nada detras (D-14 abierta).
+ *
+ * Asi que con plataforma el paso 3 dice **lo que es**: todavia no se puede pagar aqui, esto es lo
+ * que se deberia, y se paga en ventanilla. El boton de confirmar se queda para poder recorrer el
+ * paso —y dice en su propio texto que lo que hace es simular—, porque el issue pide que el recorrido
+ * se pueda recorrer entero.
+ */
+function PagarSinMedios() {
+  const { t } = useTranslation();
+  const idDelTitulo = useId();
+  const { nada, confirmar } = useConfirmarElPago();
+
+  return (
+    <>
+      {/* No lleva `data-noprint`: si alguien imprime esta pagina, el aviso tiene que ir en el papel. */}
+      <AvisoDePagoSimulado />
+      <h1 className="m-0 mb-[6px] text-[24px] font-bold text-pretty text-azul">
+        {t('Todavía no se puede pagar en línea')}
+      </h1>
+      <p className="mt-0 mb-[18px] max-w-[62ch] text-[15.5px] leading-[1.6] text-pretty text-tinta-2">
+        {t(
+          'El portal ya sabe lo que debe, pero el cobro todavía no está conectado: no hay ningún medio de pago que ofrecerle. Para pagar, acérquese con su documento a la ventanilla de la municipalidad.',
+        )}
+      </p>
+
+      <section aria-labelledby={idDelTitulo} className="border border-linea bg-superficie">
+        <div className="border-b border-linea-2 px-5 py-[14px]">
+          <h2 id={idDelTitulo} className="m-0 text-[17px] font-bold">
+            {t('Puede seguir el recorrido, sin pagar')}
+          </h2>
+          <p className="mt-[5px] mb-0 max-w-[66ch] text-[14px] leading-[1.55] text-pretty text-tinta-3">
+            {t(
+              'El botón de abajo no cobra: solo enseña cómo se vería su comprobante. Su deuda queda exactamente donde está.',
+            )}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 border-t border-linea-2 bg-sup px-5 py-4">
+          <p className="m-0 min-w-[180px] flex-1 text-[13.5px] leading-[1.55] text-pretty text-tinta-3">
+            {t('No se le pide ningún dato de pago, porque no hay ningún pago que hacer.')}
+          </p>
+          <BotonDeConfirmar rotulo={t('Simular el pago: no se cobra nada')} nada={nada} alConfirmar={confirmar} />
+        </div>
+      </section>
+    </>
+  );
+}
+
+/** El paso 4 del artboard: los cuatro medios y el panel del elegido. */
+function PagarConLosMedios() {
   const { t } = useTranslation();
   const { estado } = useRecorrido();
   const medio = medioElegido(estado.medio);
+
+  return (
+    <>
+      <h1 className="m-0 mb-[6px] text-[24px] font-bold text-pretty text-azul">{t('¿Cómo quiere pagar?')}</h1>
+      <p className="mt-0 mb-[18px] max-w-[62ch] text-[15.5px] leading-[1.6] text-pretty text-tinta-2">
+        {t(
+          'Elija un medio de pago. Con tarjeta, Yape o pagalo.pe el pago se aplica al instante; con código de banco se aplica al día siguiente hábil.',
+        )}
+      </p>
+
+      <div
+        data-medios=""
+        className="mb-[18px] grid grid-cols-[repeat(auto-fit,minmax(218px,1fr))] gap-3 max-[521px]:grid-cols-[minmax(0,1fr)]"
+      >
+        {MEDIOS.map((m) => (
+          <BotonDeMedio key={m.id} medio={m} />
+        ))}
+      </div>
+
+      <PanelDelMedio medio={medio} />
+    </>
+  );
+}
+
+/**
+ * **El paso de pagar, en los dos modos.**
+ *
+ * Como en el paso 2 (`Deudas.tsx`), son **dos pantallas** y no una con condiciones dentro: con
+ * plataforma no hay medios, ni campos de tarjeta, ni codigos, ni instrucciones. El resumen de la
+ * derecha si es el mismo, porque lo que se deberia pagar se cuenta igual.
+ */
+export function Pagar() {
+  const { estado } = useRecorrido();
 
   return (
     <div
       data-pagar=""
       className="grid grid-cols-[minmax(0,1fr)_minmax(0,320px)] items-start gap-[18px] max-[821px]:grid-cols-[minmax(0,1fr)]"
     >
-      <div className="min-w-0">
-        <h1 className="m-0 mb-[6px] text-[24px] font-bold text-pretty text-azul">{t('¿Cómo quiere pagar?')}</h1>
-        <p className="mt-0 mb-[18px] max-w-[62ch] text-[15.5px] leading-[1.6] text-pretty text-tinta-2">
-          {t(
-            'Elija un medio de pago. Con tarjeta, Yape o pagalo.pe el pago se aplica al instante; con código de banco se aplica al día siguiente hábil.',
-          )}
-        </p>
-
-        <div
-          data-medios=""
-          className="mb-[18px] grid grid-cols-[repeat(auto-fit,minmax(218px,1fr))] gap-3 max-[521px]:grid-cols-[minmax(0,1fr)]"
-        >
-          {MEDIOS.map((m) => (
-            <BotonDeMedio key={m.id} medio={m} />
-          ))}
-        </div>
-
-        <PanelDelMedio medio={medio} />
-      </div>
+      <div className="min-w-0">{estado.conPlataforma ? <PagarSinMedios /> : <PagarConLosMedios />}</div>
 
       <Resumen />
     </div>

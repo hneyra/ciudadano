@@ -2,7 +2,7 @@ import { avisar, cn } from '@kamayuk/ui';
 import { useTranslation } from 'react-i18next';
 
 import { useRecorrido } from '../recorrido/ProveedorDelRecorrido.tsx';
-import { PASOS_NUMERADOS, type PasoNumerado, indiceDelPaso, pasoAlcanzable } from '../recorrido/recorrido.ts';
+import { type PasoNumerado, indiceDelPaso, pasoAlcanzable, pasosNumerados } from '../recorrido/recorrido.ts';
 
 /**
  * **La franja de pasos** (`diseno/Ciudadano.dc.html`, lineas 103-116, 1018-1022 y 1064-1078).
@@ -20,13 +20,24 @@ import { PASOS_NUMERADOS, type PasoNumerado, indiceDelPaso, pasoAlcanzable } fro
  *   `verificaciones/la-paleta-cuadra-con-el-artboard.test.ts`.
  * · **La etiqueta, oculta a ≤ 880 px como en el artboard, sigue siendo el nombre accesible**: va
  *   tambien en el `aria-label` del boton, que si no a esa anchura se llamaria «1».
+ *
+ * <h2>La franja se renumera con el recorrido (issue 28)</h2>
+ *
+ * Los pasos salen de `pasosNumerados(estado)`: cinco en demostracion y **cuatro con plataforma**
+ * —«Entrar · Elegir qué pago · Pagar · Comprobante»—. Los numeros son la posicion en esa lista, asi
+ * que «Pagar» es el 4 en un recorrido y el 3 en el otro sin que aqui se escriba ningun numero.
+ *
+ * Y hay un paso HECHO que no se puede volver a abrir, que en demostracion no existia: «Entrar», una
+ * vez se entro. Por eso el aviso se elige: el de siempre habla de completar los pasos anteriores, y
+ * ahi no falta ninguno.
  */
 export function FranjaDePasos() {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
-  const actual = indiceDelPaso(estado.paso);
+  const actual = indiceDelPaso(estado, estado.paso);
 
   const etiquetas: Readonly<Record<PasoNumerado, string>> = {
+    entrar: t('Entrar'),
     buscar: t('Buscar mi deuda'),
     deudas: t('Elegir qué pago'),
     identificar: t('Mis datos'),
@@ -37,7 +48,7 @@ export function FranjaDePasos() {
   return (
     <nav data-noprint="1" className="border-b border-linea bg-superficie">
       <div className="mx-auto flex max-w-[1020px] flex-wrap items-stretch px-[18px]">
-        {PASOS_NUMERADOS.map((paso, i) => {
+        {pasosNumerados(estado).map((paso, i) => {
           const esActual = i === actual;
           const hecho = i < actual;
           const alcanzable = pasoAlcanzable(estado, paso);
@@ -49,6 +60,7 @@ export function FranjaDePasos() {
               aria-label={etiquetas[paso]}
               onClick={() => {
                 if (alcanzable) despachar({ tipo: 'irA', paso });
+                else if (hecho) avisar(t('Ese paso ya está hecho y no hace falta repetirlo.'));
                 else avisar(t('Complete primero los pasos anteriores.'));
               }}
               className={cn(

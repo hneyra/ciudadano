@@ -1,6 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
 
-import { PUERTO, URL_DEL_ARNES } from './puerto-del-arnes.mjs';
+import {
+  DIST_CON_PLATAFORMA,
+  PUERTO,
+  PUERTO_CON_PLATAFORMA,
+  URL_CON_PLATAFORMA,
+  URL_DEL_ARNES,
+} from './puerto-del-arnes.mjs';
 
 /**
  * **El arnes que mide lo que jsdom no puede: que el portal se VEA** (issue 11). Portado de
@@ -48,7 +54,9 @@ export default defineConfig({
    * lo que un camino suelto no puede hacer.
    */
   globalSetup: './e2e/el-bundle-servido-es-el-mio.ts',
-  webServer: {
+  // **Dos servidores** desde el issue 28: el paquete de demostracion, que es lo que recorre el
+  // artboard, y el paquete con plataforma, que es el otro portal. Ver cada uno abajo.
+  webServer: [
     // `build` delante, porque `preview` sin `dist` sirve un 404 con codigo 200. Y `--strictPort` SE
     // QUEDA: sin el, Vite se mueve de puerto en silencio y el `baseURL` se queda donde estaba, que es
     // medir el servidor de otro.
@@ -70,17 +78,39 @@ export default defineConfig({
     //     asi que la bandera llega `undefined` y corta la segunda condicion. (El paquete sale con
     //     React de desarrollo y en modo plataforma, que es lo peor de los dos mundos.)
     //
-    // Y hace falta porque lo que este arnes recorre es **el recorrido de la demostracion**: buscar
+    // Y hace falta porque lo que este servidor sirve es **el recorrido de la demostracion**: buscar
     // por documento, entrar con la cuenta del artboard, pagar y ver el comprobante. Con plataforma
-    // nada de eso existe —el paso 1 consulta al servidor y «Iniciar sesión» se va a Keycloak—, asi
-    // que un arnes contra el paquete de produccion mediria un portal que pide a un backend que en CI
-    // no esta. El recorrido con plataforma es del issue 28, y lo cubrira con su propio backend falso.
+    // nada de eso existe —el paso 1 es «Entrar» y la deuda la trae el servidor—, asi que el
+    // recorrido con plataforma tiene su propio servidor, el de abajo.
     //
     // Lo que esto NO deja de medir es que la demostracion se caiga del paquete de PRODUCCION:
     // `e2e/la-demostracion-no-viaja-al-bundle.spec.ts` construye ese aparte y compara los dos.
-    command: `yarn build:arnes && yarn preview --port ${PUERTO} --strictPort`,
-    url: URL_DEL_ARNES,
-    reuseExistingServer: false,
-    timeout: 120_000,
-  },
+    {
+      command: `yarn build:arnes && yarn preview --port ${PUERTO} --strictPort`,
+      url: URL_DEL_ARNES,
+      reuseExistingServer: false,
+      timeout: 120_000,
+    },
+    /**
+     * **El segundo: el paquete CON PLATAFORMA** (issue 28).
+     *
+     * `yarn build` a secas es el de produccion, y el de produccion **es** el modo plataforma: la
+     * bandera `VITE_KAMAYUK_SIN_PLATAFORMA` solo enciende la demostracion en desarrollo
+     * (`src/datos/laFuente.ts`). Se construye en otro directorio y se sirve en el puerto siguiente,
+     * porque los dos paquetes tienen que estar a la vez: `la-demostracion-no-viaja-al-bundle` mide
+     * el de demostracion y `recorrido-con-plataforma` el otro.
+     *
+     * **El backend no se levanta**: lo pone la propia especificacion con `page.route` —el emisor de
+     * identidad y `GET /portal/situacion`—, que es lo unico que deja recorrer esto en una CI donde
+     * no hay ni Keycloak ni base de datos.
+     */
+    {
+      command:
+        `yarn build --outDir ${DIST_CON_PLATAFORMA} && ` +
+        `yarn preview --outDir ${DIST_CON_PLATAFORMA} --port ${PUERTO_CON_PLATAFORMA} --strictPort`,
+      url: URL_CON_PLATAFORMA,
+      reuseExistingServer: false,
+      timeout: 120_000,
+    },
+  ],
 });

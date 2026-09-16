@@ -157,7 +157,8 @@ describe('el reparto', () => {
   it('las pantallas solo se importan con `import()` desde `src/pasos/pantallas.tsx`', () => {
     // Una importacion estatica de una pantalla desde fuera de su carpeta la mete en el trozo que la
     // importa, y Rollup solo avisa («dynamic import will not move module into another chunk»).
-    const PANTALLA = /from\s+['"][^'"]*\/pasos\/(buscar|deudas|identificar|pagar|comprobante|historial)\/[A-Z][A-Za-z]*\.tsx['"]/;
+    const PANTALLA =
+      /from\s+['"][^'"]*\/pasos\/(entrar|buscar|deudas|identificar|pagar|comprobante|historial)\/[A-Z][A-Za-z]*\.tsx['"]/;
     const estaticas = codigoDe(join(RAIZ, 'src'))
       .filter((ruta) => !ruta.includes(`${join('src', 'pasos')}/`) || ruta.endsWith('pantallas.tsx'))
       .filter((ruta) => PANTALLA.test(readFileSync(ruta, 'utf8')))
@@ -165,6 +166,7 @@ describe('el reparto', () => {
     expect(estaticas).toEqual([]);
 
     const pantallas = readFileSync(join(RAIZ, 'src', 'pasos', 'pantallas.tsx'), 'utf8');
-    expect(pantallas.match(/import\('\.\/[a-z]+\/[A-Z][A-Za-z]+\.tsx'\)/g)).toHaveLength(6);
+    // Siete desde el issue 28: los cinco pasos del artboard, el historial y «Entrar».
+    expect(pantallas.match(/import\('\.\/[a-z]+\/[A-Z][A-Za-z]+\.tsx'\)/g)).toHaveLength(7);
   });
 });

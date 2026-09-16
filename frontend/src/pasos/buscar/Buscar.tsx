@@ -6,24 +6,20 @@ import {
   Desplegable,
   Etiqueta,
   Formulario,
-  Icono,
   Opcion,
   avisar,
   cn,
 } from '@kamayuk/ui';
-import { type ReactNode, useId, useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 
-import { ORDENANZA } from '../../datos/demostracion.ts';
-import { hayPlataforma, useLaFuente } from '../../datos/fuente.ts';
 import { AvisoConFilo } from '../../piezas/AvisoConFilo.tsx';
+import { AvisoDeAmnistia, QuePuedeHacerAqui } from '../../piezas/PortadaDelPortal.tsx';
 import { MEDIDAS_DE_CONTROL, Rotulo } from '../../piezas/Rotulo.tsx';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
 import { type TipoDeDocumento, vivas } from '../../recorrido/recorrido.ts';
-import { LaConsulta } from './LaConsulta.tsx';
-import { TRAZOS_DEL_ARTBOARD, type TrazoDelArtboard } from './trazos.ts';
 
 /**
  * **Paso 1 · Buscar mi deuda** (`diseno/Ciudadano.dc.html`: plantilla 121-180, `buscar()` 1002-1007 y
@@ -51,11 +47,17 @@ import { TRAZOS_DEL_ARTBOARD, type TrazoDelArtboard } from './trazos.ts';
  *   tokens: `--linea` y `--atencion-tinta` al 25 %. Estan en la tabla de
  *   `verificaciones/la-paleta-cuadra-con-el-artboard.test.ts`.
  * · **La sombra de la tarjeta** es `--shadow-sombra-1` y no el `rgba(0,0,0,.04)` literal.
- * · **«Qué puede hacer aquí» es un `h2`** y las capacidades una lista: en el artboard, un `p` y
- *   cuatro `div`. Se ve igual y se recorre por encabezados.
  *
  * Los ejemplos del placeholder (`00000025673`, …) son DATO, como el documento de la barra: el mismo
  * numero en cualquier idioma. No pasan por `t()`.
+ *
+ * <h2>Esta pantalla es SOLO de demostracion (issue 28)</h2>
+ *
+ * Con plataforma, `buscar` deja de ser un paso alcanzable (`src/recorrido/recorrido.ts`) y el primer
+ * paso es «Entrar»: el backend ya no ofrece buscar por documento —el ADR-0020 retiro
+ * `GET /portal/deuda?doc=` por ser una enumeracion de contribuyentes— y un formulario que nadie
+ * puede atender es peor que no tenerlo. Lo que las dos puertas de entrada comparten —«Qué puede
+ * hacer aquí» y el aviso de la amnistia— esta en `src/piezas/PortadaDelPortal.tsx`.
  */
 
 const TIPOS: readonly TipoDeDocumento[] = ['Código de contribuyente', 'DNI', 'RUC'];
@@ -74,51 +76,10 @@ interface ValoresDeLaBusqueda {
   numero: string;
 }
 
-/** Lo que el portal sabe hacer, con su trazo: `lupa` es de la libreria, los demas del artboard. */
-interface Capacidad {
-  readonly titulo: string;
-  readonly detalle: string;
-  readonly icono: 'lupa' | TrazoDelArtboard;
-}
-
-function IconoDeCapacidad({ icono }: { readonly icono: Capacidad['icono'] }): ReactNode {
-  if (icono === 'lupa') return <Icono nombre="lupa" tamano={15} grosor={1.9} />;
-  return (
-    <svg
-      width="15"
-      height="15"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-    >
-      {TRAZOS_DEL_ARTBOARD[icono].map((d) => (
-        <path key={d} d={d} />
-      ))}
-    </svg>
-  );
-}
-
 export function Buscar() {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
   const idDelError = useId();
-  const idDeCapacidades = useId();
-  /**
-   * **Con plataforma, la consulta va delante de todo** (issue 27).
-   *
-   * `hayPlataforma` mira la fuente inyectada y no `import.meta.env`: la pregunta que la pantalla
-   * hace es «¿hay a quien consultar?», la contesta el dato, y asi los dos modos se prueban
-   * inyectando una fuente en vez de trucando el entorno.
-   *
-   * En demostracion NO cambia nada: `LaConsulta` no se monta, no hay peticion y la pantalla es la
-   * de siempre.
-   */
-  const conPlataforma = hayPlataforma(useLaFuente());
 
   const esquema = useMemo(
     () =>
@@ -154,29 +115,6 @@ export function Buscar() {
     RUC: t('Número de RUC'),
   };
 
-  const capacidades: readonly Capacidad[] = [
-    {
-      titulo: t('Ver lo que debe'),
-      detalle: t('Su impuesto predial, arbitrios y vehicular, con el vencimiento de cada cuota.'),
-      icono: 'lupa',
-    },
-    {
-      titulo: t('Pagar en línea'),
-      detalle: t('Con tarjeta, Yape, pagalo.pe o un código para el banco.'),
-      icono: 'pagar',
-    },
-    {
-      titulo: t('Descargar comprobantes'),
-      detalle: t('El del pago que acaba de hacer y los de años anteriores.'),
-      icono: 'recibo',
-    },
-    {
-      titulo: t('Saber de dónde sale'),
-      detalle: t('El autovalúo de su predio, los metros de frontis y la tabla que se le aplica.'),
-      icono: 'detalle',
-    },
-  ];
-
   const alEnviar = ({ tipoDeDocumento, numero }: ValoresDeLaBusqueda) => {
     despachar({ tipo: 'buscar', tipoDeDocumento, numero });
     // Lo que queda por pagar es la deuda viva, y no los cuatro del artboard (linea 1006): tras
@@ -192,8 +130,6 @@ export function Buscar() {
 
   return (
     <div>
-      {conPlataforma ? <LaConsulta /> : null}
-
       <div className="border border-linea bg-superficie shadow-sombra-1">
         <div className="px-[26px] pt-[26px] pb-[22px]">
           <h1 className="m-0 text-[27px] font-bold tracking-[-0.01em] text-pretty text-azul">
@@ -282,36 +218,10 @@ export function Buscar() {
           </p>
         </div>
 
-        <section aria-labelledby={idDeCapacidades} className="border-t border-linea-2 bg-sup px-[26px] pt-[18px] pb-5">
-          <h2
-            id={idDeCapacidades}
-            className="m-0 mb-3 text-[13px] font-bold tracking-[0.08em] text-tinta-3 uppercase"
-          >
-            {t('Qué puede hacer aquí')}
-          </h2>
-          <ul className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(232px,1fr))] gap-0 p-0">
-            {capacidades.map((capacidad) => (
-              <li key={capacidad.icono} className="mr-[18px] border-t border-linea pt-[14px] pr-[18px] pb-4">
-                <span className="mb-[6px] flex items-center gap-[9px]">
-                  <span className="grid size-7 flex-[0_0_auto] place-items-center rounded-sm bg-azul-suave text-azul">
-                    <IconoDeCapacidad icono={capacidad.icono} />
-                  </span>
-                  <span className="text-[14.5px] font-bold">{capacidad.titulo}</span>
-                </span>
-                <span className="block text-[13.5px] leading-[1.55] text-pretty text-tinta-3">{capacidad.detalle}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <QuePuedeHacerAqui />
       </div>
 
-      <AvisoConFilo tono="atencion" className="mt-[18px] px-[18px] py-[15px] leading-[1.6]">
-        <strong>{t('Amnistía vigente hasta el 31 de diciembre.')}</strong>{' '}
-        {t(
-          'La {{ordenanza}} condona el 100 % del interés moratorio. Al pagar ahora, el descuento se aplica solo: no hay que solicitarlo.',
-          { ordenanza: ORDENANZA },
-        )}
-      </AvisoConFilo>
+      <AvisoDeAmnistia />
     </div>
   );
 }

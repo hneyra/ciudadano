@@ -18,10 +18,12 @@ import { useTranslation } from 'react-i18next';
 
 import { recargoDe, tonoDe, totalDe } from '../../datos/cuentas.ts';
 import { CONTRIBUYENTE, FECHA_DE_CORTE } from '../../datos/demostracion.ts';
+import { hayPlataforma, useLaFuente } from '../../datos/fuente.ts';
 import type { Deuda, TonoDeInsignia } from '../../datos/tipos.ts';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
-import { cuenta, destinoAlPagar, inicio, resumen, seleccion, vivas } from '../../recorrido/recorrido.ts';
+import { cuenta, destinoAlPagar, inicio, resumen, seleccion, vivasDelArtboard } from '../../recorrido/recorrido.ts';
 import { fechaEnPalabras } from './fechaEnPalabras.ts';
+import { LaConsulta } from './LaConsulta.tsx';
 
 /**
  * **Paso 2 · Elegir qué pago** (`diseno/Ciudadano.dc.html`: plantilla 182-309, logica 1102-1176).
@@ -324,7 +326,7 @@ function Concepto({ deuda }: { readonly deuda: Deuda }) {
 function BarraDePago() {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
-  const viva = vivas(estado).length;
+  const viva = vivasDelArtboard(estado).length;
   const marcadas = seleccion(estado).length;
   const lo = cuenta(estado);
   const vacio = marcadas === 0;
@@ -400,10 +402,11 @@ function SinDeuda() {
   );
 }
 
-export function Deudas() {
+/** El paso 2 del artboard: la lista de la demostracion, con su desglose y su insignia por concepto. */
+function DeudasDeLaDemostracion() {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
-  const viva = vivas(estado);
+  const viva = vivasDelArtboard(estado);
   const todo = seleccion(estado).length === viva.length;
 
   return (
@@ -439,4 +442,21 @@ export function Deudas() {
       )}
     </div>
   );
+}
+
+/**
+ * **Paso 2, en los dos modos** (issue 28).
+ *
+ * `hayPlataforma` mira la fuente inyectada y no `import.meta.env`: la pregunta que la pantalla hace
+ * es «¿hay a quien consultar?», la contesta el dato, y asi los dos modos se prueban inyectando una
+ * fuente en vez de trucando el entorno.
+ *
+ * Y son **dos pantallas enteras**, no una con condiciones dentro. Lo que el artboard dibuja —cuotas,
+ * vencimiento, insignia de estado y desglose de servicios— el servidor no lo trae, y una pantalla
+ * sola acabaria con un `?? null` en cada linea: el sitio exacto donde un dia aparece un valor por
+ * omision que se lee como un dato. Separadas, la de demostracion es la de siempre —byte a byte— y la
+ * de plataforma solo puede dibujar lo que le dieron.
+ */
+export function Deudas() {
+  return hayPlataforma(useLaFuente()) ? <LaConsulta /> : <DeudasDeLaDemostracion />;
 }

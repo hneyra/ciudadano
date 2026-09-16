@@ -16,8 +16,8 @@ import { type ReactNode, useCallback, useEffect, useId, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cifraSinSimbolo, totalDe } from '../../datos/cuentas.ts';
-import { useHistorial, useUnidades } from '../../datos/fuente.ts';
-import type { Unidad } from '../../datos/tipos.ts';
+import { useHistorial, useLaSituacion, useUnidades } from '../../datos/fuente.ts';
+import type { PredioDelPortal, Unidad } from '../../datos/tipos.ts';
 import { AvisoConFilo } from '../../piezas/AvisoConFilo.tsx';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
 import { type PagoSellado, conceptosDelPago, cuentaPendiente, pendientes } from '../../recorrido/recorrido.ts';
@@ -98,36 +98,55 @@ function Seccion({
   );
 }
 
-/** El pago de esta visita, arriba y en verde (lineas 573-581 y 1330-1335). */
+/**
+ * El pago de esta visita, arriba y en verde (lineas 573-581 y 1330-1335).
+ *
+ * **Con plataforma no se dice que se pago** (issue 28, revision): no hubo cobro, no hay operacion
+ * que numerar y no se envio nada. Se dice lo que es —una simulacion— y se quita el verde, que es el
+ * color de un pago hecho.
+ */
 function PagoReciente({ pago }: { readonly pago: PagoSellado }) {
   const { t } = useTranslation();
-  const { despachar } = useRecorrido();
+  const { estado, despachar } = useRecorrido();
   const idDelTitulo = useId();
+  const simulado = estado.conPlataforma;
 
   return (
     <section
       aria-labelledby={idDelTitulo}
-      className="mb-[18px] flex flex-wrap items-center gap-[14px] border border-l-[5px] border-ok-tinta/25 border-l-ok-tinta bg-ok-fondo px-[18px] py-4"
+      className={cn(
+        'mb-[18px] flex flex-wrap items-center gap-[14px] border border-l-[5px] px-[18px] py-4',
+        simulado ? 'border-linea border-l-azul bg-superficie' : 'border-ok-tinta/25 border-l-ok-tinta bg-ok-fondo',
+      )}
     >
       <span className="min-w-[200px] flex-1">
-        <h2 id={idDelTitulo} className="m-0 text-[15px] font-bold text-ok-tinta">
-          {t('Pago de {{importe}} registrado hoy', { importe: formatearImporte(pago.conAmnistia) })}
+        <h2 id={idDelTitulo} className={cn('m-0 text-[15px] font-bold', simulado ? null : 'text-ok-tinta')}>
+          {simulado
+            ? t('Pago simulado de {{importe}} en esta visita', { importe: formatearImporte(pago.conAmnistia) })
+            : t('Pago de {{importe}} registrado hoy', { importe: formatearImporte(pago.conAmnistia) })}
         </h2>
-        <span className="mt-[3px] block text-[13.5px] text-pretty text-ok-tinta">
-          {t('Operación {{operacion}} · {{medio}} · comprobante {{numero}}, enviado a {{destino}}', {
-            operacion: pago.comprobante.operacion,
-            medio: t(rotuloDelMedio(pago.medio)),
-            numero: pago.comprobante.numero,
-            destino: pago.destino ?? t('su correo'),
-          })}
+        <span
+          className={cn('mt-[3px] block text-[13.5px] text-pretty', simulado ? 'text-tinta-3' : 'text-ok-tinta')}
+        >
+          {simulado
+            ? t('No se cobró nada, no se envió ningún comprobante y su deuda sigue pendiente.')
+            : t('Operación {{operacion}} · {{medio}} · comprobante {{numero}}, enviado a {{destino}}', {
+                operacion: pago.comprobante.operacion,
+                medio: t(rotuloDelMedio(pago.medio)),
+                numero: pago.comprobante.numero,
+                destino: pago.destino ?? t('su correo'),
+              })}
         </span>
       </span>
       <Boton
         type="button"
         onClick={() => despachar({ tipo: 'irA', paso: 'comprobante' })}
-        className="min-h-[40px] flex-[0_0_auto] border-ok-tinta px-4 py-0 text-[14px] font-bold text-ok-tinta hover:border-ok-tinta hover:bg-ok-fondo"
+        className={cn(
+          'min-h-[40px] flex-[0_0_auto] px-4 py-0 text-[14px] font-bold',
+          simulado ? null : 'border-ok-tinta text-ok-tinta hover:border-ok-tinta hover:bg-ok-fondo',
+        )}
       >
-        {t('Ver el comprobante')}
+        {simulado ? t('Ver cómo se vería') : t('Ver el comprobante')}
       </Boton>
     </section>
   );
@@ -148,7 +167,10 @@ function PagosRealizados() {
   const { t } = useTranslation();
   const { estado } = useRecorrido();
   const historial = useHistorial();
-  const pago = estado.recienPagado ? estado.ultimo : null;
+  // Con plataforma el pago simulado NO entra en «Pagos realizados»: esa tabla es la lista de lo que
+  // se pago, y ahi no se pago nada (issue 28, revision). Lo de esta visita lo dice la banda de
+  // arriba, que ademas dice que es simulado.
+  const pago = estado.recienPagado && !estado.conPlataforma ? estado.ultimo : null;
 
   const filas: FilaDePago[] = [
     ...(pago === null
@@ -156,7 +178,7 @@ function PagosRealizados() {
       : [
           {
             fecha: formatearFecha(pago.comprobante.fecha),
-            concepto: conceptosDelPago(pago)
+            concepto: conceptosDelPago(estado, pago)
               .map((deuda) => deuda.concepto)
               .join(' · '),
             medio: t(rotuloDelMedio(pago.medio)),
@@ -196,10 +218,23 @@ function PagosRealizados() {
         </div>
       )}
     >
+      {/*
+        Con plataforma el fallo NO es una averia: el backend no publica pagos del ciudadano —lo unico
+        que ofrece para este portal es `GET /portal/situacion`— y decir «vuelva a intentarlo» mandaria
+        a insistir contra algo que no existe (issue 28).
+      */}
       {historial.isError ? (
-        <AvisoConFilo tono="mal" role="alert" className="m-5 px-4 py-3">
-          {t('No pudimos traer sus pagos. Vuelva a intentarlo en unos minutos.')}
-        </AvisoConFilo>
+        estado.conPlataforma ? (
+          <AvisoConFilo tono="atencion" className="m-5 px-4 py-3">
+            {t(
+              'El portal todavía no publica su historial de pagos: por ahora solo sabe lo que debe hoy. Los pagos anteriores están en la ventanilla de la municipalidad, con su comprobante.',
+            )}
+          </AvisoConFilo>
+        ) : (
+          <AvisoConFilo tono="mal" role="alert" className="m-5 px-4 py-3">
+            {t('No pudimos traer sus pagos. Vuelva a intentarlo en unos minutos.')}
+          </AvisoConFilo>
+        )
       ) : null}
       <Tabla className="min-w-[760px]">
         <TablaCabecera>
@@ -258,7 +293,9 @@ function FilaPendiente({
   monto,
 }: {
   readonly concepto: string;
+  /** Lo que se dice bajo el concepto. Con plataforma no hay vencimiento: va la unidad. */
   readonly vence: string;
+  /** La situacion del concepto, o `null` cuando nadie la sabe (issue 26). */
   readonly insignia: ReactNode;
   readonly monto: string;
 }) {
@@ -302,8 +339,14 @@ function LoQueQuedaPendiente() {
             <FilaPendiente
               key={deuda.id}
               concepto={deuda.concepto}
-              vence={deuda.vence}
-              insignia={<Insignia tono={deuda.tono}>{deuda.estado}</Insignia>}
+              // Con plataforma el contrato no trae vencimiento ni estado (issue 26), y no se deducen:
+              // en su sitio va la unidad, que si viene, y la insignia no se dibuja.
+              vence={deuda.vence ?? t(deuda.unidad)}
+              insignia={
+                deuda.estado === null || deuda.tono === null ? null : (
+                  <Insignia tono={deuda.tono}>{deuda.estado}</Insignia>
+                )
+              }
               monto={formatearImporte(totalDe(deuda))}
             />
           ))
@@ -375,6 +418,76 @@ function UnaUnidad({ unidad }: { readonly unidad: Unidad }) {
       </ul>
       <p className="mt-[11px] mb-0 text-[13px] text-pretty text-tinta-3">{t(unidad.origen)}</p>
     </li>
+  );
+}
+
+/**
+ * Un predio **del servidor**: lo que el contrato publica de el, y nada mas (issue 28).
+ *
+ * El contrato trae tipo, direccion, codigo catastral y porcentaje de titularidad; **no trae el
+ * autovaluo, ni los metros de frontis, ni el arancel de la calle**, que es lo que el artboard pinta
+ * como «Autovalúo 2026 · S/ 38,420.50». Asi que aqui no hay cifra: dibujar un importe donde el
+ * servidor no dio ninguno es exactamente lo que este portal no hace.
+ *
+ * Y **no hay vehiculos**: el contrato no publica la lista. Lo dice la nota de la seccion, en vez de
+ * dejar pensar que no tiene ninguno.
+ */
+function UnPredioDelServidor({ predio, municipalidad }: { readonly predio: PredioDelPortal; readonly municipalidad: string }) {
+  const { t } = useTranslation();
+  return (
+    <li className="border-b border-linea-2 px-5 py-[15px]">
+      <div className="flex flex-wrap items-start gap-[14px]">
+        <span className="min-w-[200px] flex-1">
+          <span className="block text-[15.5px] font-bold text-pretty">{predio.tipo}</span>
+          <span className="mt-[3px] block text-[13.5px] text-pretty text-tinta-3">{predio.direccion}</span>
+        </span>
+      </div>
+      <ul className="m-0 mt-[11px] flex list-none flex-wrap gap-[9px] p-0">
+        <li className="rounded-sm border border-azul-suave bg-info-fondo px-[9px] py-1 text-[12.5px] text-tinta-2">
+          {t('Código catastral {{codigo}}', { codigo: predio.codigoCatastral })}
+        </li>
+        <li className="rounded-sm border border-azul-suave bg-info-fondo px-[9px] py-1 text-[12.5px] text-tinta-2">
+          {t('{{porcentaje}} % de titularidad', { porcentaje: predio.porcentajeDeTitularidad })}
+        </li>
+      </ul>
+      <p className="mt-[11px] mb-0 text-[13px] text-pretty text-tinta-3">{municipalidad}</p>
+    </li>
+  );
+}
+
+/** «De dónde sale lo que paga» con plataforma: los predios que devolvio la consulta. */
+function DeDondeSaleConPlataforma() {
+  const { t } = useTranslation();
+  const consulta = useLaSituacion();
+  const predios = (consulta.data?.municipalidades ?? []).flatMap((municipalidad) =>
+    municipalidad.predios.map((predio) => ({ predio, municipalidad: municipalidad.nombre })),
+  );
+
+  return (
+    <Seccion
+      ocupada={consulta.isPending}
+      cabecera={(idDelTitulo) => (
+        <div className="border-b border-linea-2 px-5 py-[14px]">
+          <h2 id={idDelTitulo} className="m-0 scroll-mt-4 text-[17px] font-bold">
+            {t('De dónde sale lo que paga')}
+          </h2>
+          <p className="mt-[5px] mb-0 max-w-[72ch] text-[14px] leading-[1.55] text-pretty text-tinta-3">
+            {t(
+              'Los predios que el portal publica a su nombre. El autovalúo, los metros de frontis y la tabla que se le aplica no viajan en la respuesta: se los detallan en la ventanilla.',
+            )}
+          </p>
+        </div>
+      )}
+    >
+      <ul className="m-0 list-none p-0">
+        {predios.map(({ predio, municipalidad }) => (
+          <UnPredioDelServidor key={predio.codigoCatastral} predio={predio} municipalidad={municipalidad} />
+        ))}
+      </ul>
+      <p className="m-0 bg-sup px-5 py-[13px] text-[13.5px] leading-[1.55] text-pretty text-tinta-3">
+        {t('El portal todavía no publica sus vehículos: aquí solo están los predios.')}
+      </p>
+    </Seccion>
   );
 }
 
@@ -452,7 +565,16 @@ export function Historial() {
       {pago === null ? null : <PagoReciente pago={pago} />}
       <PagosRealizados />
       <LoQueQuedaPendiente />
-      <DeDondeSale enfocar={estado.enfocarUnidades} alEnfocar={alEnfocar} />
+      {/*
+        Con plataforma las unidades salen de la CONSULTA y no de `useUnidades`, que el backend no
+        publica. El foco de «Mis predios y vehículos» es del recorrido de la demostracion: con
+        plataforma el menu lleva a esta misma pantalla y la seccion es la de abajo del todo.
+      */}
+      {estado.conPlataforma ? (
+        <DeDondeSaleConPlataforma />
+      ) : (
+        <DeDondeSale enfocar={estado.enfocarUnidades} alEnfocar={alEnfocar} />
+      )}
     </div>
   );
 }
