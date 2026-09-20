@@ -3,9 +3,11 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { ErrorDeLaApi, type Cliente } from '@kamayuk/api';
+import { peldanoDe } from '@kamayuk/sesion';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { TEXTOS_DEL_PORTAL } from '../../api/escalera.ts';
 import { identidad } from '../../api/identidad.ts';
 import type { SituacionDelContrato } from '../../datos/contrato.ts';
 import { crearFuenteDeLaPlataforma } from '../../datos/fuenteDeLaPlataforma.ts';
@@ -308,6 +310,33 @@ describe('cuando la peticion falla', () => {
 
     expect(await enMain().findByRole('heading', { level: 1, name: 'El portal no está respondiendo' })).toBeInTheDocument();
     expect(importesEnPantalla()).toEqual([]);
+  });
+
+  /**
+   * Los dos estados de fallo que trae el issue 33, en la pantalla de verdad.
+   *
+   * El titulo esperado se PIDE a la escalera en vez de escribirse: mientras kamayuk-lib#96 siga
+   * abierto, la libreria enlazada manda el 409 a `averia` y el 422 `ORDEN_NO_ADMITIDO` a
+   * `no-valido`, y escribir aqui «Eso ya no se puede hacer ahora» seria afirmar un final que hoy no
+   * ocurre. Lo que se mide es lo que no cambia con el pareado: que sale **un texto de la tabla del
+   * portal** —ni el de la libreria, ni `undefined`— y que no hay ni una cifra.
+   */
+  it.each([
+    [409, 'CONFLICTO'],
+    [422, 'ORDEN_NO_ADMITIDO'],
+  ])('un %s %s sale con un texto del portal y sin una sola cifra', async (estado, codigo) => {
+    const fallo = () => new ErrorDeLaApi(estado, 'GET /portal/situacion', { codigo });
+    const textos = TEXTOS_DEL_PORTAL[peldanoDe(fallo()).clave];
+    conSesion(() => Promise.reject(fallo()));
+
+    expect(await enMain().findByRole('heading', { level: 1, name: textos.titulo })).toBeInTheDocument();
+    expect(enMain().getByText(textos.remedio)).toBeInTheDocument();
+    // Lo que diria la libreria, que a quien entra a pagar su predial no le sirve de nada.
+    expect(principal().textContent).not.toMatch(/soporte|administrador|perfiles/i);
+    expect(
+      importesEnPantalla(),
+      'Un importe en un estado de fallo es una cifra plausible y equivocada.',
+    ).toEqual([]);
   });
 });
 

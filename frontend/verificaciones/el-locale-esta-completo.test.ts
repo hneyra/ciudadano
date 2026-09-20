@@ -406,10 +406,11 @@ const LITERALES = [
   // pantalla las traduce con una variable —`unidad` es a veces el predio de verdad, que es dato—,
   // asi que `i18next-cli` no las ve.
   ...clavesDeLaUnidad(),
-  // Lo que dice la escalera de identidad (issue 13), derivado de su tabla: los tres textos de cada
-  // uno de los siete peldanos. La pantalla los traduce con una variable —la clave del peldano solo
-  // se sabe en ejecucion—, asi que `i18next-cli` no los ve y escribirlos aqui a mano dejaria el
-  // olvido sin rojo.
+  // Lo que dice la escalera de la API (issues 13 y 33), derivado de su tabla: los tres textos de
+  // cada uno de los NUEVE peldanos —los siete de siempre y los dos que trae kamayuk-lib#96,
+  // `conflicto` y `orden-no-admitido`—. La pantalla los traduce con una variable —la clave del
+  // peldano solo se sabe en ejecucion—, asi que `i18next-cli` no los ve y escribirlos aqui a mano
+  // dejaria el olvido sin rojo.
   ...clavesDeLaEscalera(),
 ];
 
@@ -444,10 +445,17 @@ describe('el locale `es` esta completo y no se aparta', () => {
     expect(Object.keys(esperado), 'la lista no trae lo que dicen los pagos y las unidades').toEqual(
       expect.arrayContaining(['BCP con código', '8.20 m de frontis', 'Base imponible']),
     );
-    // Y la derivada de la escalera de identidad (issue 13): si la tabla se vaciara, sus 21 claves
-    // faltarian del locale sin que el resto de la lista lo notara.
+    // Y la derivada de la escalera de la API (issues 13 y 33): si la tabla se vaciara, sus 27
+    // claves faltarian del locale sin que el resto de la lista lo notara. Las dos ultimas son las
+    // de los peldanos que trae kamayuk-lib#96: mientras ese PR siga abierto NINGUN fallo llega a
+    // ellos, asi que sin nombrarlos aqui sus seis frases podrian caerse de la tabla en verde.
     expect(Object.keys(esperado), 'la lista no trae lo que dice la escalera').toEqual(
-      expect.arrayContaining(['Su sesión ya no está abierta', 'El portal no está respondiendo']),
+      expect.arrayContaining([
+        'Su sesión ya no está abierta',
+        'El portal no está respondiendo',
+        'Eso ya no se puede hacer ahora',
+        'No pudimos ordenar la lista así',
+      ]),
     );
     // Y la derivada del adaptador (issue 28): si `SIN_DETALLE` se vaciara, sus tres claves faltarian
     // del locale sin que el resto de la lista lo notara.
