@@ -56,9 +56,13 @@ jobs:
           path: kamayuk-lib
           token: ${{ secrets.GH_CLONE_KEY || github.token }}
 
+      # EL MOTOR SE DICE EN CUATRO SITIOS Y TIENE QUE SER EL MISMO (issue 39): `frontend/.nvmrc`,
+      # `engines.node` de `frontend/package.json` y este `node-version` en los DOS trabajos. Quien
+      # lo vigila es `verificaciones/el-motor-es-uno-solo.test.ts`, que ademas comprueba que no
+      # quede por debajo del que exige `kamayuk-lib` —hoy `>=24`—, leido de su `package.json`.
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
           cache: yarn
           # La ruta sigue al anfitrion. Si se olvida, `setup-node` NO se salta la cache: FALLA
           # el paso, antes de instalar nada y con un mensaje que habla de cache y no de rutas
@@ -116,9 +120,11 @@ jobs:
           path: kamayuk-lib
           token: ${{ secrets.GH_CLONE_KEY || github.token }}
 
+      # El mismo motor que `verificar`, y por el mismo motivo: dos trabajos con dos Node son dos
+      # afirmaciones distintas sobre el mismo arbol.
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
           cache: yarn
           cache-dependency-path: ciudadano/frontend/yarn.lock
 

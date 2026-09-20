@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "description": "ciudadano — el portal publico de pago de tributos, en modo demostracion: las seis pantallas del recorrido y el arnes de Playwright contra el bundle.",
   "engines": {
-    "node": ">=22"
+    "node": ">=24"
   },
   "scripts": {
     "dev": "vite",

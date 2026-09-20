@@ -26,7 +26,11 @@ verificaciones y como se demostro que cada una muerde— esta en [`CLAUDE.md`](C
 
 ## Requisitos
 
-- Node 22 y yarn classic (1.x).
+- **Node 24** y yarn classic (1.x). El numero vive en `frontend/.nvmrc` —`nvm use` en `frontend/`
+  lo coge de ahi— y lo repiten `engines.node` de `frontend/package.json` y el `node-version` de los
+  **dos** trabajos del workflow. Que los cuatro digan lo mismo, y que no queden por debajo del
+  `>=24` que exige `kamayuk-lib` en su `package.json`, lo comprueba
+  `frontend/verificaciones/el-motor-es-uno-solo.test.ts` dentro de `yarn verificar`.
 - **`kamayuk-lib` clonado al lado de este repositorio, y en `main`**: `frontend/package.json` enlaza
   `@kamayuk/{formato,ui,verificaciones}` con `link:../../kamayuk-lib/paquetes/*`. Sin el hermano,
   `yarn install` sale con codigo 0 igual y lo primero que se rompe lo dice nombrando el `git clone`.
@@ -39,6 +43,7 @@ git clone https://github.com/hneyra/kamayuk-lib ../kamayuk-lib   # desde la raiz
 
 ```bash
 cd frontend
+nvm use                      # el motor sale del .nvmrc de aqui: Node 24
 yarn install                 # con ../../kamayuk-lib en su sitio
 yarn dev                     # http://localhost:5174/portal/ en modo demostracion
 yarn dev:con-plataforma      # lo mismo, leyendo de la plataforma (Keycloak + backend)

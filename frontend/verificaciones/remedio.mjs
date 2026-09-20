@@ -8,6 +8,12 @@
  * `ERR_UNKNOWN_FILE_EXTENSION` —Node 22 no quita los tipos sin bandera—, asi que la parte que
  * ESLint necesita vive aqui y la unica copia del mensaje sigue siendo una.
  *
+ * Ese motivo CADUCO con el issue 39, y se deja escrito porque explica por que el archivo es como
+ * es: medido el 2026-09-20, un `.mjs` que importa un `.ts` funciona en Node 24.19.0 —que quita los
+ * tipos sin bandera— y sigue reventando con `ERR_UNKNOWN_FILE_EXTENSION` en Node 22.14.0. El
+ * reparto se queda igual: juntarlo otra vez seria tocar el arranque de ESLint por una comodidad, y
+ * lo que este archivo tiene que hacer —decir el `git clone`— lo hace desde aqui.
+ *
  * El motivo de que el mensaje diga el `git clone` y no «Cannot find module» esta en `enlace.ts`:
  * `yarn install --frozen-lockfile` con el hermano ausente sale con **codigo 0** y no enlaza nada
  * (medido en `rentas`#113), de modo que el primer sintoma aparece dos pasos despues y no se parece
