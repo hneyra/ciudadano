@@ -1,4 +1,4 @@
-import { ErrorDeLaApi } from '@kamayuk/api';
+import { ErrorDeLaApi, type CuerpoDeProblema } from '@kamayuk/api';
 import { peldanoDe } from '@kamayuk/sesion';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -11,12 +11,24 @@ import {
 } from './escalera.ts';
 
 /**
- * **La escalera habla como el portal, no como la ventanilla** (issue 13).
+ * **La escalera habla como el portal, no como la ventanilla** (issues 13 y 33).
  *
- * Las siete claves son de `@kamayuk/sesion` y la clasificacion tambien; lo que se mide aqui es que
- * **ninguna de las siete llegue a la pantalla con el texto de funcionario de la libreria**, que es
- * lo que pasaria si este archivo se quedara corto: un peldano sin entrada saldria `undefined`, o
- * —peor, si alguien lo «arreglara» con un respaldo— mandaria a un ciudadano a avisar a soporte.
+ * Las claves son de `@kamayuk/sesion` y la clasificacion tambien; lo que se mide aqui es que
+ * **ninguna llegue a la pantalla con el texto de funcionario de la libreria**, que es lo que
+ * pasaria si este archivo se quedara corto: un peldano sin entrada saldria `undefined`, o —peor, si
+ * alguien lo «arreglara» con un respaldo— mandaria a un ciudadano a avisar a soporte.
+ *
+ * <h2>Nueve claves, y la libreria enlazada puede distinguir solo siete</h2>
+ *
+ * `conflicto` y `orden-no-admitido` los trae kamayuk-lib#96, que se mezcla **pareado** con la rama
+ * de este issue. Mientras ese PR siga abierto, la libreria enlazada aqui manda el 409 a `averia` y
+ * el 422 `ORDEN_NO_ADMITIDO` a `no-valido`, y **afirmarlo distinto seria afirmar un hecho que no
+ * ocurre**.
+ *
+ * Por eso `DISTINGUIDAS` se **mide** llamando a `peldanoDe`, y no se escribe: lo que depende de la
+ * libreria se comprueba sobre lo que la libreria da hoy, y lo que es decision del portal —los
+ * textos, que esten los nueve, que ninguno hable como la ventanilla— se comprueba sobre los nueve.
+ * Asi este archivo dice la verdad a los dos lados del pareado y no hay que tocarlo cuando #96 entre.
  */
 
 /** Un fallo del backend con su estado y su codigo, como el que lanza `@kamayuk/api`. */
@@ -27,6 +39,17 @@ const falloDeLaApi = (estado: number, codigo?: string, mensaje?: string) =>
     ...(mensaje === undefined ? {} : { mensaje }),
   });
 
+/**
+ * Un fallo con miembros que la libreria ENLAZADA puede no declarar todavia.
+ *
+ * `incidencia`, `detalles` y `parametroQueFalta` entran en `CuerpoDeProblema` con kamayuk-lib#96.
+ * Escribirlos en un literal tipado daria un rojo de compilacion con la libreria de hoy —y el rojo
+ * seria del andamiaje, no del portal—, asi que el cuerpo se arma suelto y se afirma al entrar: lo
+ * que se mide es que el portal no los ensena, y para eso basta con que viajen.
+ */
+const falloConCuerpo = (estado: number, cuerpo: object) =>
+  new ErrorDeLaApi(estado, 'GET /portal/situacion', cuerpo as CuerpoDeProblema);
+
 /** Un fallo por cada clave, para recorrer la escalera entera sin escribir la tabla dos veces. */
 const UN_FALLO_POR_CLAVE: Readonly<Record<ClaveDelPeldano, unknown>> = {
   'sin-identidad': falloDeLaApi(401, 'NO_AUTENTICADO'),
@@ -34,11 +57,24 @@ const UN_FALLO_POR_CLAVE: Readonly<Record<ClaveDelPeldano, unknown>> = {
   'sin-privilegio': falloDeLaApi(403, 'SIN_PRIVILEGIO'),
   'no-permitido': falloDeLaApi(403, 'SIN_DOCUMENTO'),
   'no-encontrado': falloDeLaApi(404),
+  conflicto: falloDeLaApi(409, 'CONFLICTO'),
+  'orden-no-admitido': falloDeLaApi(422, 'ORDEN_NO_ADMITIDO'),
   'no-valido': falloDeLaApi(422, 'VALIDACION'),
   averia: new TypeError('Failed to fetch'),
 };
 
 const CLAVES = Object.keys(UN_FALLO_POR_CLAVE) as readonly ClaveDelPeldano[];
+
+/**
+ * Los dos peldanos que decide este portal ANTES de que la libreria los de (issue 33).
+ *
+ * Son los unicos que se admite que la libreria enlazada todavia no distinga. Cualquier otro que
+ * falte es una clave inventada en la tabla del portal, y eso se pone rojo abajo.
+ */
+const LOS_PAREADOS: readonly ClaveDelPeldano[] = ['conflicto', 'orden-no-admitido'];
+
+/** Las claves que la libreria ENLAZADA distingue hoy. Medido, no escrito: ver la cabecera. */
+const DISTINGUIDAS = CLAVES.filter((clave) => peldanoDe(UN_FALLO_POR_CLAVE[clave]).clave === clave);
 
 /** El traductor de verdad, el que usarian las pantallas. */
 const traducir = (texto: string) => i18n.t(texto);
@@ -48,20 +84,40 @@ afterEach(async () => {
 });
 
 describe('EL CENTINELA: la tabla cubre la escalera entera', () => {
-  it('los siete fallos caen cada uno en su clave, y no hay dos en la misma', () => {
+  it('cada fallo que la libreria distingue cae en su clave, y no hay dos en la misma', () => {
     // Sin esto, un fallo mal construido —un 403 sin codigo donde se esperaba `SIN_PRIVILEGIO`—
     // dejaria dos casos midiendo el mismo peldano y uno sin ejercitar, en verde.
-    const caidas = CLAVES.map((clave) => peldanoDe(UN_FALLO_POR_CLAVE[clave]).clave);
+    const caidas = DISTINGUIDAS.map((clave) => peldanoDe(UN_FALLO_POR_CLAVE[clave]).clave);
 
-    expect(caidas).toEqual(CLAVES);
+    expect(caidas).toEqual(DISTINGUIDAS);
   });
 
-  it('y la tabla del portal decide las siete, ni una mas', () => {
+  it('y lo unico que la libreria enlazada puede no distinguir son los dos de kamayuk-lib#96', () => {
+    // El centinela del centinela. `DISTINGUIDAS` se mide, asi que una clave inventada en la tabla
+    // del portal —una que ningun fallo real produce— se caeria de la lista y las pruebas de arriba
+    // ni la mirarian: pasarian en verde sobre una entrada que no existe en ninguna escalera.
+    const pendientes = CLAVES.filter((clave) => !DISTINGUIDAS.includes(clave));
+
+    expect(
+      pendientes.filter((clave) => !LOS_PAREADOS.includes(clave)),
+      'Hay peldanos en la tabla del portal que ninguna libreria produce',
+    ).toEqual([]);
+  });
+
+  it('y los siete de siempre estan distinguidos, con la libreria que sea', () => {
+    // Al reves que el anterior: si la libreria dejara de dar uno de los siete de hoy, `DISTINGUIDAS`
+    // encogeria sin ruido y media docena de pruebas dejarian de medir nada.
+    expect(DISTINGUIDAS).toEqual(
+      expect.arrayContaining(CLAVES.filter((clave) => !LOS_PAREADOS.includes(clave))),
+    );
+  });
+
+  it('y la tabla del portal decide las nueve, ni una mas', () => {
     expect(Object.keys(TEXTOS_DEL_PORTAL).sort()).toEqual([...CLAVES].sort());
   });
 });
 
-describe('las siete tienen texto propio, y ninguno es el de la libreria', () => {
+describe('las nueve tienen texto propio, y ninguno es el de la libreria', () => {
   it.each(CLAVES)('«%s» dice otra cosa que `peldanoDe`', (clave) => {
     const suyo = peldanoDe(UN_FALLO_POR_CLAVE[clave]);
     const nuestro = TEXTOS_DEL_PORTAL[clave];
@@ -104,12 +160,42 @@ describe('las siete tienen texto propio, y ninguno es el de la libreria', () => 
 
     expect(sinSalida).toEqual([]);
   });
+
+  it('y los dos de kamayuk-lib#96 NO prometen que insistir arregle nada', () => {
+    // El defecto entero que trae el issue 33: hasta #96 el 409 caia en `averia`, o sea en «vuelva a
+    // intentarlo en unos minutos», y volver a mandar lo mismo trae el mismo 409 — el remedio
+    // CONTRARIO. Lo mismo con el orden que el servidor no admite: pedirlo otra vez no lo admite.
+    // Estos dos remedios mandan a mirar como esta la cuenta y, si sigue igual, a la ventanilla.
+    const prometen = LOS_PAREADOS.filter((clave) =>
+      /vuelva a intentarlo|reintente|insista|en unos minutos/i.test(TEXTOS_DEL_PORTAL[clave].remedio),
+    );
+
+    expect(
+      prometen,
+      'Un peldano que no cambia por insistir no puede decirle a nadie que insista',
+    ).toEqual([]);
+  });
+
+  it('y el de `orden-no-admitido` no le pide al ciudadano que corrija nada', () => {
+    // Hasta #96 compartia texto con `no-valido`, que dice «Revise lo que escribió». Aqui no hay
+    // nada escrito por el ciudadano: el orden lo pidio la pantalla. Mandarle a revisar algo suyo
+    // seria mandarle a dar vueltas por un defecto que no es suyo.
+    const textos = TEXTOS_DEL_PORTAL['orden-no-admitido'];
+
+    expect(`${textos.titulo} ${textos.detalle} ${textos.remedio}`).not.toMatch(
+      /revise lo que|corrija|corríjalo/i,
+    );
+  });
 });
 
 describe('la clasificacion sigue siendo la de la libreria', () => {
-  it.each(CLAVES)('«%s» conserva `pideIdentidad` y `esAveria`', (clave) => {
+  it.each(DISTINGUIDAS)('«%s» conserva `pideIdentidad` y `esAveria`', (clave) => {
     // Los textos son de aqui; **que hacer** con ellos, no: si la pantalla ofrece volver a entrar y
     // si esto es una averia lo decide el codigo del contrato, igual en los cinco sistemas.
+    //
+    // Sobre `DISTINGUIDAS` y no sobre `CLAVES`: mientras kamayuk-lib#96 no este mezclado, la
+    // libreria manda el 409 a `averia`, y exigir aqui `nuestro.clave === 'conflicto'` seria exigir
+    // que la libreria enlazada haga algo que todavia no hace.
     const suyo = peldanoDe(UN_FALLO_POR_CLAVE[clave]);
     const nuestro = peldanoDelPortal(UN_FALLO_POR_CLAVE[clave], traducir);
 
@@ -121,10 +207,10 @@ describe('la clasificacion sigue siendo la de la libreria', () => {
   it('solo el 401 pide volver a identificarse, y solo lo que no contesta es averia', () => {
     // Escrito, y no derivado: es la decision que la pantalla lee para poner el boton «Entrar» y
     // para elegir el tono. Si la libreria cambiara de opinion, esto lo dice.
-    expect(CLAVES.filter((c) => peldanoDelPortal(UN_FALLO_POR_CLAVE[c], traducir).pideIdentidad)).toEqual([
+    expect(DISTINGUIDAS.filter((c) => peldanoDelPortal(UN_FALLO_POR_CLAVE[c], traducir).pideIdentidad)).toEqual([
       'sin-identidad',
     ]);
-    expect(CLAVES.filter((c) => peldanoDelPortal(UN_FALLO_POR_CLAVE[c], traducir).esAveria)).toEqual([
+    expect(DISTINGUIDAS.filter((c) => peldanoDelPortal(UN_FALLO_POR_CLAVE[c], traducir).esAveria)).toEqual([
       'averia',
     ]);
   });
@@ -136,6 +222,49 @@ describe('la clasificacion sigue siendo la de la libreria', () => {
 
     expect(peldanoDe(conMensaje).detalle).toBe('El token no identifica documento.');
     expect(peldanoDelPortal(conMensaje, traducir).detalle).not.toContain('token');
+  });
+});
+
+describe('NI los tres miembros que `ErrorDeLaApi` conserva desde kamayuk-lib#96', () => {
+  /** El identificador de un 500, lo que viaja en `detalles` y la cifra normativa que falta. */
+  const INCIDENCIA = '2f0f7f2e-9a1c-4f1e-9a55-1c3f5c2f0a11';
+  const DETALLES = 'Campo pedido: fechaDeVencimiento';
+  const LLAVE = 'ARBITRIO:LIMPIEZA';
+
+  /** Un 500 que trae los tres, tal como los publica `ManejadorDeErrores.java`. */
+  const CON_LOS_TRES = falloConCuerpo(500, {
+    status: 500,
+    mensaje: 'No se pudo completar la operacion.',
+    incidencia: INCIDENCIA,
+    detalles: [DETALLES],
+    parametroQueFalta: { ejercicio: 2026, llave: LLAVE },
+  });
+
+  it('el peldano dice EXACTAMENTE lo de la tabla, traducido, y nada mas', () => {
+    // La guarda fuerte, y por igualdad y no por ausencia: cualquier cosa del backend que alguien
+    // pegue al texto —el `mensaje`, la incidencia «para que soporte la tenga», el campo del
+    // orden— rompe la igualdad, se busque o no se busque su contenido.
+    const peldano = peldanoDelPortal(CON_LOS_TRES, traducir);
+    const textos = TEXTOS_DEL_PORTAL[peldano.clave];
+
+    expect([peldano.titulo, peldano.detalle, peldano.remedio]).toEqual([
+      traducir(textos.titulo),
+      traducir(textos.detalle),
+      traducir(textos.remedio),
+    ]);
+  });
+
+  it('y ninguno de los tres asoma por ningun lado', () => {
+    // La misma decision dicha nombrando a los culpables, para que el rojo diga CUAL se escapo.
+    // Ver el porque de cada uno en la cabecera de `escalera.ts`: no hay soporte al que dar la
+    // incidencia, el ciudadano no pidio ningun orden, y la hoja de Publicacion no es de este portal.
+    const peldano = peldanoDelPortal(CON_LOS_TRES, traducir);
+    const enPantalla = `${peldano.titulo} ${peldano.detalle} ${peldano.remedio}`;
+    const escapados = [INCIDENCIA, DETALLES, LLAVE, '2026', 'No se pudo completar la operacion.'].filter(
+      (dicho) => enPantalla.includes(dicho),
+    );
+
+    expect(escapados, 'El portal ensena algo que escribio el backend').toEqual([]);
   });
 });
 

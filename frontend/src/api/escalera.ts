@@ -41,10 +41,50 @@ import { peldanoDe, type Peldano } from '@kamayuk/sesion';
  * /portal/situacion`, sin parametros— no tiene forma de contestar nada que el ciudadano pueda
  * corregir leyendolo. La nota que SI se ensena tal cual es otra —`notaDelTotal`, que viene en un
  * 200 y explica por que falta un total— y es del issue 14, no de esta escalera.
+ *
+ * <h2>Y los TRES miembros que `ErrorDeLaApi` conserva desde kamayuk-lib#96 (issue 33)</h2>
+ *
+ * `incidencia`, `detalles` y `parametroQueFalta` llegaban por el cable y se tiraban en el cliente;
+ * ahora se conservan. **Aqui no se ensena ninguno de los tres**, y no es un olvido: cada uno tiene
+ * su motivo, y los tres son el mismo motivo de arriba dicho tres veces.
+ *
+ *   · **`incidencia`** — el identificador con el que SOPORTE encuentra la causa de un 500 en el
+ *     registro del servidor. Este portal no tiene soporte al que avisar: ante una averia su remedio
+ *     es esperar unos minutos o ir a la ventanilla, y treinta y seis caracteres que no hay a quien
+ *     dar son ruido encima de una mala noticia. Tampoco **se registra**: aqui no hay ni un
+ *     `console` ni telemetria a donde mandarlo (medido en `src/`, issue 33), asi que «registrarlo»
+ *     seria escribirlo donde nadie va a leerlo. El dia que este portal tenga a donde avisar, el
+ *     dato sigue en el error.
+ *   · **`detalles`** — es donde viaja el campo por el que se pidio ordenar («Campo pedido: …»).
+ *     Son nombres de campos de la API, redactados para quien programa; y el ciudadano no pidio
+ *     ningun orden ni tiene como cambiarlo, asi que ensenarselo seria darle un dato del que no se
+ *     sale.
+ *   · **`parametroQueFalta`** — `{ ejercicio, llave }`, la cifra normativa que no esta publicada.
+ *     Distingue dos 404 de la hoja de Publicacion de `normativa` (normativa#66 y #67), que es una
+ *     pantalla de back-office: este portal no la dibuja y no pide ningun ejercicio.
+ *
+ * Los tres **se conservan en el error** y quien los quiera leer los tiene; lo que no hacen es
+ * llegar a la pantalla. Que no lleguen lo mide `escalera.test.ts`, y no por ausencia: la prueba
+ * comprueba que los tres textos que salen son EXACTAMENTE los de la tabla, traducidos.
  */
 
-/** Los siete peldanos de `@kamayuk/sesion`, tal como los nombra la libreria. */
-export type ClaveDelPeldano = Peldano['clave'];
+/**
+ * Los peldanos que el portal decide, que son los de `@kamayuk/sesion` y **dos mas** (issue 33).
+ *
+ * `conflicto` y `orden-no-admitido` los trae [kamayuk-lib#96](https://github.com/hneyra/kamayuk-lib/pull/96),
+ * que se mezcla **pareado** con la rama de este issue. Se nombran aqui como union propia —y no se
+ * espera a que la libreria los traiga— por dos motivos:
+ *
+ *   · Decir que se le dice a un ciudadano ante un 409 es decision de este portal, no de la epica
+ *     que empuja el cambio, y por eso el PR de la libreria se queda abierto hasta que exista esta.
+ *   · Esta union es un **superconjunto** de `Peldano['clave']`, asi que la tabla de abajo sigue
+ *     siendo completa por el tipo respecto de la libreria: crecer la union de la libreria con un
+ *     decimo peldano deja la tabla corta igual que antes. La guarda no se afloja; se adelanta.
+ *
+ * Cuando kamayuk-lib#96 este mezclado, los dos literales pasan a ser redundantes —la union de la
+ * libreria ya los trae— y borrarlos no cambia nada. Lo que NO se puede borrar es la tabla.
+ */
+export type ClaveDelPeldano = Peldano['clave'] | 'conflicto' | 'orden-no-admitido';
 
 /** Lo que el portal dice en un peldano: que paso, y que hacer. Sin traducir: ver la cabecera. */
 export interface TextosDelPeldano {
@@ -65,10 +105,10 @@ export interface PeldanoDelPortal extends TextosDelPeldano {
 }
 
 /**
- * **Los siete peldanos, con las palabras del portal.**
+ * **Los nueve peldanos, con las palabras del portal.**
  *
  * El registro es **completo por el tipo**: `Record<ClaveDelPeldano, …>` no compila si la libreria
- * anade un octavo peldano y aqui no se decide que decir. Sin eso, el peldano nuevo llegaria a la
+ * anade un decimo peldano y aqui no se decide que decir. Sin eso, el peldano nuevo llegaria a la
  * pantalla con el texto de funcionario de la libreria — o con `undefined`.
  */
 export const TEXTOS_DEL_PORTAL: Readonly<Record<ClaveDelPeldano, TextosDelPeldano>> = {
@@ -110,8 +150,38 @@ export const TEXTOS_DEL_PORTAL: Readonly<Record<ClaveDelPeldano, TextosDelPeldan
     remedio:
       'Acérquese con su DNI o su carné de extranjería a la ventanilla de la municipalidad: el dato se completa en el momento.',
   },
-  // 422. Hoy no puede llegar: la unica peticion del portal es una lectura sin parametros. Tiene
-  // texto por lo mismo que `sin-municipalidad`.
+  // 409 (issue 33, pareado con kamayuk-lib#96). Hasta ese PR el 409 caia en `averia`, o sea en
+  // «vuelva a intentarlo», que es el remedio CONTRARIO: un 409 es el servidor diciendo que la
+  // situacion de ahora no admite lo que se pidio, y volver a pedir lo mismo trae el mismo 409. Al
+  // ciudadano no se le habla de «conflicto» ni de «estado»: se le dice que eso, ahora, no se puede,
+  // y que lo primero es mirar como esta su cuenta de verdad.
+  //
+  // Hoy no puede llegar, como `no-valido`: la unica peticion del portal es una lectura sin
+  // parametros. Tiene texto por lo mismo que `sin-municipalidad` — «no deberia llegar» no es «no
+  // llega», y el peldano sin texto es el que sale en blanco el dia que llega.
+  conflicto: {
+    titulo: 'Eso ya no se puede hacer ahora',
+    detalle:
+      'Lo que se pidió no encaja con la situación en que está su cuenta en este momento: puede que ya esté hecho, o que algo haya cambiado desde que abrió esta pantalla.',
+    remedio:
+      'Vuelva a cargar la página para ver cómo está su cuenta ahora. Si sigue sin poder hacerse, acérquese con su documento a la ventanilla de la municipalidad.',
+  },
+  // 422 ORDEN_NO_ADMITIDO (issue 33, pareado con kamayuk-lib#96). Hasta ese PR compartia texto con
+  // `no-valido`, que dice «revise lo que escribió» — y aqui no hay nada que el ciudadano haya
+  // escrito: el orden lo pidio la PANTALLA, por un campo que el servidor no admite. Decirle que
+  // corrija algo seria mandarle a dar vueltas por un defecto que no es suyo, asi que el detalle lo
+  // dice y el remedio no le pide que arregle nada.
+  //
+  // Tampoco puede llegar hoy, y por lo mismo: la consulta del portal no pide ningun orden.
+  'orden-no-admitido': {
+    titulo: 'No pudimos ordenar la lista así',
+    detalle:
+      'El portal pidió esta lista ordenada por un dato que el sistema no admite. No es nada que usted haya escrito ni que pueda corregir.',
+    remedio:
+      'Vuelva a cargar la página. Si sigue sin poder verla, acérquese con su documento a la ventanilla de la municipalidad: allí se la consultan en el momento.',
+  },
+  // 422 con cualquier otro codigo. Hoy no puede llegar: la unica peticion del portal es una lectura
+  // sin parametros. Tiene texto por lo mismo que `sin-municipalidad`.
   'no-valido': {
     titulo: 'No pudimos procesar lo que se envió',
     detalle: 'El portal rechazó los datos de la consulta porque no cumplen una de sus reglas.',
@@ -152,7 +222,7 @@ export function peldanoDelPortal(fallo: unknown, t: Traductor): PeldanoDelPortal
 }
 
 /**
- * Las veintiuna claves de la escalera, sin repetidos. Las lee `el-locale-esta-completo.test.ts`.
+ * Las veintisiete claves de la escalera, sin repetidos. Las lee `el-locale-esta-completo.test.ts`.
  *
  * Derivadas y no escritas alli: una frase nueva que no llegue al locale no da ningun rojo por si
  * sola, porque `i18next-cli` no sigue la variable con la que se traducen.
