@@ -1,7 +1,7 @@
 import type { Cliente } from '@kamayuk/api';
 
 import { cliente as elCliente } from '../api/cliente.ts';
-import { leerLaSituacion } from './contrato.ts';
+import { RUTA_DE_LA_SITUACION, leerLaSituacion } from './contrato.ts';
 import { deLaSituacion } from './deLaSituacion.ts';
 import type { FuenteDelPortal } from './fuente.ts';
 import type { PagoDelHistorial, SituacionDelServidor, Unidad } from './tipos.ts';
@@ -46,8 +46,8 @@ import type { PagoDelHistorial, SituacionDelServidor, Unidad } from './tipos.ts'
  * es del issue 28.
  */
 
-/** La ruta, relativa al prefijo del cliente (`/rentas/api/v1`). Escrita una vez. */
-export const RUTA_DE_LA_SITUACION = '/portal/situacion';
+/** La ruta, relativa al prefijo del cliente. Escrita una vez, en `contrato.ts` (issue 34). */
+export { RUTA_DE_LA_SITUACION };
 
 /** Lo que se dice cuando se pide algo que el portal todavia no publica. */
 export const NO_LO_PUBLICA_EL_PORTAL =

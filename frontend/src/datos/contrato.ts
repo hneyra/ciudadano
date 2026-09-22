@@ -227,8 +227,13 @@ export const ESQUEMA_DE_LA_SITUACION = z
   .readonly();
 export type SituacionDelContrato = z.infer<typeof ESQUEMA_DE_LA_SITUACION>;
 
-/** Lo que se pidio, para que el error diga que respuesta no se entendio. */
-const LA_PETICION = 'GET /portal/situacion';
+/**
+ * La ruta de la que llega esta forma, relativa al prefijo del cliente (`/rentas/api/v1`). Escrita
+ * UNA vez, y aqui: la pide `fuenteDeLaPlataforma.ts` (que la reexporta) y la nombra el error de la
+ * frontera. Vive en el contrato y no en la fuente porque la fuente ya importa el contrato, y al reves
+ * seria un ciclo.
+ */
+export const RUTA_DE_LA_SITUACION = '/portal/situacion';
 
 /**
  * **La frontera**: de lo que llego por el cable a una {@link SituacionDelContrato}, o un fallo con
@@ -243,6 +248,6 @@ const LA_PETICION = 'GET /portal/situacion';
  */
 export function leerLaSituacion(desconocido: unknown): SituacionDelContrato {
   const leida = ESQUEMA_DE_LA_SITUACION.safeParse(desconocido);
-  if (!leida.success) throw new RespuestaQueNoEntiendo(LA_PETICION, leida.error.issues);
+  if (!leida.success) throw new RespuestaQueNoEntiendo(`GET ${RUTA_DE_LA_SITUACION}`, leida.error.issues);
   return leida.data;
 }

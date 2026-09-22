@@ -18,6 +18,7 @@ import {
   ESQUEMA_DEL_PREDIO,
   ESQUEMA_DEL_RESUMEN,
   ESQUEMA_DEL_TIPO_DE_DOCUMENTO,
+  RUTA_DE_LA_SITUACION,
   leerLaSituacion,
   type ImporteConFecha,
   type MunicipalidadDelContrato,
@@ -200,6 +201,7 @@ describe('AC2 — las cinco roturas del issue, cada una con su rojo', () => {
     expect(error).toBeInstanceOf(Error);
     expect((error as Error).name).toBe('RespuestaQueNoEntiendo');
     expect((error as Error).message).toContain('GET /portal/situacion');
+    expect((error as RespuestaQueNoEntiendo).peticion).toBe(`GET ${RUTA_DE_LA_SITUACION}`);
     expect((error as Error).message).toContain('municipalidades');
   });
 });
