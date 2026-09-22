@@ -2,6 +2,7 @@ import { ErrorDeLaApi, type CuerpoDeProblema } from '@kamayuk/api';
 import { peldanoDe } from '@kamayuk/sesion';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { RespuestaQueNoEntiendo } from '../datos/respuestaQueNoEntiendo.ts';
 import i18n, { IDIOMA_MARCADO, IDIOMA_POR_OMISION } from '../i18n/i18n.ts';
 import {
   TEXTOS_DEL_PORTAL,
@@ -18,7 +19,7 @@ import {
  * pasaria si este archivo se quedara corto: un peldano sin entrada saldria `undefined`, o —peor, si
  * alguien lo «arreglara» con un respaldo— mandaria a un ciudadano a avisar a soporte.
  *
- * <h2>Nueve claves, y la libreria enlazada puede distinguir solo siete</h2>
+ * <h2>Nueve claves de la libreria, y la enlazada puede distinguir solo siete</h2>
  *
  * `conflicto` y `orden-no-admitido` los trae kamayuk-lib#96, que se mezcla **pareado** con la rama
  * de este issue. Mientras ese PR siga abierto, la libreria enlazada aqui manda el 409 a `averia` y
@@ -27,8 +28,14 @@ import {
  *
  * Por eso `DISTINGUIDAS` se **mide** llamando a `peldanoDe`, y no se escribe: lo que depende de la
  * libreria se comprueba sobre lo que la libreria da hoy, y lo que es decision del portal —los
- * textos, que esten los nueve, que ninguno hable como la ventanilla— se comprueba sobre los nueve.
+ * textos, que esten todos, que ninguno hable como la ventanilla— se comprueba sobre todos.
  * Asi este archivo dice la verdad a los dos lados del pareado y no hay que tocarlo cuando #96 entre.
+ *
+ * <h2>Y una decima que no dara ninguna libreria: `respuesta-ilegible` (issue 34)</h2>
+ *
+ * La produce la frontera del portal, no un codigo HTTP. Va en `LAS_DEL_PORTAL`, y un centinela mide
+ * que el portal la produce de verdad y la libreria no, para que esa lista no sea otra puerta por la
+ * que colar una clave inventada.
  */
 
 /** Un fallo del backend con su estado y su codigo, como el que lanza `@kamayuk/api`. */
@@ -50,6 +57,20 @@ const falloDeLaApi = (estado: number, codigo?: string, mensaje?: string) =>
 const falloConCuerpo = (estado: number, cuerpo: object) =>
   new ErrorDeLaApi(estado, 'GET /portal/situacion', cuerpo as CuerpoDeProblema);
 
+/**
+ * Una respuesta que no tiene la forma del contrato (issue 34), con un fallo de `zod` como el de
+ * verdad: la ruta y el motivo son nombres del JSON, lo que NUNCA puede llegar a la pantalla.
+ */
+const RESPUESTA_ILEGIBLE = new RespuestaQueNoEntiendo('GET /portal/situacion', [
+  {
+    code: 'invalid_type',
+    expected: 'number',
+    path: ['municipalidades', 0, 'obligaciones', 0, 'ejercicio'],
+    message: 'Invalid input: expected number, received string',
+    input: '2024',
+  },
+]);
+
 /** Un fallo por cada clave, para recorrer la escalera entera sin escribir la tabla dos veces. */
 const UN_FALLO_POR_CLAVE: Readonly<Record<ClaveDelPeldano, unknown>> = {
   'sin-identidad': falloDeLaApi(401, 'NO_AUTENTICADO'),
@@ -61,6 +82,7 @@ const UN_FALLO_POR_CLAVE: Readonly<Record<ClaveDelPeldano, unknown>> = {
   'orden-no-admitido': falloDeLaApi(422, 'ORDEN_NO_ADMITIDO'),
   'no-valido': falloDeLaApi(422, 'VALIDACION'),
   averia: new TypeError('Failed to fetch'),
+  'respuesta-ilegible': RESPUESTA_ILEGIBLE,
 };
 
 const CLAVES = Object.keys(UN_FALLO_POR_CLAVE) as readonly ClaveDelPeldano[];
@@ -72,6 +94,15 @@ const CLAVES = Object.keys(UN_FALLO_POR_CLAVE) as readonly ClaveDelPeldano[];
  * falte es una clave inventada en la tabla del portal, y eso se pone rojo abajo.
  */
 const LOS_PAREADOS: readonly ClaveDelPeldano[] = ['conflicto', 'orden-no-admitido'];
+
+/**
+ * Los peldanos que decide el portal y que **ninguna libreria dara nunca** (issue 34).
+ *
+ * `respuesta-ilegible` no sale de un codigo HTTP sino de la frontera de este portal: el servidor
+ * contesto un 200 y lo que contesto no tiene la forma del contrato. La libreria no sabe de ese
+ * contrato, asi que para ella es una averia mas; lo reconoce `peldanoDelPortal` antes de preguntarle.
+ */
+const LAS_DEL_PORTAL: readonly ClaveDelPeldano[] = ['respuesta-ilegible'];
 
 /** Las claves que la libreria ENLAZADA distingue hoy. Medido, no escrito: ver la cabecera. */
 const DISTINGUIDAS = CLAVES.filter((clave) => peldanoDe(UN_FALLO_POR_CLAVE[clave]).clave === clave);
@@ -92,32 +123,44 @@ describe('EL CENTINELA: la tabla cubre la escalera entera', () => {
     expect(caidas).toEqual(DISTINGUIDAS);
   });
 
-  it('y lo unico que la libreria enlazada puede no distinguir son los dos de kamayuk-lib#96', () => {
+  it('y lo unico que la libreria enlazada puede no distinguir son los dos de kamayuk-lib#96 y los del portal', () => {
     // El centinela del centinela. `DISTINGUIDAS` se mide, asi que una clave inventada en la tabla
     // del portal —una que ningun fallo real produce— se caeria de la lista y las pruebas de arriba
     // ni la mirarian: pasarian en verde sobre una entrada que no existe en ninguna escalera.
     const pendientes = CLAVES.filter((clave) => !DISTINGUIDAS.includes(clave));
 
     expect(
-      pendientes.filter((clave) => !LOS_PAREADOS.includes(clave)),
+      pendientes.filter((clave) => !LOS_PAREADOS.includes(clave) && !LAS_DEL_PORTAL.includes(clave)),
       'Hay peldanos en la tabla del portal que ninguna libreria produce',
     ).toEqual([]);
+  });
+
+  it('y los del portal los produce EL PORTAL, medido, y la libreria no', () => {
+    // Sin esto `LAS_DEL_PORTAL` seria otra puerta para una clave inventada: bastaria con apuntarla
+    // alli para que el centinela de arriba la dejara pasar. Se mide que `peldanoDelPortal` la da de
+    // verdad, y que la libreria no —si algun dia la diera, dejaria de ser del portal—.
+    for (const clave of LAS_DEL_PORTAL) {
+      expect(peldanoDelPortal(UN_FALLO_POR_CLAVE[clave], traducir).clave, clave).toBe(clave);
+      expect(peldanoDe(UN_FALLO_POR_CLAVE[clave]).clave, clave).not.toBe(clave);
+    }
   });
 
   it('y los siete de siempre estan distinguidos, con la libreria que sea', () => {
     // Al reves que el anterior: si la libreria dejara de dar uno de los siete de hoy, `DISTINGUIDAS`
     // encogeria sin ruido y media docena de pruebas dejarian de medir nada.
     expect(DISTINGUIDAS).toEqual(
-      expect.arrayContaining(CLAVES.filter((clave) => !LOS_PAREADOS.includes(clave))),
+      expect.arrayContaining(
+        CLAVES.filter((clave) => !LOS_PAREADOS.includes(clave) && !LAS_DEL_PORTAL.includes(clave)),
+      ),
     );
   });
 
-  it('y la tabla del portal decide las nueve, ni una mas', () => {
+  it('y la tabla del portal decide las diez, ni una mas', () => {
     expect(Object.keys(TEXTOS_DEL_PORTAL).sort()).toEqual([...CLAVES].sort());
   });
 });
 
-describe('las nueve tienen texto propio, y ninguno es el de la libreria', () => {
+describe('las diez tienen texto propio, y ninguno es el de la libreria', () => {
   it.each(CLAVES)('«%s» dice otra cosa que `peldanoDe`', (clave) => {
     const suyo = peldanoDe(UN_FALLO_POR_CLAVE[clave]);
     const nuestro = TEXTOS_DEL_PORTAL[clave];
@@ -222,6 +265,34 @@ describe('la clasificacion sigue siendo la de la libreria', () => {
 
     expect(peldanoDe(conMensaje).detalle).toBe('El token no identifica documento.');
     expect(peldanoDelPortal(conMensaje, traducir).detalle).not.toContain('token');
+  });
+});
+
+describe('la respuesta que no se entiende (issue 34)', () => {
+  it('es su peldano propio, una averia que no pide volver a entrar', () => {
+    // Averia, porque el sistema NO esta funcionando como debe: contesto algo que no es el contrato.
+    // Y no pide identidad: volver a la puerta trae el mismo token y la misma respuesta ilegible.
+    const peldano = peldanoDelPortal(RESPUESTA_ILEGIBLE, traducir);
+
+    expect(peldano).toMatchObject({ clave: 'respuesta-ilegible', esAveria: true, pideIdentidad: false });
+    expect(peldano.titulo).toBe('No pudimos leer lo que nos contestó el sistema');
+  });
+
+  it('y no dice nada de lo que `zod` encontro: ni la ruta, ni el motivo, ni el mensaje', () => {
+    // `fallos` y `message` son para quien depura. Al ciudadano, «municipalidades.0.obligaciones»
+    // no le dice nada y «expected number» todavia menos.
+    const peldano = peldanoDelPortal(RESPUESTA_ILEGIBLE, traducir);
+    const enPantalla = `${peldano.titulo} ${peldano.detalle} ${peldano.remedio}`;
+    const escapados = [RESPUESTA_ILEGIBLE.message, 'municipalidades', 'ejercicio', 'expected', 'Invalid', 'GET /'].filter(
+      (dicho) => enPantalla.includes(dicho),
+    );
+
+    expect(escapados, 'El portal ensena lo que encontro el esquema').toEqual([]);
+  });
+
+  it('y no se confunde con un corte de red: un `TypeError` sigue siendo `averia`', () => {
+    // El orden importa: la frontera se pregunta ANTES que la libreria, pero solo por su error.
+    expect(peldanoDelPortal(new TypeError('Failed to fetch'), traducir).clave).toBe('averia');
   });
 });
 

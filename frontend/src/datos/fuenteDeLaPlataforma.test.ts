@@ -11,7 +11,16 @@ import { ErrorDeLaApi, type Cliente, type OpcionesDeSolicitud } from '@kamayuk/a
 import { describe, expect, it, vi } from 'vitest';
 
 import type { SituacionDelContrato } from './contrato.ts';
+import { deLaSituacion } from './deLaSituacion.ts';
 import { NO_LO_PUBLICA_EL_PORTAL, RUTA_DE_LA_SITUACION, crearFuenteDeLaPlataforma } from './fuenteDeLaPlataforma.ts';
+import { RespuestaQueNoEntiendo } from './respuestaQueNoEntiendo.ts';
+
+// El adaptador de VERDAD, envuelto en un espia: las pruebas de siempre siguen midiendo lo que hace,
+// y la de la frontera (issue 34) puede contar si alguien le paso algo.
+vi.mock('./deLaSituacion.ts', async (original) => {
+  const modulo = await original<typeof import('./deLaSituacion.ts')>();
+  return { ...modulo, deLaSituacion: vi.fn(modulo.deLaSituacion) };
+});
 
 /**
  * **La fuente de la plataforma pide `GET /portal/situacion` y pasa lo que llega por el adaptador.**
@@ -87,6 +96,30 @@ describe('la consulta', () => {
     const fuente = crearFuenteDeLaPlataforma(cliente);
 
     await expect(fuente.consulta?.()).rejects.toBe(fallo);
+  });
+});
+
+describe('la frontera (issue 34): lo que no tiene la forma del contrato no llega al adaptador', () => {
+  it('una respuesta rota rechaza con `RespuestaQueNoEntiendo`, y `deLaSituacion` no ve nada', async () => {
+    // `municipalidades` que no es una lista: sin la frontera, el adaptador la recorreria y reventaria
+    // con un `TypeError` suelto —o la daria por vacia—, que es justo lo que el issue quita.
+    const rota = { ...MEDIDA, municipalidades: {} };
+    const { cliente } = clienteFalso(() => Promise.resolve(rota));
+    const fuente = crearFuenteDeLaPlataforma(cliente);
+    vi.mocked(deLaSituacion).mockClear();
+
+    await expect(fuente.consulta?.()).rejects.toBeInstanceOf(RespuestaQueNoEntiendo);
+    expect(deLaSituacion, 'El adaptador recibio una respuesta que nadie valido').not.toHaveBeenCalled();
+  });
+
+  it('y una valida SI le llega, ya leida', async () => {
+    const { cliente } = clienteFalso(() => Promise.resolve(MEDIDA));
+    vi.mocked(deLaSituacion).mockClear();
+
+    await crearFuenteDeLaPlataforma(cliente).consulta?.();
+
+    expect(deLaSituacion).toHaveBeenCalledTimes(1);
+    expect(deLaSituacion).toHaveBeenCalledWith(MEDIDA);
   });
 });
 

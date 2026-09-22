@@ -1,5 +1,7 @@
 import { peldanoDe, type Peldano } from '@kamayuk/sesion';
 
+import { RespuestaQueNoEntiendo } from '../datos/respuestaQueNoEntiendo.ts';
+
 /**
  * **La escalera de identidad, dicha al CIUDADANO** (issue 13).
  *
@@ -83,8 +85,16 @@ import { peldanoDe, type Peldano } from '@kamayuk/sesion';
  *
  * Cuando kamayuk-lib#96 este mezclado, los dos literales pasan a ser redundantes —la union de la
  * libreria ya los trae— y borrarlos no cambia nada. Lo que NO se puede borrar es la tabla.
+ *
+ * <h3>Y un tercero que no traera ninguna libreria: `respuesta-ilegible` (issue 34)</h3>
+ *
+ * No sale de un codigo HTTP sino de la frontera de ESTE portal: el servidor contesto, y lo que
+ * contesto no tiene la forma del contrato (`RespuestaQueNoEntiendo`, que lanza `leerLaSituacion`).
+ * La libreria no conoce ese contrato —para ella es una averia mas, y le diria «el portal no esta
+ * respondiendo», que es falso: respondio—. Por eso lo reconoce `peldanoDelPortal` **antes** de
+ * preguntar a `peldanoDe`, y este literal no se borra nunca.
  */
-export type ClaveDelPeldano = Peldano['clave'] | 'conflicto' | 'orden-no-admitido';
+export type ClaveDelPeldano = Peldano['clave'] | 'conflicto' | 'orden-no-admitido' | 'respuesta-ilegible';
 
 /** Lo que el portal dice en un peldano: que paso, y que hacer. Sin traducir: ver la cabecera. */
 export interface TextosDelPeldano {
@@ -105,10 +115,10 @@ export interface PeldanoDelPortal extends TextosDelPeldano {
 }
 
 /**
- * **Los nueve peldanos, con las palabras del portal.**
+ * **Los diez peldanos, con las palabras del portal.**
  *
  * El registro es **completo por el tipo**: `Record<ClaveDelPeldano, …>` no compila si la libreria
- * anade un decimo peldano y aqui no se decide que decir. Sin eso, el peldano nuevo llegaria a la
+ * anade un peldano mas y aqui no se decide que decir. Sin eso, el peldano nuevo llegaria a la
  * pantalla con el texto de funcionario de la libreria — o con `undefined`.
  */
 export const TEXTOS_DEL_PORTAL: Readonly<Record<ClaveDelPeldano, TextosDelPeldano>> = {
@@ -187,6 +197,19 @@ export const TEXTOS_DEL_PORTAL: Readonly<Record<ClaveDelPeldano, TextosDelPeldan
     detalle: 'El portal rechazó los datos de la consulta porque no cumplen una de sus reglas.',
     remedio: 'Revise lo que escribió y vuelva a intentarlo.',
   },
+  // La respuesta que no tiene la forma del contrato (issue 34). Es averia —el sistema no hace lo que
+  // debe— pero NO es la de abajo: el servidor si contesto, asi que «no esta respondiendo» seria
+  // falso. Lo que importa decirle es por que no hay ni una cifra en la pantalla: preferimos no
+  // ensenarle nada a ensenarle una equivocada. Nada de lo que encontro el esquema —rutas del JSON,
+  // «expected number»— llega aqui: eso es para quien depura (`RespuestaQueNoEntiendo.fallos`).
+  // El remedio no promete que insistir lo arregle: si vuelve a pasar, la ventanilla.
+  'respuesta-ilegible': {
+    titulo: 'No pudimos leer lo que nos contestó el sistema',
+    detalle:
+      'El sistema que guarda su deuda contestó, pero de una forma que el portal no sabe leer. Por eso no le mostramos ninguna cifra: preferimos no enseñarle nada antes que enseñarle un importe equivocado.',
+    remedio:
+      'Vuelva a intentarlo más tarde. Si sigue igual, acérquese con su documento a la ventanilla de la municipalidad: allí le consultan su deuda en el momento.',
+  },
   // Un corte de red, un 5xx, o cualquier cosa que no sea un `ErrorDeLaApi`. La unica averia de
   // verdad, y la unica donde el remedio es esperar — con una salida que no depende de esperar.
   averia: {
@@ -208,7 +231,12 @@ export type Traductor = (texto: string) => string;
  * @param t el `t()` de la pantalla que lo va a dibujar.
  */
 export function peldanoDelPortal(fallo: unknown, t: Traductor): PeldanoDelPortal {
-  const { clave, pideIdentidad, esAveria } = peldanoDe(fallo);
+  // La frontera del portal se pregunta ANTES que la libreria: para `peldanoDe`, un error que no es
+  // un `ErrorDeLaApi` es `averia`, y le daria a una respuesta ilegible el texto del corte de red.
+  const { clave, pideIdentidad, esAveria } =
+    fallo instanceof RespuestaQueNoEntiendo
+      ? { clave: 'respuesta-ilegible' as const, pideIdentidad: false, esAveria: true }
+      : peldanoDe(fallo);
   const textos = TEXTOS_DEL_PORTAL[clave];
 
   return {
@@ -222,7 +250,7 @@ export function peldanoDelPortal(fallo: unknown, t: Traductor): PeldanoDelPortal
 }
 
 /**
- * Las veintisiete claves de la escalera, sin repetidos. Las lee `el-locale-esta-completo.test.ts`.
+ * Las treinta claves de la escalera, sin repetidos. Las lee `el-locale-esta-completo.test.ts`.
  *
  * Derivadas y no escritas alli: una frase nueva que no llegue al locale no da ningun rojo por si
  * sola, porque `i18next-cli` no sigue la variable con la que se traducen.
