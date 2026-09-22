@@ -172,11 +172,27 @@ describe('hueco medido: `gastos` y `conAmnistia` no son dinero para la libreria'
   });
 });
 
+/**
+ * Lo que se SABE que importa cada archivo, para comprobar que el lector lee.
+ *
+ * Hasta el issue 34 los cinco importaban `@kamayuk/formato` y bastaba con preguntar por ese. Desde
+ * entonces `contrato.ts` ya no lo necesita —sus tipos salen del esquema de `zod`— y el error de la
+ * frontera tampoco: lo que se pregunta es lo que cada uno importa de verdad.
+ */
+const SE_SABE_QUE_IMPORTA: Readonly<Record<string, string>> = {
+  'cuentas.ts': '@kamayuk/formato',
+  'demostracion.ts': '@kamayuk/formato',
+  'tipos.ts': '@kamayuk/formato',
+  'contrato.ts': 'zod',
+  'respuestaQueNoEntiendo.ts': 'zod',
+  'deLaSituacion.ts': '@kamayuk/formato',
+};
+
 describe('las cuentas y los datos no traen React', () => {
-  it.each(['cuentas.ts', 'demostracion.ts', 'tipos.ts', 'contrato.ts', 'deLaSituacion.ts'])('%s', (archivo) => {
+  it.each(Object.entries(SE_SABE_QUE_IMPORTA))('%s', (archivo, seguro) => {
     const importados = importadosPor(readFileSync(join(DATOS, archivo), 'utf8'));
     // Que el lector lee: sin esto, un lector roto que no devolviera nada pasaria en verde.
-    expect(importados).toContain('@kamayuk/formato');
+    expect(importados).toContain(seguro);
 
     expect(
       importados.filter((e) => /^(react|react-dom|@tanstack\/react-query|@kamayuk\/ui)(\/|$)/.test(e)),
