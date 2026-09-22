@@ -1,7 +1,7 @@
 import type { Cliente } from '@kamayuk/api';
 
 import { cliente as elCliente } from '../api/cliente.ts';
-import type { SituacionDelContrato } from './contrato.ts';
+import { RUTA_DE_LA_SITUACION, leerLaSituacion } from './contrato.ts';
 import { deLaSituacion } from './deLaSituacion.ts';
 import type { FuenteDelPortal } from './fuente.ts';
 import type { PagoDelHistorial, SituacionDelServidor, Unidad } from './tipos.ts';
@@ -13,6 +13,14 @@ import type { PagoDelHistorial, SituacionDelServidor, Unidad } from './tipos.ts'
  * pide, se pasa la respuesta por el adaptador de `deLaSituacion.ts` (issue 26) y se devuelve. El
  * transporte —el token en la cabecera, el `problem+json` de RFC 9457 convertido en `ErrorDeLaApi`,
  * el prefijo `/rentas/api/v1`— es del cliente de `src/api/cliente.ts` (issue 25).
+ *
+ * <h2>Entre el cable y el adaptador, la frontera</h2>
+ *
+ * Desde el issue 34, lo que contesta el servidor pasa por `leerLaSituacion` (`contrato.ts`) ANTES
+ * de tocar el adaptador. Si no tiene la forma del contrato, la consulta rechaza con
+ * `RespuestaQueNoEntiendo` y `deLaSituacion` no llega a verlo: el adaptador sigue siendo puro y
+ * recibe algo ya valido, y la pantalla dibuja el fallo con su peldano en vez de reventar a mitad
+ * de una cuenta.
  *
  * <h2>La peticion NO lleva parametros, y no es un olvido</h2>
  *
@@ -38,8 +46,8 @@ import type { PagoDelHistorial, SituacionDelServidor, Unidad } from './tipos.ts'
  * es del issue 28.
  */
 
-/** La ruta, relativa al prefijo del cliente (`/rentas/api/v1`). Escrita una vez. */
-export const RUTA_DE_LA_SITUACION = '/portal/situacion';
+/** La ruta, relativa al prefijo del cliente. Escrita una vez, en `contrato.ts` (issue 34). */
+export { RUTA_DE_LA_SITUACION };
 
 /** Lo que se dice cuando se pide algo que el portal todavia no publica. */
 export const NO_LO_PUBLICA_EL_PORTAL =
@@ -53,7 +61,9 @@ function noPublicado<T>(): Promise<T> {
 export function crearFuenteDeLaPlataforma(cliente: Cliente): FuenteDelPortal {
   return {
     consulta: async (): Promise<SituacionDelServidor> =>
-      deLaSituacion(await cliente.solicitar<SituacionDelContrato>(RUTA_DE_LA_SITUACION)),
+      // `unknown` y no el tipo del contrato: lo que trae el cable no tiene forma hasta que
+      // `leerLaSituacion` la comprueba (issue 34). El adaptador solo ve lo que paso la frontera.
+      deLaSituacion(leerLaSituacion(await cliente.solicitar<unknown>(RUTA_DE_LA_SITUACION))),
     historial: (): Promise<readonly PagoDelHistorial[]> => noPublicado(),
     unidades: (): Promise<readonly Unidad[]> => noPublicado(),
   };

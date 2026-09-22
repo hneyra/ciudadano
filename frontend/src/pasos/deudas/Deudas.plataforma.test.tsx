@@ -340,6 +340,50 @@ describe('cuando la peticion falla', () => {
   });
 });
 
+/**
+ * **AC4 del issue 34 — una respuesta que no tiene la forma del contrato.**
+ *
+ * La cadena entera: el cliente falso contesta un 200 con algo roto, la fuente lo pasa por la
+ * frontera, la frontera lanza `RespuestaQueNoEntiendo` y la pantalla dibuja SU peldano. Los textos
+ * se escriben aqui, y no se piden a la escalera: este peldano lo decide el portal, sin pareado con
+ * ninguna libreria, y lo que se mide es lo que el ciudadano lee.
+ */
+describe('cuando la respuesta no tiene la forma del contrato (issue 34)', () => {
+  /** La obligacion con su `insoluto` como NUMERO, que es la rotura que mas se parece a un dato. */
+  function conImporteNumero(): unknown {
+    const rota = structuredClone(CON_UNA_OBLIGACION) as unknown as {
+      municipalidades: { obligaciones: { insoluto: { importe: unknown } }[] }[];
+    };
+    rota.municipalidades[0]!.obligaciones[0]!.insoluto.importe = 1500;
+    return rota;
+  }
+
+  it.each<[string, () => unknown]>([
+    ['un `importe` que llega como numero', conImporteNumero],
+    ['`municipalidades` que no es una lista', () => ({ ...CON_UNA_OBLIGACION, municipalidades: {} })],
+    ['una respuesta sin `aLaFecha`', () => ({ ...CON_UNA_OBLIGACION, aLaFecha: undefined })],
+  ])('%s: su titulo y su remedio, y NI UN importe', async (_caso, respuestaRota) => {
+    conSesion(() => Promise.resolve(respuestaRota()));
+
+    expect(
+      await enMain().findByRole('heading', { level: 1, name: 'No pudimos leer lo que nos contestó el sistema' }),
+    ).toBeInTheDocument();
+    expect(enMain().getByText(/acérquese con su documento a la ventanilla de la municipalidad: allí le consultan su deuda/)).toBeInTheDocument();
+    expect(enMain().getByText(/Por eso no le mostramos ninguna cifra/)).toBeInTheDocument();
+    // Ni `S/`, ni una cifra con decimales, ni un cero de consuelo: el total del servidor venia
+    // BIEN en la respuesta rota, y aun asi no se ensena, porque lo que lo rodea no se pudo leer.
+    expect(importesEnPantalla(), 'Una respuesta ilegible no puede dejar ni una cifra en pantalla.').toEqual([]);
+    expect(principal().textContent).not.toMatch(/S\/|\d+[.,]\d{2}\b/);
+    // Lo que encontro el esquema es para quien depura: ni rutas del JSON ni «expected».
+    expect(principal().textContent).not.toMatch(/municipalidades\.|obligaciones|expected|Invalid/);
+    // Y no es un corte de red: decir «el portal no esta respondiendo» seria falso.
+    expect(enMain().queryByRole('heading', { name: 'El portal no está respondiendo' })).toBeNull();
+    // Volver a entrar traeria el mismo token y la misma respuesta: lo que se ofrece es reintentar.
+    expect(enMain().queryByRole('button', { name: 'Entrar' })).toBeNull();
+    expect(enMain().getByRole('button', { name: 'Reintentar la consulta' })).toBeInTheDocument();
+  });
+});
+
 describe('todo lo que se lee pasa por `t()`', () => {
   /** Cada nodo de texto de `main` que no esta marcado. El dato del servidor se pasa aparte. */
   function escapados(datos: ReadonlySet<string>): string[] {
