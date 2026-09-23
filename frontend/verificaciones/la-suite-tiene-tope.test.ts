@@ -75,16 +75,24 @@ function pruebasDeSrc(): string[] {
     .sort();
 }
 
+/**
+ * Quien monta el portal entero: por el arnes (`montarElPortal(`), o a mano, con la aplicacion
+ * (`<Aplicacion`) o su enrutador (`crearEnrutador(`). Lo que NO ve: un archivo que monte el portal por
+ * otra pieza que los envuelva (una funcion propia que llame a `montarElPortal` desde otro modulo de
+ * pruebas); si aparece, se anade aqui su nombre.
+ */
+const MONTA_EL_PORTAL = /montarElPortal\(|<Aplicacion\b|crearEnrutador\(/;
+
 // En el nivel superior (la linea empieza por la llamada): dentro de un caso ya no cambiaria su plazo.
 const DECLARA_EL_PLAZO = /^plazosDelPortal\(\);$/m;
 
 describe('los plazos de los casos que montan el portal entero', () => {
-  it('los pide cada archivo que llama a `montarElPortal`', () => {
-    const montan = pruebasDeSrc().filter((ruta) => readFileSync(join(RAIZ, ruta), 'utf8').includes('montarElPortal('));
+  it('los pide cada archivo que monta el portal: `montarElPortal`, `<Aplicacion` o `crearEnrutador`', () => {
+    const montan = pruebasDeSrc().filter((ruta) => MONTA_EL_PORTAL.test(readFileSync(join(RAIZ, ruta), 'utf8')));
     const sinPlazo = montan.filter((ruta) => !DECLARA_EL_PLAZO.test(readFileSync(join(RAIZ, ruta), 'utf8')));
 
     // El centinela: si la busqueda dejara de encontrar los archivos, «ninguno sin plazo» saldria verde.
-    expect(montan.length).toBeGreaterThanOrEqual(26);
+    expect(montan.length).toBeGreaterThanOrEqual(27);
     expect(
       sinPlazo,
       'Estos archivos montan el portal con los plazos por omision (5 s el caso, 1 s cada espera), que con ' +
