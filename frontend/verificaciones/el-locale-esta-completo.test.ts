@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { clavesDeLaEscalera } from '../src/api/escalera.ts';
+import { clavesDelSilencio } from '../src/api/silencio.ts';
 import { clavesDeLaUnidad } from '../src/datos/deLaSituacion.ts';
 import { clavesDelHistorial } from '../src/pasos/historial/textosDelHistorial.ts';
 import { clavesDeLosMedios } from '../src/pasos/pagar/textosDeLosMedios.ts';
@@ -326,6 +327,11 @@ const LITERALES = [
   'No se pudo abrir su sesión',
   'Volvimos del sistema de identidad sin poder entrar: {{motivo}}. {{detalle}}',
   'Vuelva a cargar la página e inténtelo otra vez. Si sigue igual, puede consultar y pagar en la ventanilla de la municipalidad.',
+  // El canje silencioso (issue 35): la espera que `src/aplicacion.tsx` dibuja si preguntarle al
+  // emisor si ya se habia entrado tarda; y si no se pudo, la variante del aviso de arriba, que no
+  // dice «Volvimos» porque nadie fue a ningun sitio (revision del PR #45).
+  'Comprobando su sesión…',
+  'Al abrir la página quisimos comprobar si ya había entrado, y no se pudo: {{motivo}}. {{detalle}}',
 
   // ── El doble modo y los estados de la consulta (issue 27) ───────────────────────────────────
   // No estan en el artboard: el artboard no consulta a ningun servidor. Son los cinco finales que
@@ -412,6 +418,9 @@ const LITERALES = [
   // peldano solo se sabe en ejecucion—, asi que `i18next-cli` no los ve y escribirlos aqui a mano
   // dejaria el olvido sin rojo.
   ...clavesDeLaEscalera(),
+  // Lo que el canje silencioso (issue 35) puede llegar a decir, derivado de `TEXTOS_DEL_SILENCIO`.
+  // La pantalla lo traduce con una variable —el motivo solo se sabe en ejecucion—.
+  ...clavesDelSilencio(),
 ];
 
 /** Lo que tiene que decir cada forma plural, con el mecanismo de `rentas`. */

@@ -100,12 +100,24 @@ const SITUACION = {
   ],
 };
 
+/** Lo que el backend falso cuenta: cuantas consultas, y cuantas preguntas al emisor de cada clase. */
+interface BackendFalso {
+  readonly consultas: () => number;
+  /** Las del marco oculto del arranque, con `prompt=none` (issue 35). */
+  readonly silenciosas: () => number;
+  /** Las de «Entrar con mi cuenta»: la pagina entera se va al formulario. */
+  readonly conFormulario: () => number;
+}
+
 /**
  * El backend falso entero. Se instala en la pagina ANTES de la primera navegacion, y sobrevive a
  * las que vengan: el rebote del emisor es una navegacion mas.
  */
-async function backendFalso(pagina: Page): Promise<{ readonly consultas: () => number }> {
+async function backendFalso(pagina: Page): Promise<BackendFalso> {
   let consultas = 0;
+  let silenciosas = 0;
+  let conFormulario = 0;
+  let sesionDelEmisor = false;
 
   // 1. La sonda del emisor. `entrar()` la pide con `mode: 'no-cors'` antes de navegar.
   await pagina.route(`${EMISOR}/.well-known/openid-configuration`, (ruta) =>
@@ -113,14 +125,38 @@ async function backendFalso(pagina: Page): Promise<{ readonly consultas: () => n
   );
 
   // 2. El formulario del emisor: se contesta con la vuelta, con EL MISMO `state` que llego.
+  //
+  // Y con memoria de sesion, como el de verdad (issue 35): la primera entrada con formulario deja la
+  // sesion del emisor viva, y desde entonces una pregunta con `prompt=none` —la del marco oculto del
+  // arranque— vuelve con un codigo; antes de eso, con `error=login_required`. Sin esta memoria, el
+  // canje silencioso entraria solo en la primera carga y el paso 1 no se veria nunca.
   await pagina.route(`${EMISOR}/protocol/openid-connect/auth*`, (ruta) => {
     const pedida = new URL(ruta.request().url());
     const estado = pedida.searchParams.get('state') ?? '';
     const retorno = pedida.searchParams.get('redirect_uri') ?? URL_CON_PLATAFORMA;
-    void ruta.fulfill({
-      status: 302,
-      headers: { location: `${retorno}?code=un-codigo-de-mentira&state=${estado}` },
-    });
+    const enSilencio = pedida.searchParams.get('prompt') === 'none';
+    if (enSilencio) silenciosas += 1;
+    else {
+      conFormulario += 1;
+      sesionDelEmisor = true;
+    }
+    const vuelta =
+      enSilencio && !sesionDelEmisor
+        ? `error=login_required&state=${estado}`
+        : `code=un-codigo-de-mentira&state=${estado}`;
+    void ruta.fulfill({ status: 302, headers: { location: `${retorno}?${vuelta}` } });
+  });
+
+  // 2b. El cierre de sesion (revision del PR #45): `salir()` manda aqui con `id_token_hint`, y el
+  // emisor de verdad TERMINA su sesion y devuelve al `post_logout_redirect_uri`. Este lo imita: la
+  // olvida. Es lo honesto —un emisor que la recordara no es el que hay—, y por eso el camino del
+  // cierre no mide la sesion del emisor sino que el portal NO LE PREGUNTE: lo mide contando las
+  // preguntas silenciosas, que es lo que `vieneDeSalir()` apaga.
+  await pagina.route(`${EMISOR}/protocol/openid-connect/logout*`, (ruta) => {
+    sesionDelEmisor = false;
+    const pedida = new URL(ruta.request().url());
+    const vuelta = pedida.searchParams.get('post_logout_redirect_uri') ?? URL_CON_PLATAFORMA;
+    void ruta.fulfill({ status: 302, headers: { location: vuelta } });
   });
 
   // 3. El canje.
@@ -138,7 +174,7 @@ async function backendFalso(pagina: Page): Promise<{ readonly consultas: () => n
     void ruta.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SITUACION) });
   });
 
-  return { consultas: () => consultas };
+  return { consultas: () => consultas, silenciosas: () => silenciosas, conFormulario: () => conFormulario };
 }
 
 /** Abre el portal con plataforma en su primer paso. */
@@ -156,8 +192,14 @@ async function entrarYLlegarALaDeuda(pagina: Page): Promise<void> {
 
 test.describe('el recorrido con plataforma', () => {
   test('sin sesion, el paso 1 es «Entrar» y la franja tiene CUATRO pasos', async ({ page }) => {
-    await backendFalso(page);
+    const backend = await backendFalso(page);
     await abrirConPlataforma(page);
+
+    // El arranque le pregunto al emisor en silencio (issue 35), UNA vez, y como no tenia sesion el
+    // portal se quedo anonimo y donde estaba: sin ir al formulario.
+    expect(backend.silenciosas()).toBe(1);
+    expect(backend.conFormulario()).toBe(0);
+    await expect(page).toHaveURL(/#\/entrar$/);
 
     const franja = page.getByRole('navigation');
     await expect(franja.getByRole('button')).toHaveText(['1Entrar', '2Elegir qué pago', '3Pagar', '4Comprobante']);
@@ -250,5 +292,70 @@ test.describe('el recorrido con plataforma', () => {
 
     await entrarYLlegarALaDeuda(page);
     await seVeBien(page, 'elegir qué pago con plataforma a 400 px');
+  });
+
+  test('recargar NO echa: con la sesion del emisor viva, se sigue dentro sin pulsar nada (issue 35)', async ({ page }) => {
+    const backend = await backendFalso(page);
+    await abrirConPlataforma(page);
+    await entrarYLlegarALaDeuda(page);
+    expect(backend.conFormulario()).toBe(1);
+
+    await page.reload();
+
+    // La deuda otra vez, y quien entro en la barra: el token se volvio a pedir por el marco, con la
+    // pagina de vuelta `silencio.html` servida de verdad, y sin pasar por el formulario.
+    await expect(page.getByRole('heading', { level: 1, name: 'Lo que debe, por concepto' })).toBeVisible();
+    await expect(page).toHaveURL(/#\/deudas$/);
+    await expect(page.getByRole('banner').getByRole('button', { name: /Rufina Medina Medina/ })).toBeVisible();
+    expect(backend.conFormulario(), 'recargar volvio a mandar a la persona al formulario').toBe(1);
+    // Una pregunta por carga: la de la primera y la de la recarga. Ni un bucle, ni una de mas.
+    expect(backend.silenciosas()).toBe(2);
+    // Y el marco ya no esta: se quita siempre.
+    await expect(page.locator('iframe')).toHaveCount(0);
+    await seVeBien(page, 'recargado con la sesion del emisor viva');
+  });
+
+  test('si el emisor no contesta al arrancar, se dice «No se pudo abrir su sesión» (issue 35)', async ({ page }) => {
+    // El marco hacia un emisor caido carga la pagina de error del navegador y no avisa de nada: lo
+    // que lo delata es el tope de ocho segundos, y aqui se espera entero.
+    test.slow();
+    await page.route(`${EMISOR}/**`, (ruta) => ruta.abort('connectionrefused'));
+
+    await page.goto(URL_CON_PLATAFORMA);
+
+    // Mientras tanto, la espera: ni la pagina en blanco, ni un salto a la puerta.
+    await expect(page.getByRole('status').filter({ hasText: 'Comprobando su sesión…' })).toBeVisible();
+    await expect(page.getByText('No se pudo abrir su sesión')).toBeVisible({ timeout: 15_000 });
+    await expect(
+      page.getByText(/^Al abrir la página quisimos comprobar si ya había entrado, y no se pudo: El sistema de identidad no contestó\./),
+    ).toBeVisible();
+    // Nadie fue al sistema de identidad ni volvio de el (revision del PR #45).
+    await expect(page.getByText(/Volvimos/)).toHaveCount(0);
+    await expect(page.locator('iframe')).toHaveCount(0);
+  });
+
+  test('entrar, cerrar sesion y recargar: se sigue FUERA, y el portal ni pregunta (revision del PR #45)', async ({ page }) => {
+    const backend = await backendFalso(page);
+    await abrirConPlataforma(page);
+    await entrarYLlegarALaDeuda(page);
+    const antesDeSalir = backend.silenciosas();
+
+    await page.getByRole('banner').getByRole('button', { name: /Rufina Medina Medina/ }).click();
+    await page.getByRole('menuitem', { name: 'Cerrar sesión' }).click();
+
+    // De vuelta del cierre, anonimo y en el paso 1, con «Entrar» a la vista.
+    await expect(page.getByRole('heading', { level: 1, name: 'Entre con su cuenta del portal' })).toBeVisible();
+    await expect(principal(page).getByRole('button', { name: 'Entrar con mi cuenta' })).toBeVisible();
+
+    await page.reload();
+
+    await expect(page.getByRole('heading', { level: 1, name: 'Entre con su cuenta del portal' })).toBeVisible();
+    await expect(principal(page).getByRole('button', { name: 'Entrar con mi cuenta' })).toBeVisible();
+    await expect(page.getByRole('banner').getByRole('button', { name: 'Iniciar sesión' })).toBeVisible();
+    // Ni la vuelta del cierre ni la recarga le preguntaron al emisor: `vieneDeSalir()`. Sin eso, con
+    // un emisor que no hubiera cerrado su sesion —un `id_token_hint` perdido—, la recarga volveria a
+    // meter dentro a quien acaba de salir, en un equipo compartido.
+    expect(backend.silenciosas(), 'el portal le pregunto al emisor despues de cerrar sesion').toBe(antesDeSalir);
+    expect(backend.conFormulario()).toBe(1);
   });
 });

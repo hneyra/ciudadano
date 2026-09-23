@@ -1,11 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { StrictMode } from 'react';
+import { type ReactNode, StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { I18nextProvider } from 'react-i18next';
 
-import { Aplicacion } from './aplicacion.tsx';
+import { Aplicacion, ComprobandoLaSesion } from './aplicacion.tsx';
 import { arrancar } from './arranque.ts';
-import { FuenteActiva } from './datos/fuente.ts';
+import { FuenteActiva, type FuenteDelPortal, hayPlataforma } from './datos/fuente.ts';
 import { laFuente } from './datos/laFuente.ts';
 import { crearEnrutador } from './enrutador.tsx';
 import i18n from './i18n/i18n.ts';
@@ -35,6 +35,25 @@ const consultas = new QueryClient();
 const enrutador = crearEnrutador();
 
 /**
+ * **Una sola raiz**, y dos cosas que se pueden dibujar en ella: la espera del canje silencioso
+ * (issue 35), si tarda, y el portal. `render` sobre la misma raiz sustituye la una por el otro sin
+ * desmontar el documento, asi que no hay un instante en blanco entre las dos.
+ */
+const laRaiz = createRoot(raiz);
+
+function dibujar(fuente: FuenteDelPortal, contenido: ReactNode): void {
+  laRaiz.render(
+    <StrictMode>
+      <I18nextProvider i18n={i18n}>
+        <QueryClientProvider client={consultas}>
+          <FuenteActiva value={fuente}>{contenido}</FuenteActiva>
+        </QueryClientProvider>
+      </I18nextProvider>
+    </StrictMode>,
+  );
+}
+
+/**
  * **De donde lee el portal, y solo entonces quien pregunta y quien dibuja** (issues 13 y 27).
  *
  * Tres cosas en orden, y las tres antes de que React monte:
@@ -44,7 +63,9 @@ const enrutador = crearEnrutador();
  *      y no hay valor que poner mientras llega: montar primero dejaria a la primera pantalla
  *      leyendo de una fuente que todavia no es;
  *   2. **el canje** (`arrancar()`): si volvemos del emisor, el codigo se canjea antes de la primera
- *      peticion, o esa peticion saldria sin token y recibiria su 401;
+ *      peticion, o esa peticion saldria sin token y recibiria su 401; y si no volvemos y hay
+ *      plataforma, se le pregunta al emisor en silencio si ya se habia entrado (issue 35), para que
+ *      recargar no eche a nadie;
  *   3. **el montaje**, que va como funcion para que sea LO ULTIMO que pasa: lo que tenga que
  *      ocurrir antes de que React monte no puede colarse despues.
  *
@@ -63,17 +84,10 @@ const enrutador = crearEnrutador();
  * y no `yarn build`.
  */
 void laFuente().then((fuente) =>
-  arrancar(() => {
-    createRoot(raiz).render(
-      <StrictMode>
-        <I18nextProvider i18n={i18n}>
-          <QueryClientProvider client={consultas}>
-            <FuenteActiva value={fuente}>
-              <Aplicacion enrutador={enrutador} />
-            </FuenteActiva>
-          </QueryClientProvider>
-        </I18nextProvider>
-      </StrictMode>,
-    );
+  arrancar(() => dibujar(fuente, <Aplicacion enrutador={enrutador} />), {
+    // De la fuente, que es el dato, y no del entorno otra vez: en demostracion no se le pregunta
+    // nada a ningun emisor (issue 35).
+    conPlataforma: hayPlataforma(fuente),
+    esperando: () => dibujar(fuente, <ComprobandoLaSesion />),
   }),
 );

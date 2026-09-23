@@ -1,6 +1,13 @@
-import type { FallaDeLaPuerta } from '@kamayuk/sesion';
+import type { FallaDeLaPuerta, Vuelta } from '@kamayuk/sesion';
 
 import { identidad } from './api/identidad.ts';
+import {
+  type CanjeSilencioso,
+  type FalloDelSilencio,
+  type Silencio,
+  falloInesperado,
+  silencio as silencioDelPortal,
+} from './api/silencio.ts';
 
 /**
  * **El arranque del portal: primero quien pregunta, y solo entonces quien dibuja** (issue 13).
@@ -29,6 +36,15 @@ import { identidad } from './api/identidad.ts';
  * barra de direcciones y devuelve `sin-vuelta` sin tocar la red ni el almacenamiento cuando no hay
  * `?code=` ni `?error=`— y es lo unico que no puede esperar. Si se montara primero, la primera
  * peticion de la primera pantalla saldria sin token y recibiria su 401.
+ *
+ * <h2>Y desde el issue 35, con plataforma, se PREGUNTA en silencio</h2>
+ *
+ * El token vive solo en memoria, asi que recargar lo perdia y la persona tenia que volver a la
+ * puerta. Ahora, si no se vuelve del emisor, no hay token, hay plataforma y no se acaba de salir,
+ * se le pregunta al emisor desde un marco oculto con `prompt=none` si su sesion sigue viva
+ * (`src/api/silencio.ts`): si lo esta, se monta ya identificado; si no, se monta anonimo y **sin ir
+ * a ningun sitio**. Sigue sin irse a la puerta —la pagina no navega—, y en demostracion no se
+ * pregunta nada.
  *
  * <h2>Y cuando la vuelta falla, se dice: nunca una pagina en blanco</h2>
  *
@@ -64,14 +80,112 @@ export function vueltaFallida(): VueltaFallida | null {
 }
 
 /**
- * Canjea si volvemos del emisor, y monta. Siempre monta: ver la cabecera.
+ * **La pregunta silenciosa que no salio** (issue 35), o `null`.
+ *
+ * Aparte de `vueltaFallida()` y no mezclada con ella porque la pantalla tiene que decir otra cosa
+ * (revision del PR #45): quien recarga no fue a ningun sitio y, con el tope, el marco ni siquiera
+ * volvio, asi que «Volvimos del sistema de identidad…» seria afirmar algo que no ocurrio. Y porque
+ * sus textos son claves que traduce la pantalla (`TextoDelSilencio`), no palabras de la libreria.
  */
-export async function arrancar(montar: () => void): Promise<void> {
+let laPregunta: FalloDelSilencio | null = null;
+
+export function preguntaFallida(): FalloDelSilencio | null {
+  return laPregunta;
+}
+
+/**
+ * **Cuanto se deja la pagina como esta antes de dibujar la espera** (issue 35).
+ *
+ * El canje silencioso contra un emisor vivo tarda lo que un ida y vuelta —decenas o pocos cientos
+ * de milisegundos—, y en ese rato la pagina esta como estaba mientras llegaba el paquete: en
+ * blanco. Dibujar la espera al instante haria que, en el caso de todos los dias, apareciera
+ * «Comprobando su sesion…» un destello y desapareciera: el parpadeo que el issue prohibe. Pasado el
+ * umbral, en cambio, la pagina en blanco empieza a parecer rota, y entonces si se dice que se esta
+ * esperando.
+ */
+export const UMBRAL_DE_ESPERA = 300;
+
+/** Lo que `arrancar()` necesita saber del arranque, ademas de como montar. */
+export interface ComoArrancar {
+  /**
+   * Si el portal lee de la plataforma (`hayPlataforma(fuente)`, en `main.tsx`). En demostracion no
+   * hay emisor al que preguntar, y **no se le pregunta**: ni una peticion, ni un marco.
+   */
+  readonly conPlataforma: boolean;
+  /** Dibuja la espera, si la pregunta tarda mas de `UMBRAL_DE_ESPERA`. */
+  readonly esperando?: () => void;
+  /**
+   * El canje silencioso. Por omision, el del portal —uno por carga—; lo inyectan las pruebas, que
+   * necesitan uno nuevo en cada caso, como inyectan la fuente.
+   */
+  readonly silencio?: CanjeSilencioso;
+}
+
+/**
+ * **Si hay que preguntarle al emisor en silencio.** Solo cuando TODO esto es cierto:
+ *
+ *   · hay plataforma: en demostracion no hay emisor;
+ *   · no se volvia del emisor: si se volvio, o hay token ya o hay una vuelta fallida que explicar;
+ *   · no hay token;
+ *   · hay puerta (`crypto.subtle`): sin S256 no se puede pedir un codigo;
+ *   · y **no se acaba de salir**: quien cerro sesion y recarga no puede encontrarse dentro otra vez
+ *     sin teclear nada. La marca es la de `@kamayuk/sesion`, que `salir()` pone y `entrar()` quita.
+ *
+ * `conPlataforma` va primero a proposito: en demostracion no se llega a preguntar nada a la puerta.
+ */
+function hayQuePreguntar(conPlataforma: boolean, vuelta: Vuelta): boolean {
+  return (
+    conPlataforma &&
+    vuelta.estado === 'sin-vuelta' &&
+    identidad.token() === null &&
+    identidad.hayPuerta() &&
+    !identidad.vieneDeSalir()
+  );
+}
+
+/**
+ * Canjea si volvemos del emisor; si no, y hay plataforma, le pregunta en silencio si ya se habia
+ * entrado (issue 35); y monta. Siempre monta: ver la cabecera.
+ *
+ * <h2>Se monta DESPUES de preguntar, y no antes con la sesion llegando luego</h2>
+ *
+ * Porque el recorrido decide al montar si hay sesion (`ProveedorDelRecorrido`), y con plataforma
+ * eso decide el primer paso: montar antes seria dibujar «Entrar» y, un instante despues, la deuda
+ * — el parpadeo que el issue prohibe— y lanzar la primera consulta sin token. Mientras tanto, si
+ * tarda, `esperando()` dibuja la espera: ni la pagina en blanco ni un salto a la puerta.
+ *
+ * <h2>Un fallo que no es «no hay sesion» se dice</h2>
+ *
+ * Con la pantalla de «No se pudo abrir su sesion», en su variante de la pregunta silenciosa
+ * (`preguntaFallida()`), y con el motivo dentro. Tambien si preguntar REVIENTA en vez de contestar:
+ * nunca una pagina en blanco. «No hay sesion» no es un fallo: se monta anonimo y la persona decide
+ * si entra.
+ */
+export async function arrancar(
+  montar: () => void,
+  { conPlataforma, esperando = () => undefined, silencio = silencioDelPortal }: ComoArrancar,
+): Promise<void> {
   laVuelta = null;
+  laPregunta = null;
 
   const vuelta = await identidad.canjearSiVuelve();
   if (vuelta.estado === 'fallo') {
     laVuelta = { motivo: vuelta.motivo, detalle: vuelta.detalle };
+  }
+
+  if (hayQuePreguntar(conPlataforma, vuelta)) {
+    const espera = setTimeout(esperando, UMBRAL_DE_ESPERA);
+    let respuesta: Silencio;
+    try {
+      respuesta = await silencio.intentar();
+    } catch (error) {
+      // Una excepcion aqui saltaria el `montar()` de abajo y dejaria la pagina en blanco: se dice,
+      // como cualquier otro fallo (revision del PR #45; es lo que la libreria cerro en rentas#112).
+      respuesta = falloInesperado(error);
+    } finally {
+      clearTimeout(espera);
+    }
+    if (respuesta.estado === 'fallo') laPregunta = respuesta;
   }
 
   montar();

@@ -2,7 +2,8 @@ import { ProveedorDeTema, type ConfiguracionDeTema } from '@kamayuk/ui';
 import { useTranslation } from 'react-i18next';
 import { RouterProvider } from 'react-router-dom';
 
-import { vueltaFallida, type VueltaFallida } from './arranque.ts';
+import type { FalloDelSilencio } from './api/silencio.ts';
+import { preguntaFallida, vueltaFallida, type VueltaFallida } from './arranque.ts';
 import type { Enrutador } from './enrutador.tsx';
 import { ProveedorDelRecorrido } from './recorrido/ProveedorDelRecorrido.tsx';
 import type { EstadoDelRecorrido } from './recorrido/recorrido.ts';
@@ -48,15 +49,47 @@ function LaPuertaNoContesto({ falla }: { readonly falla: VueltaFallida }) {
   const { t } = useTranslation();
 
   return (
+    <AvisoDeLaSesion>
+      {t('Volvimos del sistema de identidad sin poder entrar: {{motivo}}. {{detalle}}', {
+        motivo: falla.motivo,
+        detalle: falla.detalle,
+      })}
+    </AvisoDeLaSesion>
+  );
+}
+
+/**
+ * **La pregunta silenciosa no salio** (issue 35, revision del PR #45): la variante del aviso de
+ * arriba para cuando nadie fue a ningun sitio.
+ *
+ * Quien recarga no ha ido al emisor ni ha vuelto de el: el portal le pregunto por detras, desde un
+ * marco oculto, y ese marco a veces ni vuelve (el tope). «Volvimos del sistema de identidad…» seria
+ * afirmarle algo que no ocurrio, que es lo que el repositorio no hace en ninguna pantalla. Esta
+ * frase dice lo que si paso. El motivo y el detalle son claves del portal (`TEXTOS_DEL_SILENCIO`),
+ * y se traducen aqui con sus huecos.
+ */
+function LaPreguntaNoSalio({ falla }: { readonly falla: FalloDelSilencio }) {
+  const { t } = useTranslation();
+
+  return (
+    <AvisoDeLaSesion>
+      {t('Al abrir la página quisimos comprobar si ya había entrado, y no se pudo: {{motivo}}. {{detalle}}', {
+        motivo: t(falla.motivo.clave, falla.motivo.valores),
+        detalle: t(falla.detalle.clave, falla.detalle.valores),
+      })}
+    </AvisoDeLaSesion>
+  );
+}
+
+/** Lo comun a los dos avisos: el titulo, la frase que cambia, y que hacer. */
+function AvisoDeLaSesion({ children }: { readonly children: string }) {
+  const { t } = useTranslation();
+
+  return (
     <div className="grid min-h-screen place-items-center bg-fondo p-[30px]">
       <div className="max-w-[64ch] border border-mal-borde bg-mal-fondo p-[20px] text-[14px] leading-[1.6]">
         <p className="m-0 font-bold text-mal-tinta">{t('No se pudo abrir su sesión')}</p>
-        <p className="mt-[10px] mb-0 text-tinta-2">
-          {t('Volvimos del sistema de identidad sin poder entrar: {{motivo}}. {{detalle}}', {
-            motivo: falla.motivo,
-            detalle: falla.detalle,
-          })}
-        </p>
+        <p className="mt-[10px] mb-0 text-tinta-2">{children}</p>
         <p className="mt-[10px] mb-0 text-tinta-2 text-pretty">
           {t(
             'Vuelva a cargar la página e inténtelo otra vez. Si sigue igual, puede consultar y pagar en la ventanilla de la municipalidad.',
@@ -64,6 +97,36 @@ function LaPuertaNoContesto({ falla }: { readonly falla: VueltaFallida }) {
         </p>
       </div>
     </div>
+  );
+}
+
+/**
+ * **La espera mientras se le pregunta al emisor si ya se habia entrado** (issue 35).
+ *
+ * La dibuja `main.tsx` cuando el canje silencioso tarda mas que `UMBRAL_DE_ESPERA`
+ * (`src/arranque.ts`): el issue pide que, mientras tanto, el portal diga que esta consultando, y no
+ * que se quede en blanco ni que salte a la puerta. Cuando la pregunta termina, el portal se monta
+ * encima, en la misma raiz.
+ *
+ * Con el tema, por lo mismo que la puerta caida: la primera pantalla que alguien ve no puede tener
+ * la paleta de otro programa. Y con el aspecto de «Consultando su deuda…» (`LaConsulta.tsx`), que es
+ * el «consultando» que el portal ya tiene.
+ */
+export function ComprobandoLaSesion() {
+  const { t } = useTranslation();
+
+  return (
+    <ProveedorDeTema configuracion={TEMA}>
+      <div className="grid min-h-screen place-items-center bg-fondo p-[30px]">
+        <p
+          role="status"
+          aria-busy="true"
+          className="m-0 border border-linea bg-superficie px-[22px] py-5 text-[18px] font-bold"
+        >
+          {t('Comprobando su sesión…')}
+        </p>
+      </div>
+    </ProveedorDeTema>
   );
 }
 
@@ -95,11 +158,14 @@ export function Aplicacion({ enrutador, inicial }: AplicacionProps) {
   // Se lee aqui y no en `main.tsx` porque el montaje no lleva argumentos a proposito: ver
   // `src/arranque.ts`. Al llegar aqui la pasada de arranque ya termino, asi que el valor esta fijo.
   const falla = vueltaFallida();
+  const pregunta = preguntaFallida();
 
   return (
     <ProveedorDeTema configuracion={TEMA}>
       {falla !== null ? (
         <LaPuertaNoContesto falla={falla} />
+      ) : pregunta !== null ? (
+        <LaPreguntaNoSalio falla={pregunta} />
       ) : (
         <ProveedorDelRecorrido inicial={inicial}>
           <RouterProvider router={enrutador} />
