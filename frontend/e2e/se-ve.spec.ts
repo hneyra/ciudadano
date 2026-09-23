@@ -9,6 +9,7 @@ import {
   continuarConMiCorreo,
   elegirMedio,
   entrarConMiCuenta,
+  laLetraDibujadaCalzaConArial,
   pagarLoElegido,
   principal,
   seVeBien,
@@ -53,7 +54,9 @@ async function abrirElDetalle(pagina: Page, concepto: string): Promise<void> {
 }
 
 for (const ancho of ANCHURAS) {
-  test(`a ${ancho} px, en cada paso: sin desplazamiento de lado, la barra azul y Arial`, async ({ page }) => {
+  test(`a ${ancho} px, en cada paso: sin desplazamiento de lado, la barra azul y el cuerpo declarando la fuente del tema`, async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: ancho, height: 900 });
     const main = principal(page);
 
@@ -139,6 +142,32 @@ test('las clases de `@kamayuk/ui` llegan al navegador: el foco sobre la barra y 
   await buscar.hover();
   // `--azul-hover` de `clasico` en claro: #0A4C86.
   await expect.poll(papel, { message: 'el boton primario no cambia al pasar por encima' }).toBe('rgb(10, 76, 134)');
+});
+
+/**
+ * **La fuente que se DIBUJA es Arial o una compatible en metricas** (issue 36).
+ *
+ * `seVeBien` (dentro de cada paso, arriba) mide lo que `getComputedStyle` DECLARA, que no cambia
+ * aunque el navegador sustituya la fuente en silencio: es la comprobacion que hoy no podia fallar.
+ * Esta usa CDP (`laLetraDibujadaCalzaConArial`, en `portal.ts`) para leer con que familia Chromium
+ * compuso los glifos de verdad, en tres sitios: el cuerpo, un titulo y una cifra (con digitos, que
+ * es donde una sustituta mas ancha se nota primero). Cada sitio se localiza como el resto del arnes
+ * —por texto o por rol, con un `Locator`—, sin marcado propio en el marcado de produccion: quien
+ * marca el nodo para que CDP lo encuentre es `laLetraDibujadaCalzaConArial`, en tiempo de prueba.
+ */
+test('la fuente que se DIBUJA es Arial o una compatible en metricas', async ({ page }) => {
+  await page.setViewportSize({ width: 1180, height: 900 });
+  await abrirElPortal(page);
+  const cuerpo = page.getByText('Escriba su código de contribuyente', { exact: false });
+  const titulo = page.getByRole('heading', { level: 1, name: 'Consulte y pague sus tributos' });
+  await laLetraDibujadaCalzaConArial(page, cuerpo, 'el cuerpo, en buscar');
+  await laLetraDibujadaCalzaConArial(page, titulo, 'el titulo, en buscar');
+
+  await buscarMiDeuda(page);
+  // `.first()`: `[data-banda-del-total]` lleva DOS cifras (el total y «con la amnistia»); esta mide
+  // la primera, la deuda total, que es la que nombra el `donde`.
+  const cifra = page.locator('[data-banda-del-total] .tabular-nums').first();
+  await laLetraDibujadaCalzaConArial(page, cifra, 'una cifra (la deuda total), en elegir que pago');
 });
 
 /** Cuantas columnas ocupan unos elementos, por su borde izquierdo. */

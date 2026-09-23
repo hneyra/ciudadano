@@ -138,6 +138,14 @@ jobs:
         working-directory: ciudadano/frontend
         run: yarn e2e:navegador
 
+      # Linux NO TRAE ARIAL (issue 36): sin una compatible en metricas, `fc-match sans-serif` cae en
+      # DejaVu Sans, mas ancha, y las medidas fijas del artboard se corren. `fonts-liberation` trae
+      # Liberation Sans, la sustituta que calza con Arial metrica a metrica —lista y justificada en
+      # `e2e/portal.ts`, `FAMILIAS_QUE_CALZAN_CON_ARIAL`—, y es lo que `e2e/se-ve.spec.ts` exige por
+      # CDP que Chromium dibuje de verdad. Antes del arnes, que es quien lo mide.
+      - name: Instalar una fuente compatible con Arial
+        run: sudo apt-get update && sudo apt-get install -y fonts-liberation
+
       # `yarn e2e` construye el bundle y lo sirve (`playwright.config.ts`): contra el artefacto y no
       # contra `yarn dev`, porque verde en desarrollo y roto en produccion es lo que un arnes tiene que
       # impedir. En CI el puerto es el 4173 (`puerto-del-arnes.mjs`): aqui solo hay un arbol.
