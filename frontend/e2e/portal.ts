@@ -95,11 +95,27 @@ export async function filasDe(tabla: Locator): Promise<string[][]> {
 }
 
 /**
- * **Lo que se mide en cada paso, a cada anchura** (issue 11): que la pagina no se desplace de lado, que
- * la barra sea el azul del artboard y que la letra sea Arial.
+ * La familia que `--font-sans` de `clasico` declara (`kamayuk-lib`, `paquetes/ui/estilos/temas.css`).
+ * Es la comparacion EXACTA, no un `toMatch`: un `toMatch(/^Arial\b/)` deja pasar «Arial-italico» o
+ * una declaracion mas larga por delante, que no es lo que el tema fija.
+ */
+const FAMILIA_DECLARADA = 'Arial, Helvetica, sans-serif';
+
+/**
+ * **Lo que se mide en cada paso, a cada anchura** (issue 11): que la pagina no se desplace de lado,
+ * que la barra sea el azul del artboard y que el cuerpo DECLARE la fuente de la identidad.
  *
  * `scrollWidth <= innerWidth` sobre `<html>`: si una tabla o una rejilla se sale, el documento entero
  * crece y se desplaza, aunque la pieza culpable este al fondo de la pagina.
+ *
+ * <h2>Por que dice «declara» y no «es Arial» (issue 36)</h2>
+ *
+ * `getComputedStyle(...).fontFamily` devuelve la DECLARACION —la pila `font-family` tal como el CSS
+ * la escribio—, no la familia con la que el motor de texto compuso los glifos. Linux no trae Arial:
+ * si falta, el navegador sustituye en silencio y esta lectura sigue diciendo «Arial, Helvetica,
+ * sans-serif» igual, porque la declaracion no cambio. Por eso esta comprobacion solo puede fallar si
+ * el CSS declara OTRA cosa —un `font-family` distinto en alguna pantalla—, y el nombre lo dice: lo
+ * que de verdad se DIBUJA lo mide `laLetraDibujadaCalzaConArial`, con CDP, mas abajo.
  */
 export async function seVeBien(pagina: Page, donde: string): Promise<void> {
   const medido = await pagina.evaluate(() => {
@@ -115,5 +131,57 @@ export async function seVeBien(pagina: Page, donde: string): Promise<void> {
     medido.ventana,
   );
   expect(medido.barra, `${donde}: la barra no es el azul #0D5FA8 del artboard`).toBe('rgb(13, 95, 168)');
-  expect(medido.letra, `${donde}: la letra del cuerpo no es la del artboard`).toMatch(/^Arial\b/);
+  expect(medido.letra, `${donde}: el cuerpo no DECLARA la fuente de la identidad («${FAMILIA_DECLARADA}»)`).toBe(
+    FAMILIA_DECLARADA,
+  );
+}
+
+/**
+ * Las familias que Chromium puede DIBUJAR sin que las medidas del artboard se corran: mismas
+ * metricas que Arial (mismo ancho por caracter, mismo interlineado), asi que un boton con un ancho
+ * fijo en px o el corte de una rejilla no cambian aunque el trazo no sea Arial byte a byte.
+ *
+ *   · **Arial**: si el entorno la tiene instalada (con licencia: `ttf-mscorefonts-installer`).
+ *   · **Liberation Sans**: la sustituta de Red Hat, diseñada para calzar con Arial metrica a
+ *     metrica. Es la que instala `fonts-liberation` (Debian/Ubuntu, y el paso nuevo de
+ *     `.github/workflows/frontend.yml`), y la que ya hay en esta maquina, en
+ *     `~/.local/share/fonts/liberation` — de ahi que `fc-match Arial` conteste «Liberation Sans».
+ *   · **Arimo**: la misma sustitucion de Google (Chrome OS y Android), con el mismo objetivo.
+ *
+ * `DejaVu Sans` NO esta: es la que cae por `fc-match sans-serif` en esta maquina SIN esas fuentes, y
+ * es mas ancha que Arial — las medidas fijas del artboard (`e2e/se-ve.spec.ts`) se desvian con ella.
+ */
+export const FAMILIAS_QUE_CALZAN_CON_ARIAL = ['Arial', 'Liberation Sans', 'Arimo'] as const;
+
+/**
+ * Lo que Chromium usa de VERDAD para pintar el texto de `selector`, leido por CDP y no por
+ * `getComputedStyle` (issue 36): `CSS.getPlatformFontsForNode` devuelve la lista de familias con
+ * las que el motor de texto compuso glifos dentro del nodo, cada una con cuantos glifos le tocaron.
+ * Se toma la que mas glifos pinto, que es la que de verdad se ve.
+ */
+async function familiaDibujadaDe(pagina: Page, selector: string): Promise<string> {
+  const cdp = await pagina.context().newCDPSession(pagina);
+  try {
+    const { root } = await cdp.send('DOM.getDocument');
+    const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector });
+    if (nodeId === 0) throw new Error(`CDP no encontro «${selector}» para medir que fuente se dibujo.`);
+    await cdp.send('CSS.enable');
+    const { fonts } = await cdp.send('CSS.getPlatformFontsForNode', { nodeId });
+    const pintada = [...fonts].sort((a, b) => b.glyphCount - a.glyphCount)[0];
+    if (pintada === undefined) throw new Error(`CDP no informo ninguna fuente pintada en «${selector}».`);
+    return pintada.familyName;
+  } finally {
+    await cdp.detach();
+  }
+}
+
+/** La familia DIBUJADA en `selector` tiene que ser Arial o una compatible en metricas (issue 36). */
+export async function laLetraDibujadaCalzaConArial(pagina: Page, selector: string, donde: string): Promise<void> {
+  const dibujada = await familiaDibujadaDe(pagina, selector);
+  expect(
+    (FAMILIAS_QUE_CALZAN_CON_ARIAL as readonly string[]).includes(dibujada),
+    `${donde}: Chromium dibujo «${dibujada}» en «${selector}», que no es Arial ni una compatible en ` +
+      `metricas (${FAMILIAS_QUE_CALZAN_CON_ARIAL.join(', ')}). Si es DejaVu Sans, al entorno le falta ` +
+      'una compatible: instale `fonts-liberation` (Debian/Ubuntu) o el paquete equivalente.',
+  ).toBe(true);
 }

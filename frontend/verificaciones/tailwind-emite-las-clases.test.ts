@@ -223,7 +223,12 @@ describe('y los estilos globales del artboard (lineas 12-22) salen de la capa `b
     expect(seVe(['legend'], 'padding')).toBe('0 8px');
   });
 
-  it('y la fuente es la de la identidad: `--font-sans` de `clasico`, que el preflight pinta', () => {
+  // Esto es lo que el CSS DECLARA (lee el archivo compilado; no hay navegador de por medio), y
+  // basta para que la prueba pueda fallar: un `--font-sans` distinto la rompe aqui mismo. Lo que
+  // esto NO dice es que Chromium vaya a DIBUJAR con Arial —Linux no la trae— ni que la sustituta
+  // calce en metricas: eso lo mide `e2e/se-ve.spec.ts` con CDP (issue 36), contra el navegador de
+  // verdad, porque un CSS compilado no tiene glifos que pintar.
+  it('y la fuente DECLARADA es la de la identidad: `--font-sans` de `clasico`, que el preflight pinta', () => {
     expect(paletaDelTema(reglas).get('--default-font-family')).toBe('var(--font-sans)');
     expect(paletaDeLaIdentidad(reglas, 'clasico').get('--font-sans')).toBe('Arial, Helvetica, sans-serif');
   });

@@ -229,6 +229,19 @@ describe('el arnes corre en la CI contra el bundle', () => {
     expect(arnes, 'el trabajo no corre `yarn e2e`').toBeGreaterThan(navegador);
   });
 
+  /**
+   * **Linux no trae Arial** (issue 36): sin una compatible en metricas, Chromium dibuja DejaVu Sans
+   * —mas ancha— y las medidas fijas del artboard se corren. `e2e/se-ve.spec.ts` lo mide por CDP
+   * (`laLetraDibujadaCalzaConArial`, en `e2e/portal.ts`) contra Arial o su lista de compatibles: el
+   * paso que instala la fuente tiene que estar, y ANTES de `yarn e2e`, que es quien la necesita.
+   */
+  it('instala una fuente compatible con Arial antes de correr el arnes', () => {
+    const fuentes = trabajo.search(/^\s*run:\s*sudo apt-get update && sudo apt-get install -y fonts-liberation\s*$/m);
+    const arnes = trabajo.search(/^\s*run:\s*yarn e2e\s*$/m);
+    expect(fuentes, 'el trabajo no instala `fonts-liberation`').toBeGreaterThanOrEqual(0);
+    expect(arnes, 'el trabajo no corre `yarn e2e`').toBeGreaterThan(fuentes);
+  });
+
   it('y sube el informe SIEMPRE, tambien cuando el arnes falla', () => {
     expect(trabajo).toMatch(/uses:\s*actions\/upload-artifact@v\d+\s*\n\s*if:\s*always\(\)/);
     expect(trabajo).toMatch(/^\s*path:\s*ciudadano\/frontend\/playwright-report\/\s*$/m);

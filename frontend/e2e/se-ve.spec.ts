@@ -9,6 +9,7 @@ import {
   continuarConMiCorreo,
   elegirMedio,
   entrarConMiCuenta,
+  laLetraDibujadaCalzaConArial,
   pagarLoElegido,
   principal,
   seVeBien,
@@ -139,6 +140,29 @@ test('las clases de `@kamayuk/ui` llegan al navegador: el foco sobre la barra y 
   await buscar.hover();
   // `--azul-hover` de `clasico` en claro: #0A4C86.
   await expect.poll(papel, { message: 'el boton primario no cambia al pasar por encima' }).toBe('rgb(10, 76, 134)');
+});
+
+/**
+ * **La fuente que se DIBUJA es Arial o una compatible en metricas** (issue 36).
+ *
+ * `seVeBien` (dentro de cada paso, arriba) mide lo que `getComputedStyle` DECLARA, que no cambia
+ * aunque el navegador sustituya la fuente en silencio: es la comprobacion que hoy no podia fallar.
+ * Esta usa CDP (`laLetraDibujadaCalzaConArial`, en `portal.ts`) para leer con que familia Chromium
+ * compuso los glifos de verdad, en tres sitios: el cuerpo, un titulo y una cifra (con digitos, que
+ * es donde una sustituta mas ancha se nota primero).
+ */
+test('la fuente que se DIBUJA es Arial o una compatible en metricas', async ({ page }) => {
+  await page.setViewportSize({ width: 1180, height: 900 });
+  await abrirElPortal(page);
+  await laLetraDibujadaCalzaConArial(page, '[data-cuerpo]', 'el cuerpo, en buscar');
+  await laLetraDibujadaCalzaConArial(page, 'h1', 'el titulo, en buscar');
+
+  await buscarMiDeuda(page);
+  await laLetraDibujadaCalzaConArial(
+    page,
+    '[data-banda-del-total] .tabular-nums',
+    'una cifra (la deuda total), en elegir que pago',
+  );
 });
 
 /** Cuantas columnas ocupan unos elementos, por su borde izquierdo. */
