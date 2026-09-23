@@ -106,7 +106,7 @@ test('sin cuenta: buscar, desmarcar uno, pagar con correo por cada medio y ver e
     const pie = constancia.locator('tfoot tr');
     await expect(pie.nth(0)).toHaveText(/Interés condonado por la .*− 230\.88$/);
     await expect(pie.nth(1)).toHaveText(/^Total pagado\s*2,439\.92$/);
-    await expect(main.getByText(/^Pagó S\/ 2,439\.92 con tarjeta\. Le enviamos el comprobante a maria@correo\.com/)).toBeVisible();
+    await expect(main.getByText(/^Pagó S\/ 2,439\.92 con tarjeta\. Le enviamos el comprobante a maria@example\.com/)).toBeVisible();
 
     // Sin cuenta, la invitacion a guardarlo y «Consultar otra deuda»; ni «Ver mis pagos».
     await expect(main.getByRole('region', { name: 'Guarde este pago en una cuenta' })).toBeVisible();

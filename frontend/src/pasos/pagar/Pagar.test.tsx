@@ -25,7 +25,7 @@ afterEach(async () => {
 });
 
 /** Se busco la deuda, se dio el correo y se llego a pagar con los cuatro conceptos marcados. */
-const EN_PAGAR: Partial<EstadoDelRecorrido> = { paso: 'pagar', numero: '00000025673', correo: 'maria@correo.com' };
+const EN_PAGAR: Partial<EstadoDelRecorrido> = { paso: 'pagar', numero: '00000025673', correo: 'maria@example.com' };
 
 const principal = () => screen.getByRole('main');
 const enMain = () => within(principal());
@@ -148,7 +148,7 @@ describe('el resumen', () => {
       expect.arrayContaining(['text-[19px]', 'font-bold', 'bg-sup', 'border-t-2', 'border-linea']),
     );
 
-    expect(resumen().getByText('El comprobante se enviará a maria@correo.com.')).toBeInTheDocument();
+    expect(resumen().getByText('El comprobante se enviará a maria@example.com.')).toBeInTheDocument();
   });
 
   it('con sesion, el comprobante va al correo de la cuenta; sin correo, a «su correo»', async () => {
@@ -193,7 +193,7 @@ describe('confirmar', () => {
 
     // El correo se da en el paso 3, de verdad.
     fireEvent.change(enMain().getByRole('textbox', { name: 'Correo electrónico' }), {
-      target: { value: 'maria@correo.com' },
+      target: { value: 'maria@example.com' },
     });
     fireEvent.click(enMain().getByRole('button', { name: 'Continuar al pago' }));
     await waitFor(() => expect(window.location.hash).toBe('#/pagar'));
@@ -203,7 +203,7 @@ describe('confirmar', () => {
     fireEvent.click(panel('Pagar con tarjeta').getByRole('button', { name: 'Pagar ahora' }));
 
     await waitFor(() => expect(window.location.hash).toBe('#/comprobante'));
-    expect(await screen.findByText('Pago registrado. Le enviamos el comprobante a maria@correo.com.')).toBeInTheDocument();
+    expect(await screen.findByText('Pago registrado. Le enviamos el comprobante a maria@example.com.')).toBeInTheDocument();
 
     // Lo pagado ya no es deuda: en «Elegir qué pago» solo quedan los dos que no se seleccionaron.
     fireEvent.click(franja().getByRole('button', { name: 'Elegir qué pago' }));
@@ -232,7 +232,7 @@ describe('sin nada que pagar (llegar por «Solo con mi correo» sin haber buscad
     fireEvent.click(within(screen.getByRole('banner')).getByRole('button', { name: 'Iniciar sesión' }));
     await waitFor(() => expect(window.location.hash).toBe('#/identificar'));
     fireEvent.change(enMain().getByRole('textbox', { name: 'Correo electrónico' }), {
-      target: { value: 'maria@correo.com' },
+      target: { value: 'maria@example.com' },
     });
     fireEvent.click(enMain().getByRole('button', { name: 'Continuar al pago' }));
     await waitFor(() => expect(window.location.hash).toBe('#/pagar'));
@@ -378,12 +378,12 @@ describe('todo lo que se lee pasa por `t()`', () => {
     for (const rotulo of ['Impuesto y arbitrios', 'Interés condonado', 'Gastos y costas', 'Total a pagar']) {
       expect(region.getByText(marcado(rotulo), { selector: 'dt' })).toBeInTheDocument();
     }
-    expect(region.getByText(marcado('El comprobante se enviará a maria@correo.com.'))).toBeInTheDocument();
+    expect(region.getByText(marcado('El comprobante se enviará a maria@example.com.'))).toBeInTheDocument();
     expect(region.getByRole('button', { name: marcado('Cambiar lo que voy a pagar') })).toBeInTheDocument();
 
     fireEvent.click(enMain().getByRole('button', { name: marcado('Pagar ahora') }));
     expect(
-      await screen.findByText(marcado('Pago registrado. Le enviamos el comprobante a maria@correo.com.')),
+      await screen.findByText(marcado('Pago registrado. Le enviamos el comprobante a maria@example.com.')),
     ).toBeInTheDocument();
   });
 

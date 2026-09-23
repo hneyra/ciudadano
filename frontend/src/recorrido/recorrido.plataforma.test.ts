@@ -158,7 +158,7 @@ describe('AC1 — a donde llevan las acciones con plataforma', () => {
     // El realm del ciudadano pone `tipo_documento` y `numero_documento`, y ni correo ni codigo.
     expect(destinoDelComprobante(conSesion)).toBeNull();
     // En demostracion, el del artboard, como siempre.
-    expect(destinoDelComprobante(recorrido(ESTADO_INICIAL, { tipo: 'entrar' }))).toBe('fruiz159@gmail.com');
+    expect(destinoDelComprobante(recorrido(ESTADO_INICIAL, { tipo: 'entrar' }))).toBe('maria.castillo@example.com');
   });
 });
 
@@ -208,7 +208,7 @@ describe('`situacionLeida`: los conceptos del servidor pasan a ser los del recor
   it('EL OTRO SENTIDO: en demostracion pagar SI descuenta la deuda, como el artboard', () => {
     const pagado = tras([
       { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' },
-      { tipo: 'continuarConCorreo', correo: 'maria@correo.com', avisarVencimiento: false },
+      { tipo: 'continuarConCorreo', correo: 'maria@example.com', avisarVencimiento: false },
       { tipo: 'confirmarPago' },
     ]);
 

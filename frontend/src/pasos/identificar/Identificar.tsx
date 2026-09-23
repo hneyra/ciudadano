@@ -53,7 +53,9 @@ import { cuenta, destinoAlEntrar, hayQuePagar } from '../../recorrido/recorrido.
  * · **Sin seleccion, el parrafo cambia** (nota del revisor): «Todavía no ha elegido qué pagar…».
  *
  * `03593174` y los puntos de la clave son DATO, como los ejemplos de «Buscar mi deuda»: no pasan por
- * `t()`. `nombre@correo.com` si, porque dice «nombre» y «correo».
+ * `t()`. `nombre@example.com` si, porque se lee como una plantilla («nombre@…»), no como un dato
+ * opaco (issue 51: el dominio de ejemplo era antes real y registrable; ahora es el reservado
+ * `example.com` — RFC 2606 —, y la palabra que lo delataba como legible sigue siendo «nombre»).
  */
 
 const EJEMPLO_DE_DOCUMENTO = '03593174';
@@ -167,7 +169,7 @@ function SoloConMiCorreo() {
                 {...field}
                 type="email"
                 autoComplete="email"
-                placeholder={t('nombre@correo.com')}
+                placeholder={t('nombre@example.com')}
                 onChange={(evento) => {
                   field.onChange(evento);
                   form.clearErrors('correo');

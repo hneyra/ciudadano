@@ -42,7 +42,7 @@ test('con cuenta: buscar, elegir, entrar, pagar, comprobante, mis pagos y cerrar
     await expect(barra(page).getByRole('button', { name: 'Iniciar sesión' })).toHaveCount(0);
 
     const resumen = main.getByRole('region', { name: 'Lo que va a pagar' });
-    await expect(resumen.getByText('El comprobante se enviará a fruiz159@gmail.com.')).toBeVisible();
+    await expect(resumen.getByText('El comprobante se enviará a maria.castillo@example.com.')).toBeVisible();
     await expect(resumen.getByRole('definition').last()).toHaveText('S/ 3,149.92');
   });
 

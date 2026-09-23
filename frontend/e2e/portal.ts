@@ -17,7 +17,7 @@ import { type Locator, type Page, expect } from '@playwright/test';
  */
 
 /** El correo con que se paga sin cuenta. */
-export const CORREO = 'maria@correo.com';
+export const CORREO = 'maria@example.com';
 
 /** El codigo de contribuyente de la demostracion (en la demostracion cualquier numero encuentra la deuda). */
 export const CODIGO = '00000025673';

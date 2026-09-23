@@ -22,7 +22,7 @@ afterEach(async () => {
 });
 
 /** Se busco la deuda, se dio el correo y se llego a pagar. Por omision, con los cuatro marcados. */
-const EN_PAGAR: Partial<EstadoDelRecorrido> = { paso: 'pagar', numero: '00000025673', correo: 'maria@correo.com' };
+const EN_PAGAR: Partial<EstadoDelRecorrido> = { paso: 'pagar', numero: '00000025673', correo: 'maria@example.com' };
 
 const principal = () => screen.getByRole('main');
 const enMain = () => within(principal());
@@ -96,7 +96,7 @@ describe('el recibo, tras pagar los cuatro conceptos con tarjeta', () => {
       'Medio de pago': 'Tarjeta',
       Contribuyente: CONTRIBUYENTE.nombre,
       Código: '00000025673',
-      'Enviado a': 'maria@correo.com',
+      'Enviado a': 'maria@example.com',
     });
     expect(
       constancia.getByText(
@@ -106,7 +106,7 @@ describe('el recibo, tras pagar los cuatro conceptos con tarjeta', () => {
 
     expect(
       enMain().getByText(
-        'Pagó S/ 3,149.92 con tarjeta. Le enviamos el comprobante a maria@correo.com, y puede descargarlo aquí mismo. La deuda pagada ya se descontó de su cuenta.',
+        'Pagó S/ 3,149.92 con tarjeta. Le enviamos el comprobante a maria@example.com, y puede descargarlo aquí mismo. La deuda pagada ya se descontó de su cuenta.',
       ),
     ).toBeInTheDocument();
   });
@@ -176,7 +176,7 @@ describe('las acciones', () => {
     const invitacion = within(enMain().getByRole('region', { name: 'Guarde este pago en una cuenta' }));
     expect(
       invitacion.getByText(
-        'Si crea una cuenta con maria@correo.com, este comprobante y los anteriores quedan guardados: no tendrá que volver a buscarlos.',
+        'Si crea una cuenta con maria@example.com, este comprobante y los anteriores quedan guardados: no tendrá que volver a buscarlos.',
       ),
     ).toBeInTheDocument();
     fireEvent.click(invitacion.getByRole('button', { name: 'Crear mi cuenta' }));
@@ -200,7 +200,7 @@ describe('las acciones', () => {
     // mi correo» no ofrece pagar el vehicular que quedo marcado.
     fireEvent.click(within(screen.getByRole('banner')).getByRole('button', { name: 'Iniciar sesión' }));
     fireEvent.change(await enMain().findByRole('textbox', { name: 'Correo electrónico' }), {
-      target: { value: 'maria@correo.com' },
+      target: { value: 'maria@example.com' },
     });
     fireEvent.click(enMain().getByRole('button', { name: 'Continuar al pago' }));
     await waitFor(() => expect(window.location.hash).toBe('#/pagar'));
@@ -289,7 +289,7 @@ describe('en papel, solo el recibo', () => {
   it('sin sesion: la barra, la franja, el pie, los avisos, la banda, las acciones y la invitacion no se imprimen', async () => {
     await pagar();
     // Hay un aviso abierto («Pago registrado…»): tambien tiene que quedar fuera del papel.
-    await screen.findByText('Pago registrado. Le enviamos el comprobante a maria@correo.com.');
+    await screen.findByText('Pago registrado. Le enviamos el comprobante a maria@example.com.');
 
     expect(loQueSeImprimiria()).toEqual([]);
 
@@ -328,7 +328,7 @@ describe('todo lo que se lee pasa por `t()`', () => {
       '13/09/2026 · 10:42',
       CONTRIBUYENTE.nombre,
       CONTRIBUYENTE.codigo,
-      'maria@correo.com',
+      'maria@example.com',
       ...DEUDAS.flatMap((deuda) => [deuda.concepto, deuda.unidad, deuda.cuotas]),
       '293.72',
       '291.60',
@@ -350,7 +350,7 @@ describe('todo lo que se lee pasa por `t()`', () => {
       [marcado('Medio de pago')]: marcado('Tarjeta'),
       [marcado('Contribuyente')]: CONTRIBUYENTE.nombre,
       [marcado('Código')]: '00000025673',
-      [marcado('Enviado a')]: 'maria@correo.com',
+      [marcado('Enviado a')]: 'maria@example.com',
     });
     expect(constancia.getByText(marcado('Municipalidad Distrital de Catacaos'))).toBeInTheDocument();
     expect(constancia.getByText(marcado('Total pagado'))).toBeInTheDocument();
@@ -359,7 +359,7 @@ describe('todo lo que se lee pasa por `t()`', () => {
     expect(
       enMain().getByText(
         marcado(
-          `Pagó S/ 3,149.92 con ${marcado('tarjeta')}. Le enviamos el comprobante a maria@correo.com, y puede descargarlo aquí mismo. La deuda pagada ya se descontó de su cuenta.`,
+          `Pagó S/ 3,149.92 con ${marcado('tarjeta')}. Le enviamos el comprobante a maria@example.com, y puede descargarlo aquí mismo. La deuda pagada ya se descontó de su cuenta.`,
         ),
       ),
     ).toBeInTheDocument();

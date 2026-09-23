@@ -210,7 +210,7 @@ const LITERALES = [
   'Solo con mi correo',
   'Lo más rápido. No hace falta crear una cuenta; el comprobante le llega al correo y lo podrá descargar al terminar.',
   'Correo electrónico',
-  'nombre@correo.com',
+  'nombre@example.com',
   'Avisarme por correo cuando venza mi próxima cuota',
   'Continuar al pago',
   'Escriba un correo para poder enviarle el comprobante.',

@@ -38,6 +38,11 @@ export interface Artboard {
   readonly deDonde: string;
   /** SHA-256 de la copia entregada, en hexadecimal. */
   readonly huella: string;
+  /**
+   * Si la copia YA NO es byte a byte la entregada, por que: la huella de arriba es la del retoque,
+   * no la de la entrega, y sin este campo esa diferencia quedaria sin decir en ningun sitio.
+   */
+  readonly retoque?: string;
 }
 
 /** El proyecto de Claude Design del que salen. */
@@ -48,7 +53,15 @@ export const ARTBOARDS: readonly Artboard[] = [
     archivo: 'diseno/Ciudadano.dc.html',
     que: 'El portal publico de pago de tributos: la referencia de medidas, textos y logica de demostracion contra la que se construye cada pantalla.',
     deDonde: `${PROYECTO}, archivo «Ciudadano.dc.html»`,
-    huella: '6da3a4dd6bab9efe52edf83824c9dd26f0b9ceec30ecef2ab10ffbffd8b76a5f',
+    huella: '5adece4e8174a85e42b512b7648e7520234b88baf07d7ed3728be10a32c943d5',
+    retoque:
+      'Issue 51 (2026-09-23): el correo del usuario de las lineas 1027 y 1045 tenia forma de persona ' +
+      'real, en un dominio de webmail de verdad, y viajaba hasta el paquete de produccion. Se cambio ' +
+      'por `maria.castillo@example.com` — casa con la ficha «María E. Castillo» de la propia entrega ' +
+      '— y el placeholder del campo de correo de la linea 323, en otro dominio real y registrable, ' +
+      'por `nombre@example.com`: los dos con el dominio reservado `example.com` (RFC 2606), que nadie ' +
+      'registra. Es la unica alteracion deliberada a la copia «tal cual»; la huella de arriba es la de ' +
+      'ESTA version, medida tras el cambio. Ver `los-correos-usan-dominio-reservado.test.ts`.',
   },
   {
     archivo: 'diseno/escudo-catacaos.png',
