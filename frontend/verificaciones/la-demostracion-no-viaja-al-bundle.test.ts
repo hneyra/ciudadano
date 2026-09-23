@@ -242,16 +242,20 @@ describe('AC1 — la bandera esta declarada, y dice lo mismo en los tres sitios 
     expect(manifiesto.scripts.build).toBe('vite build');
   });
 
-  it('EL DOCKERFILE: hoy no hay, y el dia que lo haya esta guarda tiene que crecer', () => {
-    // La tercera valla de `rentas` es `ENV VITE_KAMAYUK_SIN_PLATAFORMA=false` antes de `RUN yarn
-    // build`. Aqui no hay imagen todavia. Esto se pone rojo el dia que alguien anada una, que es
-    // exactamente cuando hay que acordarse de apagar la bandera dentro.
-    expect(
-      existsSync(join(FRONTEND, 'Dockerfile')),
-      'Apareció un `Dockerfile`: tiene que declarar `ENV ' +
-        BANDERA +
-        '=false` ANTES de `RUN yarn build`, y esta guarda tiene que comprobarlo (ver `rentas`).',
-    ).toBe(false);
+  it('EL DOCKERFILE apaga la bandera ANTES de construir (issue 37)', () => {
+    // Hasta el issue 37 esta prueba afirmaba que no habia `Dockerfile`, para ponerse roja el dia que
+    // apareciera: es exactamente cuando hay que acordarse de apagar la bandera dentro. Aparecio, y se
+    // convierte en lo que anunciaba: la valla de `rentas` (rentas#114), `ENV …=false` antes de
+    // `RUN yarn build`. `imagen-y-despliegue.test.ts` lo mira tambien, dentro de SU etapa.
+    const dockerfile = leer('Dockerfile')
+      .split('\n')
+      .filter((linea) => !linea.trimStart().startsWith('#'))
+      .join('\n');
+    const apagada = dockerfile.indexOf(`ENV ${BANDERA}=false`);
+    expect(apagada, `el Dockerfile no declara \`ENV ${BANDERA}=false\``).toBeGreaterThan(-1);
+    expect(apagada, 'la bandera se apaga DESPUES de construir: no sirve de nada').toBeLessThan(
+      dockerfile.indexOf('RUN yarn build'),
+    );
   });
 });
 

@@ -3,7 +3,10 @@ name: Frontend
 # La CI de `ciudadano-web`, portada del job `verificar` de `rentas/.github/workflows/frontend.yml`.
 # Dos trabajos: `verificar` corre `yarn verificar` —lint, tipos, i18n y pruebas— y construye el bundle;
 # `arnes` (issue 11, portado del job `arnes` de `rentas`) sirve ese bundle y lo recorre en Chromium con
-# Playwright. Nada mas: aqui no se construye imagen ni se despliega (no hay Dockerfile).
+# Playwright. Nada mas: aqui no se construye la imagen de `frontend/Dockerfile` (issue 37) ni se
+# publica. Publicarla y enrutarla es de `infrastructure`, y el flujo que la construya no se anade
+# mientras la CI de la cuenta siga bloqueada por facturacion: hoy se construye a mano, con la orden
+# del README.
 #
 # LLEVA FILTRO `paths`, y el workflow se incluye en su propio filtro: un cambio en este archivo
 # tiene que verificarse a si mismo. Sin eso, romper la CI del frontend es el unico cambio que la CI

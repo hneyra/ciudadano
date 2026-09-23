@@ -14,6 +14,7 @@ import type { Declaracion, Exigencia } from './motor.ts';
 import {
   comoTabla,
   declaracionesDelMotor,
+  elDelDockerfile,
   elDelNvmrc,
   elDeEngines,
   loQueExigenLosEnlaces,
@@ -23,15 +24,18 @@ import {
 } from './motor.ts';
 
 /**
- * **Un solo motor de Node, dicho en cuatro sitios y sin poder desviarse** (issue 39).
+ * **Un solo motor de Node, dicho en cinco sitios y sin poder desviarse** (issue 39, y 37).
+ *
+ * Eran cuatro hasta el issue 37: el `FROM node:…` de la etapa que construye la imagen es el quinto, y
+ * el unico que no lee nadie mas que Docker — o sea, el que mas facil se queda atras.
  *
  * El porque entero —los tres motores que este mismo arbol prometia a la vez, y por que el minimo
  * del hermano se lee y no se escribe— esta en `motor.ts`, junto a la funcion que lo compara.
  *
  * Lo que este archivo vigila son las dos mitades:
  *
- *   1. Que los cuatro sitios digan **el mismo** motor: `engines.node`, `.nvmrc` y el
- *      `node-version` de los DOS trabajos del workflow.
+ *   1. Que los cinco sitios digan **el mismo** motor: `engines.node`, `.nvmrc`, el
+ *      `node-version` de los DOS trabajos del workflow y el `FROM node:` del `Dockerfile`.
  *   2. Que ese motor **no quede por debajo** del que exigen los paquetes de `kamayuk-lib` que este
  *      frontend enlaza — leido de su `package.json`, no escrito aqui.
  *
@@ -81,21 +85,23 @@ function exigenciaDeUnHermanoQueDice(dice: string | undefined): Exigencia[] {
   return loQueExigenLosEnlaces(frontend);
 }
 
-describe('el motor lo dicen los cuatro sitios, y es el mismo', () => {
-  it('EL CENTINELA: hay cuatro declaraciones, y dos son las del workflow', () => {
+describe('el motor lo dicen los cinco sitios, y es el mismo', () => {
+  it('EL CENTINELA: hay cinco declaraciones, dos son las del workflow y una la del Dockerfile', () => {
     // Sin esto, borrar el `.nvmrc` o quedarse con un solo trabajo en el workflow dejaria a la
     // comparacion de abajo recorriendo una lista mas corta y **pasando en verde**: comparar tres
     // numeros iguales no dice nada si el cuarto ya no se mira.
     expect(
       DECLARACIONES.length,
-      `El motor tiene que decirse en CUATRO sitios, y se lee en ${String(DECLARACIONES.length)}:\n` +
+      `El motor tiene que decirse en CINCO sitios, y se lee en ${String(DECLARACIONES.length)}:\n` +
         comoTabla(DECLARACIONES),
-    ).toBe(4);
+    ).toBe(5);
     const delWorkflow = DECLARACIONES.filter((d) => d.donde.includes('workflows/frontend.yml'));
     expect(delWorkflow.length, 'los dos trabajos del workflow fijan su motor').toBe(2);
+    const delDockerfile = DECLARACIONES.filter((d) => d.donde.startsWith('frontend/Dockerfile'));
+    expect(delDockerfile.length, 'la etapa de construccion de la imagen fija su motor, y solo una vez').toBe(1);
   });
 
-  it('ninguna se calla: las cuatro dicen un numero', () => {
+  it('ninguna se calla: las cinco dicen un numero', () => {
     const mudas = DECLARACIONES.filter((d) => d.mayor === null);
     expect(
       mudas.map((d) => d.donde),
@@ -106,7 +112,7 @@ describe('el motor lo dicen los cuatro sitios, y es el mismo', () => {
     ).toEqual([]);
   });
 
-  it('y las cuatro dicen EL MISMO', () => {
+  it('y las cinco dicen EL MISMO', () => {
     expect(
       motoresDistintos(DECLARACIONES),
       'El arbol promete mas de un motor de Node a la vez:\n' +
@@ -152,15 +158,16 @@ describe('y el motor prometido alcanza al que exige `kamayuk-lib`', () => {
 });
 
 describe('LA MUESTRA: la guarda muerde, sobre declaraciones inventadas', () => {
-  /** Los cuatro sitios de acuerdo, para retocar uno y ver que se nota. */
+  /** Los cinco sitios de acuerdo, para retocar uno y ver que se nota. */
   const deAcuerdo = (): Declaracion[] => [
     elDeEngines(JSON.stringify({ engines: { node: '>=24' } })),
     elDelNvmrc('24\n'),
     ...losDelWorkflow('        node-version: "24"\n        node-version: "24"\n'),
+    ...elDelDockerfile('FROM node:24-alpine AS construccion\nFROM nginx:1.31.5-alpine AS interfaz\n'),
   ];
 
-  it('con los cuatro de acuerdo no dice nada', () => {
-    expect(deAcuerdo()).toHaveLength(4);
+  it('con los cinco de acuerdo no dice nada', () => {
+    expect(deAcuerdo()).toHaveLength(5);
     expect(motoresDistintos(deAcuerdo())).toEqual([24]);
   });
 
@@ -184,6 +191,22 @@ describe('LA MUESTRA: la guarda muerde, sobre declaraciones inventadas', () => {
       ...losDelWorkflow('        node-version: "24"\n        node-version: "22"\n'),
     ];
     expect(motoresDistintos(torcidas)).toEqual([24, 22]);
+  });
+
+  it('y si la imagen se construye con otro Node —el 22 que pedia el issue 37—, tambien', () => {
+    // Es la rotura que el issue 37 traia escrita: «construccion con Node 22 (la que declara
+    // `engines`)», cuando `engines` ya decia 24. Con la imagen en 22, lo que se publica se habria
+    // construido con un motor que ni este arbol ni `kamayuk-lib` prometen.
+    const torcidas = [
+      ...deAcuerdo().slice(0, 4),
+      ...elDelDockerfile('# node:24 es lo que dice el .nvmrc\nFROM node:22-alpine AS construccion\n'),
+    ];
+    expect(torcidas.map((d) => d.dice)).toEqual(['>=24', '24', '24', '24', '22-alpine']);
+    expect(motoresDistintos(torcidas)).toEqual([24, 22]);
+  });
+
+  it('y la etapa de nginx no cuenta como un motor de Node', () => {
+    expect(elDelDockerfile('FROM nginx:1.31.5-alpine AS interfaz\n')).toEqual([]);
   });
 
   it('los comentarios del workflow NO cuentan como declaracion', () => {

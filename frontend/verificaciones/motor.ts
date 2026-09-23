@@ -101,7 +101,27 @@ export function losDelWorkflow(crudo: string, donde = SITIO_DEL_WORKFLOW): Decla
 }
 
 /**
- * Las cuatro declaraciones del motor de este arbol, leidas del disco.
+ * El de la etapa que construye la imagen (issue 37): `FROM node:24-alpine AS construccion`.
+ *
+ * El `Dockerfile` **no puede leer** el `.nvmrc` —un `FROM` no admite sustitucion sin un `ARG`, y
+ * meterlo obligaria a pasarlo en cada sitio que construye la imagen—, asi que la etiqueta es una
+ * COPIA del numero, y una copia se vigila: es lo que `rentas` hace en su
+ * `la-version-de-node-es-una-sola.test.ts` (rentas#289). Sin comentarios, por lo mismo que el
+ * workflow: la prosa del `Dockerfile` que cuenta de donde sale el motor nombra el numero.
+ */
+export function elDelDockerfile(crudo: string, donde = 'frontend/Dockerfile'): Declaracion[] {
+  const salida: Declaracion[] = [];
+  crudo.split('\n').forEach((linea, indice) => {
+    if (linea.trim().startsWith('#')) return;
+    const etiqueta = /^\s*FROM\s+(?:--\S+\s+)*node:(\S+)/i.exec(linea)?.[1];
+    if (etiqueta !== undefined) salida.push(declara(`${donde}:${indice + 1} → FROM node`, etiqueta));
+  });
+  return salida;
+}
+
+/**
+ * Las cinco declaraciones del motor de este arbol, leidas del disco: las cuatro del issue 39 y,
+ * desde el 37, la etapa de construccion de la imagen.
  *
  * Cada lectura va envuelta en `existsSync`: si `.nvmrc` o el workflow faltan, la respuesta es una
  * declaracion que dice `(no existe)` y **no** una excepcion. Leerlos a secas reventaria en la
@@ -118,6 +138,7 @@ export function declaracionesDelMotor(
   const manifiesto = leer(join(raizDelFrontend, 'package.json'));
   const nvmrc = leer(join(raizDelFrontend, '.nvmrc'));
   const workflow = leer(join(raizDelRepositorio, SITIO_DEL_WORKFLOW));
+  const dockerfile = leer(join(raizDelFrontend, 'Dockerfile'));
 
   return [
     manifiesto === null
@@ -129,6 +150,9 @@ export function declaracionesDelMotor(
     ...(workflow === null
       ? [{ donde: SITIO_DEL_WORKFLOW, dice: '(no existe)', mayor: null }]
       : losDelWorkflow(workflow)),
+    ...(dockerfile === null
+      ? [{ donde: 'frontend/Dockerfile', dice: '(no existe)', mayor: null }]
+      : elDelDockerfile(dockerfile)),
   ];
 }
 
