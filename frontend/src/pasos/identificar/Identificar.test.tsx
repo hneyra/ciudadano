@@ -102,7 +102,7 @@ describe('lo que va a pagar', () => {
 });
 
 describe('solo con mi correo', () => {
-  it('vacio, `maria@correo` y `@correo.com` dan los mensajes exactos; escribir los borra; `maria@correo.com` va a `#/pagar`', async () => {
+  it('vacio, `maria@correo` y `@example.com` dan los mensajes exactos; escribir los borra; `maria@example.com` va a `#/pagar`', async () => {
     montarElPortal({ hash: '#/identificar', estado: CON_BUSQUEDA });
     const campo = correo().getByRole('textbox', { name: 'Correo electrónico' });
     const continuar = correo().getByRole('button', { name: 'Continuar al pago' });
@@ -118,7 +118,7 @@ describe('solo con mi correo', () => {
     expect(campo.className).toContain('aria-invalid:border-mal-borde');
     expect(window.location.hash).toBe('#/identificar');
 
-    for (const incompleto of ['maria@correo', '@correo.com']) {
+    for (const incompleto of ['maria@correo', '@example.com']) {
       escribir(campo, incompleto);
       await queTermineLaValidacion();
       // Escribir borra el error, como el `onCorreo` del artboard (linea 1180).
@@ -132,7 +132,7 @@ describe('solo con mi correo', () => {
       expect(campo).toHaveAttribute('aria-invalid', 'true');
     }
 
-    escribir(campo, 'maria@correo.com');
+    escribir(campo, 'maria@example.com');
     fireEvent.click(continuar);
     await waitFor(() => expect(window.location.hash).toBe('#/pagar'));
   });
@@ -159,14 +159,14 @@ describe('solo con mi correo', () => {
     fireEvent.click(correo().getByText(AVISARME));
     expect(casilla()).not.toBeChecked();
 
-    escribir(correo().getByRole('textbox', { name: 'Correo electrónico' }), 'maria@correo.com');
+    escribir(correo().getByRole('textbox', { name: 'Correo electrónico' }), 'maria@example.com');
     fireEvent.click(correo().getByRole('button', { name: 'Continuar al pago' }));
     await waitFor(() => expect(window.location.hash).toBe('#/pagar'));
 
     // Volver a «Mis datos» por la franja: el correo y la casilla son los que se dieron.
     fireEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: 'Mis datos' }));
     await waitFor(() => expect(window.location.hash).toBe('#/identificar'));
-    expect(correo().getByRole('textbox', { name: 'Correo electrónico' })).toHaveValue('maria@correo.com');
+    expect(correo().getByRole('textbox', { name: 'Correo electrónico' })).toHaveValue('maria@example.com');
     expect(casilla()).not.toBeChecked();
   });
 });
@@ -278,7 +278,7 @@ describe('lo que la pantalla dice y mide', () => {
     const campoCorreo = correo().getByRole('textbox', { name: 'Correo electrónico' });
     const documento = cuenta().getByRole('textbox', { name: 'Documento de identidad' });
     const clave = cuenta().getByLabelText('Clave');
-    expect(campoCorreo).toHaveAttribute('placeholder', 'nombre@correo.com');
+    expect(campoCorreo).toHaveAttribute('placeholder', 'nombre@example.com');
     expect(documento).toHaveAttribute('placeholder', '03593174');
 
     // jsdom no maqueta: se comprueba la clase aqui y la medida en el navegador (capturas del PR).
@@ -309,7 +309,7 @@ describe('lo que la pantalla dice y mide', () => {
     expect(correo(marcado).getByText(marcado(CORREO_TEXTO))).toBeInTheDocument();
     expect(cuenta(marcado).getByText(marcado(CUENTA_TEXTO))).toBeInTheDocument();
     const campo = correo(marcado).getByRole('textbox', { name: marcado('Correo electrónico') });
-    expect(campo).toHaveAttribute('placeholder', marcado('nombre@correo.com'));
+    expect(campo).toHaveAttribute('placeholder', marcado('nombre@example.com'));
     // El documento de ejemplo es dato —el mismo numero en todo idioma—, como en «Buscar mi deuda».
     const documento = cuenta(marcado).getByRole('textbox', { name: marcado('Documento de identidad') });
     expect(documento).toHaveAttribute('placeholder', '03593174');

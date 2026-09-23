@@ -70,7 +70,7 @@ export const USUARIO: Usuario = {
   tipoDeDocumento: 'DNI',
   numeroDeDocumento: '44218937',
   codigo: '00000025673',
-  correo: 'fruiz159@gmail.com',
+  correo: 'maria.castillo@example.com',
 };
 
 /** La deuda del contribuyente, con el desglose de cada concepto. Artboard, lineas 740-806. */

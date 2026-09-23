@@ -132,7 +132,7 @@ describe('la barra con sesion', () => {
     ]);
     const menu = screen.getByRole('menu');
     expect(within(menu).getByText('Contribuyente 00000025673')).toBeInTheDocument();
-    expect(within(menu).getByText('fruiz159@gmail.com')).toBeInTheDocument();
+    expect(within(menu).getByText('maria.castillo@example.com')).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Cerrar sesión' })).toHaveAttribute('data-peligrosa', '1');
 
     fireEvent.click(screen.getByRole('menuitem', { name: 'Cerrar sesión' }));

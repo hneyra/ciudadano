@@ -84,7 +84,7 @@ describe('confirmarPago', () => {
   const pagado = tras([
     { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' },
     { tipo: 'alternar', id: 'arb26' },
-    { tipo: 'continuarConCorreo', correo: 'ana@correo.pe', avisarVencimiento: false },
+    { tipo: 'continuarConCorreo', correo: 'ana@example.com', avisarVencimiento: false },
     { tipo: 'elegirMedio', medio: 'yape' },
     { tipo: 'confirmarPago' },
   ]);
@@ -115,7 +115,7 @@ describe('confirmarPago', () => {
       total: '3253.20',
       conAmnistia: '2858.32',
       medio: 'yape',
-      destino: 'ana@correo.pe',
+      destino: 'ana@example.com',
       comprobante: COMPROBANTE,
     });
     expectTypeOf(pagado.ultimo?.conAmnistia).toEqualTypeOf<string | undefined>();
@@ -142,7 +142,7 @@ describe('confirmarPago', () => {
     // «Iniciar sesión» → «Mis datos» → «Solo con mi correo» llega a pagar sin haber buscado.
     const sinBuscar = tras([
       { tipo: 'irA', paso: 'identificar' },
-      { tipo: 'continuarConCorreo', correo: 'ana@correo.pe', avisarVencimiento: true },
+      { tipo: 'continuarConCorreo', correo: 'ana@example.com', avisarVencimiento: true },
     ]);
     expect(sinBuscar.paso).toBe('pagar');
     expect(ids(seleccion(sinBuscar))).toEqual(ids(DEUDAS));
@@ -308,7 +308,7 @@ describe('a donde lleva cada cosa', () => {
     // …o todo lo marcado ya pagado, aunque siga marcado.
     const todoPagado = tras([
       { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' },
-      { tipo: 'continuarConCorreo', correo: 'ana@correo.pe', avisarVencimiento: true },
+      { tipo: 'continuarConCorreo', correo: 'ana@example.com', avisarVencimiento: true },
       { tipo: 'confirmarPago' },
       { tipo: 'irA', paso: 'identificar' },
     ]);
@@ -437,10 +437,10 @@ describe('las acciones sueltas', () => {
   it('`continuarConCorreo` guarda el correo y la casilla y lleva a pagar', () => {
     const conCorreo = recorrido(ESTADO_INICIAL, {
       tipo: 'continuarConCorreo',
-      correo: 'ana@correo.pe',
+      correo: 'ana@example.com',
       avisarVencimiento: false,
     });
-    expect([conCorreo.correo, conCorreo.avisarVencimiento, conCorreo.paso]).toEqual(['ana@correo.pe', false, 'pagar']);
+    expect([conCorreo.correo, conCorreo.avisarVencimiento, conCorreo.paso]).toEqual(['ana@example.com', false, 'pagar']);
   });
 
   it('el reductor no muta el estado que recibe', () => {

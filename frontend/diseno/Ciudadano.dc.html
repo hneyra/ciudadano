@@ -320,7 +320,7 @@
               <p style="margin:8px 0 18px; font-size:14.5px; line-height:1.6; color:#666; text-wrap:pretty">Lo más rápido. No hace falta crear una cuenta; el comprobante le llega al correo y lo podrá descargar al terminar.</p>
               <label style="display:block">
                 <span style="display:block; font-size:13.5px; font-weight:700; margin-bottom:6px">Correo electrónico</span>
-                <input value="{{ correo }}" onChange="{{ onCorreo }}" placeholder="nombre@correo.com" style="{{ correoStyle }}" />
+                <input value="{{ correo }}" onChange="{{ onCorreo }}" placeholder="nombre@example.com" style="{{ correoStyle }}" />
               </label>
               <sc-if value="{{ errorCorreo }}">
                 <p role="alert" style="margin:8px 0 0; font-size:13.5px; color:#A94442">{{ errorCorreo }}</p>
@@ -1024,7 +1024,7 @@ class Component extends DCLogic {
     const medioDef = MEDIOS.find((m) => m.id === s.medio) || MEDIOS[0];
     const pasosMedio = (medioDef.pasos || []).map((t) => ({ texto: t.replace('{{TOTAL}}', c.conAmnistia.toLocaleString('es-PE', { minimumFractionDigits: 2 })) }));
 
-    const destino = anonimo ? (s.correo || 'su correo') : 'fruiz159@gmail.com';
+    const destino = anonimo ? (s.correo || 'su correo') : 'maria.castillo@example.com';
 
     /* La deuda viva y el pago sellado son las dos fuentes de esta pantalla:
        el paso 2 y los pendientes miran la primera, el comprobante y el
@@ -1042,7 +1042,7 @@ class Component extends DCLogic {
       entidad: this.props.entidad || 'Municipalidad Distrital de Catacaos',
       hoy: '13 de setiembre de 2026',
       anonimo: anonimo, identificado: s.autenticado,
-      usuario: { iniciales: 'MC', nombre: 'María E. Castillo', doc: 'DNI 44218937', codigo: 'Contribuyente 00000025673', correo: 'fruiz159@gmail.com' },
+      usuario: { iniciales: 'MC', nombre: 'María E. Castillo', doc: 'DNI 44218937', codigo: 'Contribuyente 00000025673', correo: 'maria.castillo@example.com' },
       menuSesion: s.menuSesion, menuAria: s.menuSesion ? 'true' : 'false',
       abrirMenu: () => this.setState((x) => ({ menuSesion: !x.menuSesion })),
       cerrarMenu: () => this.setState({ menuSesion: false }),

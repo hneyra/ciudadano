@@ -25,7 +25,7 @@ plazosDelPortal();
 
 describe('las filas del comprobante son las de `cuentas.ts`', () => {
   it('cada fila pinta lo que `conAmnistiaDe` devuelve', async () => {
-    montarElPortal({ hash: '#/pagar', estado: { paso: 'pagar', numero: '00000025673', correo: 'maria@correo.com' } });
+    montarElPortal({ hash: '#/pagar', estado: { paso: 'pagar', numero: '00000025673', correo: 'maria@example.com' } });
     const main = within(screen.getByRole('main'));
     fireEvent.click(main.getByRole('button', { name: 'Pagar ahora' }));
     await waitFor(() => expect(window.location.hash).toBe('#/comprobante'));

@@ -235,7 +235,7 @@ describe('AC4 — el paso 5, «Comprobante»', () => {
           total: '293.72',
           conAmnistia: '293.72',
           medio: 'tarjeta',
-          destino: 'maria@correo.com',
+          destino: 'maria@example.com',
           comprobante: { numero: '0003-0041418', operacion: '882134', fecha: '2026-09-13', hora: '14:22' },
         },
       },
