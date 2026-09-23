@@ -56,7 +56,7 @@ export function Entrar() {
           </h1>
           <p className="mt-[11px] mb-0 max-w-[64ch] text-[16px] leading-[1.6] text-pretty text-tinta-2">
             {t(
-              'Su deuda está a nombre de su documento, así que lo primero es saber quién pregunta. Al entrar verá lo que debe en todas las municipalidades del sistema, y podrá pagar todo o solo lo que elija.',
+              'Su deuda está a nombre de su documento, así que lo primero es saber quién pregunta. Al entrar verá lo que debe en todas las municipalidades del sistema.',
             )}
           </p>
 

@@ -7,6 +7,7 @@ import type { SituacionDelContrato } from '../../datos/contrato.ts';
 import { CONTRIBUYENTE, USUARIO } from '../../datos/demostracion.ts';
 import { crearFuenteDeLaPlataforma } from '../../datos/fuenteDeLaPlataforma.ts';
 import i18n, { IDIOMA_MARCADO } from '../../i18n/i18n.ts';
+import { FRASES_QUE_AFIRMAN, laDice, nombreDe } from '../../pruebas/frasesQueAfirman.ts';
 import { limpiarElPortal, marcado, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
 
 /**
@@ -23,35 +24,12 @@ import { limpiarElPortal, marcado, montarElPortal, plazosDelPortal } from '../..
 const EL_AVISO = 'El pago en línea todavía no está disponible: esta pantalla es una demostración.';
 
 /**
- * **Las frases que afirman un hecho que con plataforma NO ocurrio** (revision del issue 28).
- *
- * Son textos del artboard, y alli describen la ficcion entera y se quedan tal cual. Con plataforma
- * cada una es una afirmacion falsa sobre la deuda de una persona: no hubo cobro, no se envio ningun
- * comprobante, no hay operacion que numerar y la deuda esta donde estaba. Un aviso al lado no
- * arregla una afirmacion falsa en el cuerpo: quien la lee se va creyendo que pago.
- *
- * Se buscan **por texto y no por clave**: lo que importa es lo que llega a la pantalla. Cada una se
- * comprueba en los dos sentidos —ausente con plataforma, presente en demostracion— para que quitarla
- * del portal de demostracion tambien salga rojo.
+ * **Las frases que afirman un hecho que con plataforma NO ocurrio**: la lista es UNA y vive en
+ * `src/pruebas/frasesQueAfirman.ts` (issue 49), que tambien lee la guarda por modo
+ * (`src/afirmaciones.plataforma.test.tsx`). Aqui se miden los pasos 4 y 5 en los dos sentidos: con
+ * plataforma no sale NINGUNA de la lista; en demostracion salen las de estos dos pasos, tal cual.
  */
-const FRASES_QUE_AFIRMAN: readonly { readonly texto: string | RegExp; readonly donde: string }[] = [
-  { texto: /Pagó S\/ [\d,.]+ con \w+\./, donde: 'la banda de exito del paso 5' },
-  { texto: 'La deuda pagada ya se descontó de su cuenta.', donde: 'la banda de exito del paso 5' },
-  { texto: /Le enviamos el comprobante a /, donde: 'la banda de exito del paso 5 y el aviso del 4' },
-  { texto: 'Constancia de pago', donde: 'la cabecera del recibo' },
-  { texto: 'Número de operación', donde: 'la meta del recibo' },
-  { texto: 'Enviado a', donde: 'la meta del recibo' },
-  { texto: 'Total pagado', donde: 'el pie de la tabla del recibo' },
-  { texto: /Esta constancia acredita el pago/, donde: 'el cierre del recibo' },
-  { texto: /El comprobante se enviará a /, donde: 'el resumen del paso 4' },
-  { texto: 'Pago registrado. Le enviamos el comprobante a su correo.', donde: 'el aviso al confirmar' },
-  { texto: 'Descargar comprobante', donde: 'las acciones del paso 5' },
-  // Y las del selector de medios, que no son frases sino DATOS ACCIONABLES: un numero de telefono
-  // al que alguien puede yapear de verdad, y un codigo de pago «valido por 72 horas».
-  { texto: '969 032 194', donde: 'el numero para yapear del paso 4' },
-  { texto: '2026-0025673-4418', donde: 'el codigo de pago del banco del paso 4' },
-  { texto: /El pago se aplica al instante y el comprobante se emite de inmediato/, donde: 'el panel de la tarjeta' },
-];
+const DE_ESTOS_PASOS = FRASES_QUE_AFIRMAN.filter(({ pantalla }) => pantalla === 'pagar' || pantalla === 'comprobante');
 
 /** Lo que dice cada una en su sitio, con plataforma. */
 const LA_REDACCION_NUEVA: readonly string[] = [
@@ -185,8 +163,14 @@ describe('AC4 — el paso 4, «Pagar»', () => {
     const resumen = principal().querySelector('[data-resumen]');
     expect(resumen).not.toBeNull();
     expect(within(resumen as HTMLElement).getByText('Impuesto predial 2024')).toBeInTheDocument();
-    // 1500 + 42.60 + 100 = 1642.60: todo menos el interes, que la amnistia condona.
-    expect(within(resumen as HTMLElement).getByText('S/ 1,642.60')).toBeInTheDocument();
+    // 1500 + 42.60 + 200 + 100 = 1842.60: el saldo ENTERO. Con plataforma no hay amnistia que
+    // condone el interes (issue 49): el contrato no trae ninguna.
+    expect(within(resumen as HTMLElement).getAllByText('S/ 1,842.60').length).toBeGreaterThan(0);
+    const totalAPagar = within(resumen as HTMLElement).getByText('Total a pagar').closest('div');
+    expect(totalAPagar).toHaveTextContent('S/ 1,842.60');
+    // Y el interes se dice como lo que es, sumado, y el reajuste tiene su fila: las filas suman el total.
+    expect(within(resumen as HTMLElement).getByText('Interés moratorio').closest('div')).toHaveTextContent('S/ 200.00');
+    expect(within(resumen as HTMLElement).getByText('Reajuste').closest('div')).toHaveTextContent('S/ 42.60');
     // Nada del artboard: ni sus conceptos ni sus cuotas.
     expect(principal().textContent).not.toMatch(/Cuota \d de \d/);
     expect(enMain().queryByText('Impuesto predial 2026')).toBeNull();
@@ -248,6 +232,22 @@ describe('AC4 — el paso 5, «Comprobante»', () => {
   });
 });
 
+describe('issue 49, caso 2 — con plataforma no hay amnistia, y el recibo cobra el saldo entero', () => {
+  it('cada fila y el total del recibo son el saldo con su interes, y no se nombra ninguna ordenanza', async () => {
+    await hastaPagar();
+    fireEvent.click(enMain().getByRole('button', { name: 'Simular el pago: no se cobra nada' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/comprobante'));
+
+    const recibo = principal().querySelector('[data-recibo]') as HTMLElement;
+    expect(recibo).not.toBeNull();
+    const fila = within(recibo).getByText('Impuesto predial 2024').closest('tr');
+    expect(fila).toHaveTextContent('1,842.60');
+    const pie = [...recibo.querySelectorAll('tfoot tr')].map((tr) => tr.textContent);
+    expect(pie).toEqual(['Total que se pagaría1,842.60']);
+    expect(principal().textContent).not.toMatch(/amnist[ií]a|condonad|Ordenanza/i);
+  });
+});
+
 describe('el aviso pasa por `t()`', () => {
   it('sale envuelto en el idioma marcado, en los dos pasos', async () => {
     await i18n.changeLanguage(IDIOMA_MARCADO);
@@ -269,11 +269,9 @@ describe('REVISION — ninguna frase afirma un hecho que no ocurrio', () => {
     await waitFor(() => expect(window.location.hash).toBe('#/comprobante'));
     const enElPaso5 = principal().textContent ?? '';
 
-    const dichas = FRASES_QUE_AFIRMAN.filter(({ texto }) =>
-      typeof texto === 'string'
-        ? enElPaso4.includes(texto) || enElPaso5.includes(texto)
-        : texto.test(enElPaso4) || texto.test(enElPaso5),
-    ).map(({ texto, donde }) => `  «${String(texto)}» (${donde})`);
+    const dichas = FRASES_QUE_AFIRMAN.filter((frase) => laDice(enElPaso4, frase) || laDice(enElPaso5, frase)).map(
+      (frase) => `  ${nombreDe(frase)}`,
+    );
 
     expect(
       dichas,
@@ -296,7 +294,7 @@ describe('REVISION — ninguna frase afirma un hecho que no ocurrio', () => {
     expect(enMain().getByRole('heading', { level: 1, name: 'Así se vería su comprobante' })).toBeInTheDocument();
     expect(
       enMain().getByText(
-        'Esto es lo que habría pagado: S/ 1,642.60. No se cobró nada, no se envió ningún comprobante y su deuda no ha cambiado.',
+        'Esto es lo que habría pagado: S/ 1,842.60. No se cobró nada, no se envió ningún comprobante y su deuda no ha cambiado.',
       ),
     ).toBeInTheDocument();
     expect(enMain().getByRole('heading', { level: 2, name: 'Comprobante de ejemplo' })).toBeInTheDocument();
@@ -329,11 +327,9 @@ describe('REVISION — ninguna frase afirma un hecho que no ocurrio', () => {
     const enElPaso4 = dicho;
     const enElPaso5 = document.body.textContent ?? '';
 
-    const faltan = FRASES_QUE_AFIRMAN.filter(({ texto }) =>
-      typeof texto === 'string'
-        ? !enElPaso4.includes(texto) && !enElPaso5.includes(texto)
-        : !texto.test(enElPaso4) && !texto.test(enElPaso5),
-    ).map(({ texto, donde }) => `  «${String(texto)}» (${donde})`);
+    const faltan = DE_ESTOS_PASOS.filter((frase) => !laDice(enElPaso4, frase) && !laDice(enElPaso5, frase)).map(
+      (frase) => `  ${nombreDe(frase)}`,
+    );
 
     expect(
       faltan,

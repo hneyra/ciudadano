@@ -49,6 +49,8 @@ describe('el estado inicial', () => {
       // No son del artboard: los pone el issue 28, y en demostracion valen lo de siempre —los datos
       // del artboard, y ninguna plataforma detras—.
       conPlataforma: false,
+      // Tampoco: lo pone el issue 49. La amnistia del artboard, la de su Ordenanza.
+      amnistia: true,
       deudas: DEUDAS,
       contribuyente: {
         nombre: CONTRIBUYENTE.nombre,
@@ -346,6 +348,32 @@ describe('a donde lleva cada cosa', () => {
     expect(ultimoAlcanzable(cerrada)).toBe('buscar');
     // Lo pagado sigue pagado: se olvida el recibo a la vista, no la deuda que ya se cobro.
     expect(cerrada.pagadas).toStrictEqual(pagadoConSesion.pagadas);
+  });
+
+  it('`cerrarSesion` olvida tambien lo tecleado en la tarjeta, el correo, la busqueda y lo marcado (issue 49)', () => {
+    // El mismo argumento que olvida el recibo (issue 9): en un equipo compartido, lo que escribio
+    // la persona que se va no puede quedarle a la siguiente, ni a un clic ni en un campo relleno.
+    const tecleado = tras([
+      { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' },
+      { tipo: 'alternar', id: 'veh24' },
+      { tipo: 'continuarConCorreo', correo: 'maria@example.com', avisarVencimiento: true },
+      { tipo: 'fijarValor', clave: 'tNum', valor: '4111 1111 1111 1111' },
+      { tipo: 'fijarValor', clave: 'tCvv', valor: '123' },
+      { tipo: 'abrirDetalle', id: 'pred24' },
+      { tipo: 'entrar' },
+    ]);
+    expect(tecleado.abierta).toBe('pred24');
+    expect(tecleado.valores).toEqual({ tNum: '4111 1111 1111 1111', tCvv: '123' });
+    expect(tecleado.correo).toBe('maria@example.com');
+    expect(tecleado.numero).toBe('03593174');
+
+    const cerrada = recorrido(tecleado, { tipo: 'cerrarSesion' });
+    expect(cerrada.valores).toEqual({});
+    expect(cerrada.correo).toBe('');
+    expect(cerrada.numero).toBe('');
+    expect(cerrada.tipoDeDocumento).toBe(ESTADO_INICIAL.tipoDeDocumento);
+    expect(cerrada.marcadas).toEqual({});
+    expect(cerrada.abierta).toBeNull();
   });
 
   it('«Mis predios y vehículos» lleva al historial pidiendo enfocar las unidades, una vez (issue 10)', () => {

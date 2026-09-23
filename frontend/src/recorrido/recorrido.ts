@@ -1,4 +1,6 @@
-import { type Cuenta, cuentaDe, type Resumen, resumenDe } from '../datos/cuentas.ts';
+import type { Importe } from '@kamayuk/formato';
+
+import { type ConSaldo, type Cuenta, conAmnistiaDe, cuentaDe, type Resumen, resumenDe, totalDe } from '../datos/cuentas.ts';
 import { COMPROBANTE, CONTRIBUYENTE, DEUDAS, USUARIO } from '../datos/demostracion.ts';
 import type {
   ComprobanteDeDemostracion,
@@ -110,6 +112,13 @@ export interface EstadoDelRecorrido {
   /** Si el portal lee de la plataforma. Se fija al montar y no cambia: ver la cabecera. */
   readonly conPlataforma: boolean;
   /**
+   * **Si hay una amnistia que condone el interes** (issue 49). La dice la FUENTE
+   * (`FuenteDelPortal.amnistia`) y se fija al montar, como `conPlataforma`: en demostracion, la del
+   * artboard; con plataforma, ninguna, porque `GET /portal/situacion` no trae ninguna. De aqui cuelga
+   * lo que se cobra (`aCobrar`, `aCobrarDe`) y si las pantallas la nombran.
+   */
+  readonly amnistia: boolean;
+  /**
    * Los conceptos sobre los que trabaja el recorrido: los del artboard en demostracion, los de
    * `GET /portal/situacion` con plataforma. De aqui cuelgan `vivas`, `seleccion` y lo que se sella.
    */
@@ -147,6 +156,7 @@ export interface EstadoDelRecorrido {
 export const ESTADO_INICIAL: EstadoDelRecorrido = {
   paso: 'buscar',
   conPlataforma: false,
+  amnistia: true,
   deudas: DEUDAS,
   contribuyente: {
     nombre: CONTRIBUYENTE.nombre,
@@ -173,6 +183,8 @@ export interface ComoEmpieza {
   readonly conPlataforma: boolean;
   /** Con plataforma, `haySesion()`; en demostracion, siempre `false` (no hay a quien entrar). */
   readonly autenticado: boolean;
+  /** Lo que dice la fuente: `FuenteDelPortal.amnistia` (issue 49). */
+  readonly amnistia: boolean;
 }
 
 /**
@@ -186,10 +198,10 @@ export interface ComoEmpieza {
  * Quien lo llama es `ProveedorDelRecorrido`, una sola vez: la bandera es de construccion y el token
  * lo fija el canje ANTES de montar (`src/arranque.ts`).
  */
-export function estadoInicial({ conPlataforma, autenticado }: ComoEmpieza): EstadoDelRecorrido {
+export function estadoInicial({ conPlataforma, autenticado, amnistia }: ComoEmpieza): EstadoDelRecorrido {
   const base: EstadoDelRecorrido = conPlataforma
-    ? { ...ESTADO_INICIAL, conPlataforma: true, autenticado, deudas: [], marcadas: {}, contribuyente: null }
-    : { ...ESTADO_INICIAL, autenticado };
+    ? { ...ESTADO_INICIAL, conPlataforma: true, autenticado, amnistia, deudas: [], marcadas: {}, contribuyente: null }
+    : { ...ESTADO_INICIAL, autenticado, amnistia };
   return { ...base, paso: primerPaso(base) };
 }
 
@@ -356,6 +368,25 @@ export function porPagar(estado: EstadoDelRecorrido): readonly ConceptoDeDeuda[]
   return hayQuePagar(estado) ? seleccion(estado) : [];
 }
 
+/**
+ * **Lo que se cobra de una cuenta** (issue 49): con amnistia, todo menos el interes (`conAmnistia`);
+ * sin ella, el total entero.
+ *
+ * Hasta el issue 49 las pantallas leian `conAmnistia` a secas, y con plataforma cobraban a una deuda
+ * de verdad el descuento de una ordenanza del artboard que el contrato no trae. La pregunta «¿hay
+ * amnistia?» se contesta aqui, una vez, con lo que dijo la fuente; ninguna pantalla la repite.
+ * Sirve para lo elegido (`cuentaPorPagar`) y para el pago sellado (`ultimo`), que tambien es una
+ * `Cuenta`: `amnistia` no cambia en toda la visita, asi que el sello se lee igual que se cobro.
+ */
+export function aCobrar(estado: EstadoDelRecorrido, lo: Cuenta): Importe {
+  return estado.amnistia ? lo.conAmnistia : lo.total;
+}
+
+/** Lo mismo, de un concepto: la fila del recibo. `conAmnistiaDe` o `totalDe`, segun la fuente. */
+export function aCobrarDe(estado: EstadoDelRecorrido, deuda: ConSaldo): Importe {
+  return estado.amnistia ? conAmnistiaDe(deuda) : totalDe(deuda);
+}
+
 /** La cuenta de `porPagar`: el resumen y el `{{TOTAL}}` de las instrucciones del paso 4. */
 export function cuentaPorPagar(estado: EstadoDelRecorrido): Cuenta {
   return cuentaDe(porPagar(estado));
@@ -509,6 +540,12 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
       // cambia `autenticado` y `paso`, linea 1055). En un equipo compartido, tras «Cerrar sesión» el
       // recibo sellado —nombre, correo de la cuenta, numero de operacion— no puede seguir a un clic:
       // sin `ultimo`, `#/comprobante` deja de ser alcanzable y redirige como cualquier otro paso.
+      //
+      // Y por el mismo argumento (issue 49), todo lo que la persona tecleo o eligio: la tarjeta
+      // (`valores`: numero, vencimiento, CVV), el correo, lo que busco y lo que marco. Con el recibo
+      // olvidado y la tarjeta todavia escrita en el paso 4, el equipo compartido seguia siendo un
+      // problema. `marcadas` queda VACIO y no con las cuatro marcas del artboard: esas no son una
+      // eleccion de nadie (`hayQuePagar`), y tras cerrar sesion no hay nadie que haya elegido.
       return {
         ...estado,
         autenticado: false,
@@ -516,6 +553,12 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
         ultimo: null,
         recienPagado: false,
         enfocarUnidades: false,
+        valores: {},
+        correo: '',
+        numero: '',
+        tipoDeDocumento: ESTADO_INICIAL.tipoDeDocumento,
+        marcadas: {},
+        abierta: null,
       };
 
     case 'consultarOtra':

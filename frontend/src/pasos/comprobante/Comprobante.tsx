@@ -14,11 +14,11 @@ import { type ReactNode, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import escudo from '../../../diseno/escudo-catacaos.png';
-import { cifraSinSimbolo, conAmnistiaDe } from '../../datos/cuentas.ts';
+import { cifraSinSimbolo } from '../../datos/cuentas.ts';
 import { ORDENANZA } from '../../datos/demostracion.ts';
 import { AvisoDePagoSimulado } from '../../piezas/AvisoDePagoSimulado.tsx';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
-import { type PagoSellado, conceptosDelPago, vivas } from '../../recorrido/recorrido.ts';
+import { type PagoSellado, aCobrar, aCobrarDe, conceptosDelPago, vivas } from '../../recorrido/recorrido.ts';
 import { rotuloDelMedio } from '../pagar/textosDeLosMedios.ts';
 
 /**
@@ -42,8 +42,10 @@ import { rotuloDelMedio } from '../pagar/textosDeLosMedios.ts';
  *
  * <h2>Ninguna cifra se calcula aqui</h2>
  *
- * El importe de cada fila es `conAmnistiaDe` (insoluto + gastos) y la cifra sin «S/ » es
- * `cifraSinSimbolo`, las dos de `src/datos/cuentas.ts`; el condonado y el total, los del sello.
+ * El importe de cada fila es `aCobrarDe` (con la amnistia del artboard, `conAmnistiaDe`: insoluto +
+ * gastos) y la cifra sin «S/ » es `cifraSinSimbolo`, de `src/datos/cuentas.ts`; el condonado y el
+ * total, los del sello, por `aCobrar`. **Con plataforma no hay amnistia** (issue 49): cada fila y el
+ * total son el saldo entero, y la fila del interes condonado no se dibuja.
  *
  * <h2>Las piezas, y lo que se les ajusta</h2>
  *
@@ -105,6 +107,7 @@ function useRotuloDelMedio(pago: PagoSellado): string {
  */
 function BandaSimulada({ pago }: { readonly pago: PagoSellado }) {
   const { t } = useTranslation();
+  const { estado } = useRecorrido();
   const idDelTitulo = useId();
 
   return (
@@ -118,7 +121,7 @@ function BandaSimulada({ pago }: { readonly pago: PagoSellado }) {
       <p className="mt-[6px] mb-0 max-w-[70ch] text-[15px] leading-[1.6] text-pretty text-tinta-2">
         {t(
           'Esto es lo que habría pagado: {{importe}}. No se cobró nada, no se envió ningún comprobante y su deuda no ha cambiado.',
-          { importe: formatearImporte(pago.conAmnistia) },
+          { importe: formatearImporte(aCobrar(estado, pago)) },
         )}
       </p>
     </section>
@@ -128,6 +131,7 @@ function BandaSimulada({ pago }: { readonly pago: PagoSellado }) {
 /** La banda verde de exito, que no se imprime (lineas 480-489 y 1276-1279). */
 function BandaDeExito({ pago }: { readonly pago: PagoSellado }) {
   const { t } = useTranslation();
+  const { estado } = useRecorrido();
   const medio = useRotuloDelMedio(pago);
 
   return (
@@ -159,7 +163,7 @@ function BandaDeExito({ pago }: { readonly pago: PagoSellado }) {
           {t(
             'Pagó {{importe}} con {{medio}}. Le enviamos el comprobante a {{destino}}, y puede descargarlo aquí mismo. La deuda pagada ya se descontó de su cuenta.',
             {
-              importe: formatearImporte(pago.conAmnistia),
+              importe: formatearImporte(aCobrar(estado, pago)),
               // «con tarjeta»: el artboard lo pone en minusculas (linea 1279).
               medio: medio.toLowerCase(),
               destino: pago.destino ?? t('su correo'),
@@ -259,27 +263,33 @@ function Recibo({ pago }: { readonly pago: PagoSellado }) {
               {/* El contrato del portal no trae cuotas (issue 26): la celda queda vacia, no inventada. */}
               <TablaCelda className={CELDA_DEL_RECIBO}>{deuda.cuotas}</TablaCelda>
               <TablaCelda cifra className={CELDA_DEL_RECIBO}>
-                {cifraSinSimbolo(conAmnistiaDe(deuda))}
+                {cifraSinSimbolo(aCobrarDe(estado, deuda))}
               </TablaCelda>
             </TablaFila>
           ))}
         </TablaCuerpo>
         <tfoot>
-          <tr className="text-[14px] text-ok-tinta">
-            <th scope="row" colSpan={3} className={cn('border-t border-linea-2 py-[10px] text-left font-normal', CELDA_DEL_RECIBO)}>
-              {t('Interés condonado por la {{ordenanza}}', { ordenanza: ORDENANZA })}
-            </th>
-            <td className={cn('border-t border-linea-2 py-[10px] text-right tabular-nums', CELDA_DEL_RECIBO)}>
-              {`− ${cifraSinSimbolo(pago.interes)}`}
-            </td>
-          </tr>
+          {/*
+            Sin amnistia no se condona nada (issue 49): el interes ya va dentro de cada fila, y una
+            «Ordenanza» del artboard escrita en un recibo de una deuda de verdad seria inventada.
+          */}
+          {estado.amnistia ? (
+            <tr className="text-[14px] text-ok-tinta">
+              <th scope="row" colSpan={3} className={cn('border-t border-linea-2 py-[10px] text-left font-normal', CELDA_DEL_RECIBO)}>
+                {t('Interés condonado por la {{ordenanza}}', { ordenanza: ORDENANZA })}
+              </th>
+              <td className={cn('border-t border-linea-2 py-[10px] text-right tabular-nums', CELDA_DEL_RECIBO)}>
+                {`− ${cifraSinSimbolo(pago.interes)}`}
+              </td>
+            </tr>
+          ) : null}
           <tr className="bg-sup text-[14.5px] font-bold text-tinta">
             <th scope="row" colSpan={3} className={cn('border-t-2 border-linea py-3 text-left', CELDA_DEL_RECIBO)}>
               {/* «Total pagado» afirma un pago. Con plataforma no se pago: se habria pagado. */}
               {simulado ? t('Total que se pagaría') : t('Total pagado')}
             </th>
             <td className={cn('border-t-2 border-linea py-3 text-right tabular-nums', CELDA_DEL_RECIBO)}>
-              {cifraSinSimbolo(pago.conAmnistia)}
+              {cifraSinSimbolo(aCobrar(estado, pago))}
             </td>
           </tr>
         </tfoot>

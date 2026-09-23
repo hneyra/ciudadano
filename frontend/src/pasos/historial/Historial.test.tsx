@@ -237,6 +237,7 @@ describe('sin haber pagado nada en esta visita', () => {
     const lenta: FuenteDelPortal = {
       // Sin plataforma no hay consulta que hacer: el historial se lee igual (issue 27).
       consulta: null,
+      amnistia: true,
       historial: () => new Promise((resolver) => (contestar = resolver)),
       unidades: () => Promise.reject(new Error('la fuente no contesto')),
     };
@@ -257,6 +258,7 @@ describe('sin haber pagado nada en esta visita', () => {
     const rota: FuenteDelPortal = {
       // Sin plataforma no hay consulta que hacer: el historial se lee igual (issue 27).
       consulta: null,
+      amnistia: true,
       historial: () => Promise.reject(new Error('la fuente no contesto')),
       unidades: () => Promise.resolve(UNIDADES),
     };

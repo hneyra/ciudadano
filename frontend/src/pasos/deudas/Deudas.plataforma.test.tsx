@@ -208,12 +208,16 @@ describe('las otras dos ramas sin deuda', () => {
     expect(importesEnPantalla()).toEqual([]);
   });
 
-  it('sin deuda: «No le queda nada por pagar», con su constancia', async () => {
+  it('sin deuda: «No le queda nada por pagar», y ni «Pagó» ni constancia (issue 49)', async () => {
     conSesion(() => Promise.resolve(respuesta({})));
 
     expect(await enMain().findByRole('heading', { level: 1, name: 'No le queda nada por pagar' })).toBeInTheDocument();
-    fireEvent.click(enMain().getByRole('button', { name: 'Pedir mi constancia de no adeudo' }));
-    expect(await screen.findByText('Se emitiría su constancia de no adeudo al día de hoy.')).toBeInTheDocument();
+    expect(
+      enMain().getByText('Según la consulta de hoy, no tiene deuda pendiente en las municipalidades del sistema.'),
+    ).toBeInTheDocument();
+    // El servidor dice que no hay saldo, no que se pagara; y el portal no emite constancias.
+    expect(principal().textContent).not.toMatch(/Pagó|constancia/i);
+    expect(enMain().queryByRole('button', { name: /constancia/i })).toBeNull();
   });
 });
 
@@ -231,15 +235,11 @@ describe('AC2 — con deuda: los conceptos y sus importes salen de la SITUACION'
     // El concepto viene del adaptador: tributo en castellano + ejercicio.
     expect(enMain().getByText('Impuesto predial 2024')).toBeInTheDocument();
     // Y su total lo suma `cuentas.ts` sobre los cuatro componentes: 1500 + 42.60 + 200 + 100. Las
-    // cinco cifras de la pantalla son: el total del servidor, la frase del servidor, el total del
-    // concepto, lo que se pagaria con la amnistia (todo menos el interes) y el interes condonado.
-    expect(importesEnPantalla()).toEqual([
-      'S/ 1,842.60',
-      'S/ 1,842.60',
-      'S/ 1,842.60',
-      'S/ 1,642.60',
-      'S/ 200.00',
-    ]);
+    // tres cifras de la pantalla son: el total del servidor, el total del concepto y lo elegido.
+    // **Ninguna «con amnistia»** (issue 49): el contrato no trae ninguna, y hasta el issue 49 la barra
+    // decia «Con la amnistía paga S/ 1,642.60: se descuentan S/ 200.00 de interés».
+    expect(importesEnPantalla()).toEqual(['S/ 1,842.60', 'S/ 1,842.60', 'S/ 1,842.60']);
+    expect(principal().textContent).not.toMatch(/amnist[ií]a/i);
 
     // Cada importe con SU fecha: la del total del servidor y la del concepto.
     expect(enMain().getAllByText('al 16/09/2026').length).toBeGreaterThanOrEqual(2);

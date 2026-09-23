@@ -154,7 +154,11 @@ describe('y todo el texto del menu pasa por `t()`', () => {
     );
     expect(within(screen.getByRole('menu')).getByText(marcado('Contribuyente 00000025673'))).toBeInTheDocument();
 
+    // EN DEMOSTRACION, el aviso del artboard (linea 1054), tal cual: ahi describe la ficcion y es
+    // definitivo. Con plataforma seria prometer algo que no va a pasar, y dice otra cosa (issue 49):
+    // lo mide `Barra.plataforma.test.tsx`, y la guarda por modo, `src/afirmaciones.plataforma.test.tsx`.
     fireEvent.click(screen.getByRole('menuitem', { name: marcado('Cambiar mi clave') }));
     expect(await screen.findByText(marcado('Abriría el cambio de clave.'))).toBeInTheDocument();
+    expect(screen.queryByText(marcado('El portal todavía no permite cambiar la clave.'))).toBeNull();
   });
 });
