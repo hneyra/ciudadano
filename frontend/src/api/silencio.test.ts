@@ -263,6 +263,74 @@ describe('AC4 — el emisor que no contesta es un fallo con su motivo, no una es
     await expect(intento).resolves.toMatchObject({ estado: 'fallo', motivo: { clave: TEXTOS_DEL_SILENCIO.noContesto } });
   });
 
+  it('si el plazo vence ANTES de abrir el marco (un reto lento), se falla igual: no se cuelga (ronda 2 del PR #45)', async () => {
+    // El plazo empieza antes del reto S256. Si el reto tarda mas que `espera`, el `abort` ya paso
+    // cuando el marco se pone a escucharlo, y un `abort` pasado no se vuelve a disparar: con un
+    // emisor callado, la promesa no se resolvia nunca y la pagina se quedaba en «Comprobando…».
+    // Determinista: el reto tarda 40 ms y el plazo es de 10.
+    const digerir = crypto.subtle.digest.bind(crypto.subtle);
+    vi.spyOn(crypto.subtle, 'digest').mockImplementation(async (algoritmo, datos) => {
+      await new Promise((listo) => setTimeout(listo, 40));
+      return digerir(algoritmo, datos);
+    });
+    emisor = emisorFalso(callado);
+
+    const resultado = await Promise.race([
+      nuevo(10).intentar(),
+      new Promise((listo) => setTimeout(() => listo('colgado'), 1000)),
+    ]);
+
+    expect(resultado, 'el intento se colgo con el plazo ya vencido').toMatchObject({
+      estado: 'fallo',
+      motivo: { clave: TEXTOS_DEL_SILENCIO.noContesto },
+    });
+    // Y ni siquiera se abrio el marco: ya no habia a quien esperar.
+    expect(emisor.pedidas).toEqual([]);
+    expect(marcosEnLaPagina()).toBe(0);
+  });
+
+  it('si abrir el marco REVIENTA, no queda nada vivo: ni oyentes ni marco (ronda 2 del PR #45)', async () => {
+    const oyentesDeMensajes = new Set<unknown>();
+    let escuchados = 0;
+    const oyentesDelPlazo = new Set<unknown>();
+    // Los de la ventana, en la ventana: bajo jsdom, `window.addEventListener` no es el de
+    // `EventTarget.prototype` (otro reino), y espiando solo este la mitad de los mensajes no se veria.
+    const escucharVentana = window.addEventListener.bind(window);
+    const soltarVentana = window.removeEventListener.bind(window);
+    vi.spyOn(window, 'addEventListener').mockImplementation((tipo: string, oyente: EventListenerOrEventListenerObject, opciones?: boolean | AddEventListenerOptions) => {
+      if (tipo === 'message') {
+        escuchados += 1;
+        oyentesDeMensajes.add(oyente);
+      }
+      escucharVentana(tipo, oyente, opciones);
+    });
+    vi.spyOn(window, 'removeEventListener').mockImplementation((tipo: string, oyente: EventListenerOrEventListenerObject, opciones?: boolean | EventListenerOptions) => {
+      if (tipo === 'message') oyentesDeMensajes.delete(oyente);
+      soltarVentana(tipo, oyente, opciones);
+    });
+    const anadir = EventTarget.prototype.addEventListener;
+    const quitar = EventTarget.prototype.removeEventListener;
+    vi.spyOn(EventTarget.prototype, 'addEventListener').mockImplementation(function (this: EventTarget, tipo, oyente, opciones) {
+      if (tipo === 'abort' && this instanceof AbortSignal) oyentesDelPlazo.add(oyente);
+      anadir.call(this, tipo, oyente, opciones);
+    });
+    vi.spyOn(EventTarget.prototype, 'removeEventListener').mockImplementation(function (this: EventTarget, tipo, oyente, opciones) {
+      if (tipo === 'abort' && this instanceof AbortSignal) oyentesDelPlazo.delete(oyente);
+      quitar.call(this, tipo, oyente, opciones);
+    });
+    vi.spyOn(document.body, 'appendChild').mockImplementation(() => {
+      throw new Error('no se pudo insertar');
+    });
+
+    await expect(nuevo().intentar()).rejects.toThrow('no se pudo insertar');
+
+    // El centinela: se llego a escuchar. Sin esto, un espia que no viera nada daria cero en verde.
+    expect(escuchados, 'el espia no vio ningun oyente de mensajes').toBeGreaterThan(0);
+    expect(oyentesDeMensajes.size, 'quedo escuchando mensajes').toBe(0);
+    expect(oyentesDelPlazo.size, 'quedo escuchando el plazo').toBe(0);
+    expect(marcosEnLaPagina()).toBe(0);
+  });
+
   it('un error que no es «no hay sesion» es un fallo, con lo que dijo el emisor', async () => {
     emisor = emisorFalso((pedida) => `?error=unauthorized_client&error_description=Cliente+desconocido&state=${pedida.searchParams.get('state') ?? ''}`);
 

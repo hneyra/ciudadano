@@ -222,7 +222,15 @@ const NO_CONTESTO = (espera: number): FalloDelSilencio =>
  * devuelve `null`.
  */
 function preguntarEnUnMarco(url: string, estado: string, plazo: AbortSignal): Promise<string | null> {
-  return new Promise((resolver) => {
+  return new Promise((resolver, rechazar) => {
+    // Si el plazo ya vencio —el reto S256 corre bajo el mismo plazo y puede tardar mas—, el `abort`
+    // ya paso y no se vuelve a disparar: escucharlo ahora seria esperar para siempre, con la pagina
+    // en «Comprobando su sesion…» (ronda 2 del PR #45). No hay a quien esperar: ni se abre el marco.
+    if (plazo.aborted) {
+      resolver(null);
+      return;
+    }
+
     const marco = document.createElement('iframe');
     // Invisible y fuera del arbol de accesibilidad: no hay nada que ver ni que leer ahi dentro.
     marco.style.display = 'none';
@@ -234,21 +242,30 @@ function preguntarEnUnMarco(url: string, estado: string, plazo: AbortSignal): Pr
       if (evento.source === null || evento.source !== marco.contentWindow) return;
       if (typeof evento.data !== 'string') return;
       if (new URLSearchParams(evento.data).get('state') !== estado) return;
-      terminar(evento.data);
+      terminar(() => resolver(evento.data as string));
     };
-    const vencido = (): void => terminar(null);
-    function terminar(busqueda: string | null): void {
+    const vencido = (): void => terminar(() => resolver(null));
+    let terminado = false;
+    /** La UNICA salida: contestacion, plazo o excepcion, las tres quitan lo mismo. */
+    function terminar(salir: () => void): void {
+      if (terminado) return;
+      terminado = true;
       plazo.removeEventListener('abort', vencido);
       window.removeEventListener('message', escuchar);
       marco.remove();
-      resolver(busqueda);
+      salir();
     }
 
     // El oyente ANTES que el marco: un emisor rapido podria contestar antes de la linea siguiente.
     window.addEventListener('message', escuchar);
     plazo.addEventListener('abort', vencido);
-    marco.src = url;
-    document.body.appendChild(marco);
+    try {
+      marco.src = url;
+      document.body.appendChild(marco);
+    } catch (error) {
+      // Sin esto el ejecutor rechazaba, pero los dos oyentes quedaban vivos (ronda 2 del PR #45).
+      terminar(() => rechazar(error));
+    }
   });
 }
 
