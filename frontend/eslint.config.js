@@ -62,6 +62,8 @@ export default tseslint.config(
       // miles de errores («'window' is not defined»), como paso con `playwright-report/`.
       '**/dist-de-produccion/**',
       '**/dist-con-plataforma/**',
+      // Y el que `e2e/el-dist-de-la-imagen-esta-limpio.spec.ts` construye como la imagen (issue 37).
+      '**/dist-de-la-imagen/**',
       '**/node_modules/**',
       // Lo que deja el arnes (issue 11): el informe HTML con el visor de trazas empaquetado, y las
       // trazas. No se versionan (`.gitignore`), pero estan en el disco: medido, tras una corrida con

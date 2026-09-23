@@ -1,0 +1,46 @@
+# Lo que NO viaja al contexto de `frontend/Dockerfile` (issue 37). Portado de
+# `rentas/frontend/.dockerignore` (rentas#44).
+#
+# Un `.dockerignore` solo se aplica desde la raiz de SU contexto, y el de esta imagen es `frontend/`.
+# Y no acota el contexto con nombre `kamayuk-lib`: de ese, el `Dockerfile` copia solo `paquetes/`.
+
+# ── Lo que se reconstruye dentro ─────────────────────────────────────────────────────────
+#
+# `node_modules` se reinstala desde `package.json` + `yarn.lock` con `--frozen-lockfile`. Copiarlo de
+# fuera meteria los binarios de la maquina de quien construye —que no tienen por que ser los de
+# alpine— y, como aqui dentro los `@kamayuk/*` son enlaces simbolicos a `../../kamayuk-lib`, enlaces
+# que dentro de la imagen apuntan a otra cosa.
+node_modules
+
+# Se reconstruye con `yarn build`. Copiarlo de fuera haria que la imagen pudiera publicar el `dist/`
+# de otro commit sin que nada lo dijera.
+dist
+
+# Y los otros paquetes que el arnes deja en el disco: el de produccion, el CON PLATAFORMA y el de la
+# imagen (`.gitignore` los nombra uno por uno; `imagen-y-despliegue.test.ts` los cruza con este).
+dist-*
+
+# ── LOS ARCHIVOS DE ENTORNO. Todos, y este es el bloque que mas importa ──────────────────
+#
+# Vite **hornea** cada `VITE_*` que encuentre en `.env`, `.env.local`, `.env.<modo>` y
+# `.env.<modo>.local` dentro del JavaScript que se publica. No basta con `.gitignore`: es el hallazgo
+# de `caja`#47 que rentas#44 porto.
+#
+# Y el que SI esta versionado tampoco entra: `.env.development` enciende la demostracion. `vite build`
+# no lo lee, pero excluirlo hace que eso no dependa de una propiedad de Vite. Es la segunda de las tres
+# vallas; la primera es el `ENV` del `Dockerfile` y la tercera, `import.meta.env.DEV`.
+.env
+.env.*
+
+# ── El arnes de extremo a extremo ────────────────────────────────────────────────────────
+#
+# Ninguna etapa lo necesita: `yarn build` solo sigue lo que `index.html` importa. Y su salida —el
+# informe, las trazas, las capturas de la vista de impresion— es de una corrida y de una maquina.
+e2e
+playwright-report
+test-results
+
+# ── Residuos locales ─────────────────────────────────────────────────────────────────────
+.git
+.vite
+*.tsbuildinfo

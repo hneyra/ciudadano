@@ -7,6 +7,9 @@ dist-de-produccion/
 # El paquete CON PLATAFORMA que sirve el segundo servidor del arnes (issue 28), para
 # `e2e/recorrido-con-plataforma.spec.ts`. Se construye en cada corrida.
 dist-con-plataforma/
+# El paquete construido COMO LO CONSTRUYE LA IMAGEN que mide `e2e/el-dist-de-la-imagen-esta-limpio.spec.ts`
+# (issue 37): con la bandera apagada, sin mapas, y comprobado con el mismo guion. Vive un camino.
+dist-de-la-imagen/
 
 # La cache de Vite: es de una maquina y de una corrida.
 .vite/

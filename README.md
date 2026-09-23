@@ -19,7 +19,8 @@ entra a su cuenta, paga con uno de cuatro medios y se lleva un comprobante que s
 > al token del ciudadano, asi que `rentas` no puede componer el total. Es backend, y de otros
 > repositorios.
 >
-> Nada se despliega.
+> Se **empaqueta** —`frontend/Dockerfile`, una imagen con nginx que sirve el portal bajo `/portal/`—, pero
+> no se publica ni se despliega desde aqui: eso es de `infrastructure`.
 
 Todo lo que hace falta saber para trabajar aqui —que hay, que no, el stack, las reglas, las
 verificaciones y como se demostro que cada una muerde— esta en [`CLAUDE.md`](CLAUDE.md).
@@ -63,6 +64,49 @@ de la vista de impresion, queda en `frontend/playwright-report/`.
 
 La CI (`.github/workflows/frontend.yml`) corre `verificar` —`yarn verificar` y `yarn build`— y, si pasa,
 `arnes` —`yarn e2e` en Chromium, con el informe como artefacto `informe-del-arnes`—.
+
+## La imagen
+
+`frontend/Dockerfile` construye el paquete de **produccion** (con plataforma: la bandera de la
+demostracion va apagada dentro) y lo sirve con `nginx:1.31.5-alpine` en el puerto **8080**, bajo
+**`/portal/`**, como el usuario **101**. Necesita BuildKit (`docker buildx`) y el clon hermano, que entra
+por un **contexto con nombre** —los `link:` de `package.json` resuelven contra el disco, y el hermano
+queda fuera del contexto—:
+
+```bash
+cd frontend
+docker build -t ciudadano-web --build-context kamayuk-lib=../../kamayuk-lib .
+docker run --rm -p 8080:8080 ciudadano-web     # http://localhost:8080/portal/
+```
+
+Lo que sirve, y como:
+
+| Ruta | Respuesta |
+|---|---|
+| `/portal/`, `/portal/index.html` | la pagina, `Cache-Control: no-cache` |
+| `/portal/assets/*` (con huella) | `public, max-age=31536000, immutable`; si falta, 404 |
+| `/portal/configuracion.js` | las senias del ambiente, `no-store` |
+| `/portal/silencio.html` | la vuelta del canje silencioso, `no-cache` y `X-Frame-Options: SAMEORIGIN` |
+| cualquier otra cosa, y todo lo que no cuelga de `/portal/` | **404** con `no-store`, sin redirigir (`/portal` sin barra tambien) |
+
+Todas llevan `X-Content-Type-Options`, `X-Frame-Options` y `Referrer-Policy`, tambien los errores.
+
+**Las senias del ambiente se cambian sin reconstruir**: el `configuracion.js` de la imagen viaja vacio y se
+monta otro encima —en el cluster, un `ConfigMap`—:
+
+```bash
+docker run --rm -p 8080:8080 \
+  -v "$PWD/configuracion.js:/usr/share/nginx/html/portal/configuracion.js:ro" ciudadano-web
+```
+
+con `window.__KAMAYUK_CIUDADANO__ = { oidcRealm: '…', oidcCliente: '…', oidcAlcance: '…' };` dentro
+(ver `frontend/src/api/configuracion.ts`).
+
+La imagen **no se construye si lo que va a servir no esta limpio**: en su ultima etapa corre
+`frontend/imagen/lo-servido-esta-limpio.sh`, que sale en rojo ante un mapa de simbolos, codigo fuente,
+una copia de cualquier archivo de `src/` o de `diseno/` (salvo el escudo, que el portal dibuja) o el
+artboard o la captura del backend pegados dentro de otro archivo. Publicarla en un registro y enrutar
+`/portal` hacia ella —**sin** quitar el prefijo— es de `infrastructure`.
 
 ## Pantallas y artboard
 
