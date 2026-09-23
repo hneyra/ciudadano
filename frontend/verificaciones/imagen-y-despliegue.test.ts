@@ -344,9 +344,33 @@ describe('nginx: bajo /portal/, con sus cabeceras, sin cachear errores y sin red
    * (como el `ConfigMap` de `rentas`): un navegador que se quedara con el anterior mandaria al
    * ciudadano al emisor OIDC del ambiente que fuera. `no-store`, no `no-cache`.
    */
-  it('configuracion.js no se guarda, y silencio.html tampoco se cachea', () => {
+  it('configuracion.js y silencio.html no se guardan', () => {
     expect(cacheDe('= /portal/configuracion.js')).toMatch(/"no-store"\s+always/);
-    expect(cacheDe('= /portal/silencio.html')).toMatch(/"no-cache"\s+always/);
+    // La vuelta del canje lleva `?code=…&state=…` en su URL: de ella no queda nada en la cache
+    // (revision del PR #48).
+    expect(cacheDe('= /portal/silencio.html')).toMatch(/"no-store"\s+always/);
+  });
+
+  /**
+   * **El VALOR de `X-Frame-Options`, bloque a bloque** (revision del PR #48).
+   *
+   * Que la cabecera este no basta: con `SAMEORIGIN` —o `ALLOWALL`— en `/portal/`, la portada donde
+   * se paga queda enmarcable y todo lo de arriba sigue verde. Y al reves: `silencio.html` es la UNICA
+   * pagina que se dibuja dentro de un marco —el del canje silencioso del issue 35— y necesita
+   * `SAMEORIGIN`; «normalizarla» a `DENY` copiando `rentas` rompe el canje, y el arnes no lo ve,
+   * porque sirve con `vite preview` y no con este nginx.
+   */
+  it('X-Frame-Options es DENY en cada bloque, y SAMEORIGIN SOLO en silencio.html', () => {
+    const valores = bloques.map(({ cabecera, cuerpo }) => ({
+      cabecera,
+      valor: /add_header\s+X-Frame-Options\s+"([^"]+)"/.exec(cuerpo)?.[1] ?? '(no la declara)',
+    }));
+    const esperado = valores.map(({ cabecera }) => ({
+      cabecera,
+      valor: cabecera === '= /portal/silencio.html' ? 'SAMEORIGIN' : 'DENY',
+    }));
+    expect(valores.some((v) => v.cabecera === '= /portal/silencio.html'), 'EL CENTINELA: silencio.html no tiene bloque').toBe(true);
+    expect(valores).toEqual(esperado);
   });
 
   /**

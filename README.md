@@ -86,7 +86,7 @@ Lo que sirve, y como:
 | `/portal/`, `/portal/index.html` | la pagina, `Cache-Control: no-cache` |
 | `/portal/assets/*` (con huella) | `public, max-age=31536000, immutable`; si falta, 404 |
 | `/portal/configuracion.js` | las senias del ambiente, `no-store` |
-| `/portal/silencio.html` | la vuelta del canje silencioso, `no-cache` y `X-Frame-Options: SAMEORIGIN` |
+| `/portal/silencio.html` | la vuelta del canje silencioso, `no-store` y `X-Frame-Options: SAMEORIGIN` (la unica; todo lo demas, `DENY`) |
 | cualquier otra cosa, y todo lo que no cuelga de `/portal/` | **404** con `no-store`, sin redirigir (`/portal` sin barra tambien) |
 
 Todas llevan `X-Content-Type-Options`, `X-Frame-Options` y `Referrer-Policy`, tambien los errores.
