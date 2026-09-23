@@ -147,6 +147,18 @@ async function backendFalso(pagina: Page): Promise<BackendFalso> {
     void ruta.fulfill({ status: 302, headers: { location: `${retorno}?${vuelta}` } });
   });
 
+  // 2b. El cierre de sesion (revision del PR #45): `salir()` manda aqui con `id_token_hint`, y el
+  // emisor de verdad TERMINA su sesion y devuelve al `post_logout_redirect_uri`. Este lo imita: la
+  // olvida. Es lo honesto —un emisor que la recordara no es el que hay—, y por eso el camino del
+  // cierre no mide la sesion del emisor sino que el portal NO LE PREGUNTE: lo mide contando las
+  // preguntas silenciosas, que es lo que `vieneDeSalir()` apaga.
+  await pagina.route(`${EMISOR}/protocol/openid-connect/logout*`, (ruta) => {
+    sesionDelEmisor = false;
+    const pedida = new URL(ruta.request().url());
+    const vuelta = pedida.searchParams.get('post_logout_redirect_uri') ?? URL_CON_PLATAFORMA;
+    void ruta.fulfill({ status: 302, headers: { location: vuelta } });
+  });
+
   // 3. El canje.
   await pagina.route(`${EMISOR}/protocol/openid-connect/token`, (ruta) =>
     ruta.fulfill({
@@ -314,7 +326,36 @@ test.describe('el recorrido con plataforma', () => {
     // Mientras tanto, la espera: ni la pagina en blanco, ni un salto a la puerta.
     await expect(page.getByRole('status').filter({ hasText: 'Comprobando su sesión…' })).toBeVisible();
     await expect(page.getByText('No se pudo abrir su sesión')).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(/sin poder entrar: El emisor no contesto\./)).toBeVisible();
+    await expect(
+      page.getByText(/^Al abrir la página quisimos comprobar si ya había entrado, y no se pudo: El sistema de identidad no contestó\./),
+    ).toBeVisible();
+    // Nadie fue al sistema de identidad ni volvio de el (revision del PR #45).
+    await expect(page.getByText(/Volvimos/)).toHaveCount(0);
     await expect(page.locator('iframe')).toHaveCount(0);
+  });
+
+  test('entrar, cerrar sesion y recargar: se sigue FUERA, y el portal ni pregunta (revision del PR #45)', async ({ page }) => {
+    const backend = await backendFalso(page);
+    await abrirConPlataforma(page);
+    await entrarYLlegarALaDeuda(page);
+    const antesDeSalir = backend.silenciosas();
+
+    await page.getByRole('banner').getByRole('button', { name: /Rufina Medina Medina/ }).click();
+    await page.getByRole('menuitem', { name: 'Cerrar sesión' }).click();
+
+    // De vuelta del cierre, anonimo y en el paso 1, con «Entrar» a la vista.
+    await expect(page.getByRole('heading', { level: 1, name: 'Entre con su cuenta del portal' })).toBeVisible();
+    await expect(principal(page).getByRole('button', { name: 'Entrar con mi cuenta' })).toBeVisible();
+
+    await page.reload();
+
+    await expect(page.getByRole('heading', { level: 1, name: 'Entre con su cuenta del portal' })).toBeVisible();
+    await expect(principal(page).getByRole('button', { name: 'Entrar con mi cuenta' })).toBeVisible();
+    await expect(page.getByRole('banner').getByRole('button', { name: 'Iniciar sesión' })).toBeVisible();
+    // Ni la vuelta del cierre ni la recarga le preguntaron al emisor: `vieneDeSalir()`. Sin eso, con
+    // un emisor que no hubiera cerrado su sesion —un `id_token_hint` perdido—, la recarga volveria a
+    // meter dentro a quien acaba de salir, en un equipo compartido.
+    expect(backend.silenciosas(), 'el portal le pregunto al emisor despues de cerrar sesion').toBe(antesDeSalir);
+    expect(backend.conFormulario()).toBe(1);
   });
 });

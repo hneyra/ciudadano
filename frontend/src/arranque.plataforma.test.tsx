@@ -105,6 +105,33 @@ describe('recargar con plataforma', () => {
     await recargarCon(callado);
 
     expect(await screen.findByText('No se pudo abrir su sesión')).toBeInTheDocument();
-    expect(screen.getByText(/sin poder entrar: El emisor no contesto\./)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Al abrir la página quisimos comprobar si ya había entrado, y no se pudo: El sistema de identidad no contestó. ' +
+          'Le preguntamos si ya había entrado y no contestó en 0.05 s. Puede estar apagado o no ser alcanzable desde este equipo.',
+      ),
+    ).toBeInTheDocument();
+    // Nadie fue al sistema de identidad ni volvio de el: el marco ni siquiera volvio. Decir
+    // «Volvimos» seria afirmar algo que no ocurrio (revision del PR #45).
+    expect(screen.queryByText(/Volvimos/)).toBeNull();
+  });
+
+  it('y si preguntar REVIENTA, tambien se dice: nunca una pagina en blanco (revision del PR #45)', async () => {
+    window.history.replaceState(null, '', '/portal/#/deudas');
+    const silencio = { intentar: () => Promise.reject(new Error('digest no disponible')) };
+
+    await arrancar(() => montarElPortal({ hash: '#/deudas', fuente: crearFuenteDeLaPlataforma(CALLADO) }), {
+      conPlataforma: true,
+      silencio,
+    });
+
+    expect(await screen.findByText('No se pudo abrir su sesión')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Al abrir la página quisimos comprobar si ya había entrado, y no se pudo: No se pudo preguntar al sistema de identidad. ' +
+          'Algo falló al preparar la pregunta: digest no disponible',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Volvimos/)).toBeNull();
   });
 });

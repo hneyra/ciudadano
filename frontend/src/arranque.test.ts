@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { identidad } from './api/identidad.ts';
-import type { Silencio } from './api/silencio.ts';
-import { UMBRAL_DE_ESPERA, arrancar, entrar, salir, vueltaFallida } from './arranque.ts';
+import { type Silencio, TEXTOS_DEL_SILENCIO } from './api/silencio.ts';
+import { UMBRAL_DE_ESPERA, arrancar, entrar, preguntaFallida, salir, vueltaFallida } from './arranque.ts';
 import { emisorFalso, marcosEnLaPagina, sinSesion } from './pruebas/emisorFalso.ts';
 
 /**
@@ -197,12 +197,43 @@ describe('el canje silencioso (issue 35): cuando se pregunta al emisor, y cuando
 
   it('AC4 — si el emisor no contesto, se monta la pantalla que lo explica, con su motivo', async () => {
     const montar = vi.fn();
-    const fallo = { estado: 'fallo', motivo: 'El emisor no contesto', detalle: 'No contesto en 8 s.' } as const;
+    const fallo = {
+      estado: 'fallo',
+      motivo: { clave: TEXTOS_DEL_SILENCIO.noContesto },
+      detalle: { clave: TEXTOS_DEL_SILENCIO.noContestoDetalle, valores: { segundos: '8' } },
+    } as const;
 
     await arrancar(montar, { ...CON_PLATAFORMA, silencio: silencioQueContesta(fallo) });
 
     expect(montar, 'sin montar, la pagina se queda en blanco').toHaveBeenCalledTimes(1);
-    expect(vueltaFallida()).toEqual({ motivo: 'El emisor no contesto', detalle: 'No contesto en 8 s.' });
+    expect(preguntaFallida()).toEqual(fallo);
+    // Y no es una vuelta fallida: nadie volvio de ningun sitio (revision del PR #45).
+    expect(vueltaFallida()).toBeNull();
+  });
+
+  it('si preguntar REVIENTA en vez de contestar, se monta IGUAL y se dice (revision del PR #45)', async () => {
+    // `crypto.subtle` que lanza, un `appendChild` que falla, un `id_token` raro: sin el `catch`, la
+    // excepcion saltaba el `montar()` y la pagina se quedaba en blanco.
+    const montar = vi.fn();
+    const silencio = { intentar: vi.fn(() => Promise.reject(new Error('digest no disponible'))) };
+
+    await arrancar(montar, { ...CON_PLATAFORMA, silencio });
+
+    expect(montar, 'la excepcion dejo la pagina en blanco').toHaveBeenCalledTimes(1);
+    expect(preguntaFallida()).toEqual({
+      estado: 'fallo',
+      motivo: { clave: TEXTOS_DEL_SILENCIO.inesperado },
+      detalle: { clave: TEXTOS_DEL_SILENCIO.inesperadoDetalle, valores: { mensaje: 'digest no disponible' } },
+    });
+  });
+
+  it('cada pasada vuelve a fijar la pregunta fallida: no se arrastra la de antes', async () => {
+    await arrancar(vi.fn(), { ...CON_PLATAFORMA, silencio: { intentar: vi.fn(() => Promise.reject(new Error('x'))) } });
+    expect(preguntaFallida()).not.toBeNull();
+
+    await arrancar(vi.fn(), EN_DEMOSTRACION);
+
+    expect(preguntaFallida()).toBeNull();
   });
 
   it.each([

@@ -1,7 +1,13 @@
 import type { FallaDeLaPuerta, Vuelta } from '@kamayuk/sesion';
 
 import { identidad } from './api/identidad.ts';
-import { type CanjeSilencioso, silencio as silencioDelPortal } from './api/silencio.ts';
+import {
+  type CanjeSilencioso,
+  type FalloDelSilencio,
+  type Silencio,
+  falloInesperado,
+  silencio as silencioDelPortal,
+} from './api/silencio.ts';
 
 /**
  * **El arranque del portal: primero quien pregunta, y solo entonces quien dibuja** (issue 13).
@@ -74,6 +80,20 @@ export function vueltaFallida(): VueltaFallida | null {
 }
 
 /**
+ * **La pregunta silenciosa que no salio** (issue 35), o `null`.
+ *
+ * Aparte de `vueltaFallida()` y no mezclada con ella porque la pantalla tiene que decir otra cosa
+ * (revision del PR #45): quien recarga no fue a ningun sitio y, con el tope, el marco ni siquiera
+ * volvio, asi que «Volvimos del sistema de identidad…» seria afirmar algo que no ocurrio. Y porque
+ * sus textos son claves que traduce la pantalla (`TextoDelSilencio`), no palabras de la libreria.
+ */
+let laPregunta: FalloDelSilencio | null = null;
+
+export function preguntaFallida(): FalloDelSilencio | null {
+  return laPregunta;
+}
+
+/**
  * **Cuanto se deja la pagina como esta antes de dibujar la espera** (issue 35).
  *
  * El canje silencioso contra un emisor vivo tarda lo que un ida y vuelta —decenas o pocos cientos
@@ -136,14 +156,17 @@ function hayQuePreguntar(conPlataforma: boolean, vuelta: Vuelta): boolean {
  *
  * <h2>Un fallo que no es «no hay sesion» se dice</h2>
  *
- * Con la pantalla que ya existe, «No se pudo abrir su sesion», y con el motivo dentro. «No hay
- * sesion» no es un fallo: se monta anonimo y la persona decide si entra.
+ * Con la pantalla de «No se pudo abrir su sesion», en su variante de la pregunta silenciosa
+ * (`preguntaFallida()`), y con el motivo dentro. Tambien si preguntar REVIENTA en vez de contestar:
+ * nunca una pagina en blanco. «No hay sesion» no es un fallo: se monta anonimo y la persona decide
+ * si entra.
  */
 export async function arrancar(
   montar: () => void,
   { conPlataforma, esperando = () => undefined, silencio = silencioDelPortal }: ComoArrancar,
 ): Promise<void> {
   laVuelta = null;
+  laPregunta = null;
 
   const vuelta = await identidad.canjearSiVuelve();
   if (vuelta.estado === 'fallo') {
@@ -152,11 +175,17 @@ export async function arrancar(
 
   if (hayQuePreguntar(conPlataforma, vuelta)) {
     const espera = setTimeout(esperando, UMBRAL_DE_ESPERA);
-    const respuesta = await silencio.intentar();
-    clearTimeout(espera);
-    if (respuesta.estado === 'fallo') {
-      laVuelta = { motivo: respuesta.motivo, detalle: respuesta.detalle };
+    let respuesta: Silencio;
+    try {
+      respuesta = await silencio.intentar();
+    } catch (error) {
+      // Una excepcion aqui saltaria el `montar()` de abajo y dejaria la pagina en blanco: se dice,
+      // como cualquier otro fallo (revision del PR #45; es lo que la libreria cerro en rentas#112).
+      respuesta = falloInesperado(error);
+    } finally {
+      clearTimeout(espera);
     }
+    if (respuesta.estado === 'fallo') laPregunta = respuesta;
   }
 
   montar();
