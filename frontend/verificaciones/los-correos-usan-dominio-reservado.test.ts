@@ -105,12 +105,12 @@ describe('`correosNoReservados`: cada direccion senalada, con su linea', () => {
     const otroRegistrable = ['correo', 'pe'].join('.');
     const texto = [
       "const CORREO = 'maria@example.com';",
-      `expect(destino).toBe('fruiz159@${webmail}');`,
+      `expect(destino).toBe('alguien@${webmail}');`,
       `// un comentario que menciona ana@${otroRegistrable} tambien cuenta: no hay exencion para comentarios`,
     ].join('\n');
 
     expect(correosNoReservados(texto)).toEqual<CorreoEncontrado[]>([
-      { linea: 2, correo: `fruiz159@${webmail}`, dominio: webmail },
+      { linea: 2, correo: `alguien@${webmail}`, dominio: webmail },
       { linea: 3, correo: `ana@${otroRegistrable}`, dominio: otroRegistrable },
     ]);
   });
@@ -153,6 +153,26 @@ describe('el arbol versionado, entero', () => {
         '  Un correo de mentira usa un dominio reservado (RFC 2606/6761): example.com/.org/.net,\n' +
         '  *.example, *.test, *.invalid o localhost. Si la direccion es legitima (una atribucion,\n' +
         '  por ejemplo), se exime por su direccion EXACTA en `EXENCIONES`, con el motivo escrito.',
+    ).toEqual([]);
+  });
+
+  /**
+   * Ronda 1 de revision del PR del issue 51: sustituir SOLO el dominio no bastaba — el local-part
+   * del primer correo del mapeo del issue (el que tenia forma de persona real) sobrevivio en un
+   * ejemplo de esta misma guarda, sin dominio o con uno reservado, y `git grep` de los tres
+   * dominios del issue no lo veia. Esta prueba mira el NOMBRE, no la direccion entera, y en
+   * cualquier sitio del texto, no solo dentro de un correo. Se arma el patron por partes (como los
+   * ejemplos de arriba), porque el nombre entero, escrito aqui, volveria a auto-senalarse.
+   */
+  it('el nombre de usuario del correo real tampoco vive en el arbol, con o sin dominio', () => {
+    const NOMBRE_REAL = new RegExp(['fru', 'iz', '159'].join(''), 'i');
+    const hallazgos = rutas.filter((ruta) => NOMBRE_REAL.test(readFileSync(join(RAIZ_DEL_REPO, ruta), 'utf8')));
+
+    expect(
+      hallazgos,
+      `El nombre de usuario del correo real sigue en el arbol, con o sin dominio: ${hallazgos.join(', ')}\n\n` +
+        '  Era el local-part del correo real que el issue 51 quito; cambiar solo el dominio no\n' +
+        '  basta si el nombre se queda.',
     ).toEqual([]);
   });
 });
