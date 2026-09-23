@@ -1,0 +1,30 @@
+<!doctype html>
+<!--
+  La vuelta del canje silencioso (issue 35). Ver `src/api/silencio.ts`.
+
+  El portal abre un marco oculto hacia el emisor con `prompt=none`, y el emisor lo devuelve AQUI
+  con `?code=…&state=…` si su sesion sigue viva, o con `?error=login_required&state=…` si no. Esta
+  pagina hace UNA cosa: le pasa su busqueda a la ventana de arriba, y solo si esa ventana es de
+  este mismo origen (el segundo argumento de `postMessage`). La comprobacion de que el mensaje es
+  el suyo —el origen, la ventana y el `state`— la hace quien lo recibe.
+
+  Y nada mas, a proposito: ni guiones de terceros, ni almacenamiento, ni el paquete del portal. El
+  paquete, cargado dentro del marco, arrancaria el portal entero ahi dentro, con su propio intento.
+
+  Abierta sola, sin ventana de arriba, no hace nada.
+
+  Se sirve en `BASE_URL + 'silencio.html'` (`/portal/silencio.html`), bajo los `redirectUris`
+  `…/portal/*` que el client `kamayuk-portal` ya declara: no hay que tocar el realm.
+-->
+<html lang="es-PE">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <script>
+      if (window.parent !== window) {
+        window.parent.postMessage(window.location.search, window.location.origin);
+      }
+    </script>
+  </body>
+</html>

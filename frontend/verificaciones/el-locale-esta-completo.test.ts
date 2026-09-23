@@ -326,6 +326,9 @@ const LITERALES = [
   'No se pudo abrir su sesión',
   'Volvimos del sistema de identidad sin poder entrar: {{motivo}}. {{detalle}}',
   'Vuelva a cargar la página e inténtelo otra vez. Si sigue igual, puede consultar y pagar en la ventanilla de la municipalidad.',
+  // El canje silencioso (issue 35): la espera que `src/aplicacion.tsx` dibuja si preguntarle al
+  // emisor si ya se habia entrado tarda. Si falla, se dice con las tres frases de arriba.
+  'Comprobando su sesión…',
 
   // ── El doble modo y los estados de la consulta (issue 27) ───────────────────────────────────
   // No estan en el artboard: el artboard no consulta a ningun servidor. Son los cinco finales que

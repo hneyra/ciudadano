@@ -68,6 +68,36 @@ function LaPuertaNoContesto({ falla }: { readonly falla: VueltaFallida }) {
 }
 
 /**
+ * **La espera mientras se le pregunta al emisor si ya se habia entrado** (issue 35).
+ *
+ * La dibuja `main.tsx` cuando el canje silencioso tarda mas que `UMBRAL_DE_ESPERA`
+ * (`src/arranque.ts`): el issue pide que, mientras tanto, el portal diga que esta consultando, y no
+ * que se quede en blanco ni que salte a la puerta. Cuando la pregunta termina, el portal se monta
+ * encima, en la misma raiz.
+ *
+ * Con el tema, por lo mismo que la puerta caida: la primera pantalla que alguien ve no puede tener
+ * la paleta de otro programa. Y con el aspecto de «Consultando su deuda…» (`LaConsulta.tsx`), que es
+ * el «consultando» que el portal ya tiene.
+ */
+export function ComprobandoLaSesion() {
+  const { t } = useTranslation();
+
+  return (
+    <ProveedorDeTema configuracion={TEMA}>
+      <div className="grid min-h-screen place-items-center bg-fondo p-[30px]">
+        <p
+          role="status"
+          aria-busy="true"
+          className="m-0 border border-linea bg-superficie px-[22px] py-5 text-[18px] font-bold"
+        >
+          {t('Comprobando su sesión…')}
+        </p>
+      </div>
+    </ProveedorDeTema>
+  );
+}
+
+/**
  * **El portal**: el tema, el estado del recorrido y el enrutador, en ese orden.
  *
  * · **El proveedor del tema envuelve TODO**, y es lo primero que se monta: lo que se dibuje sin el

@@ -143,15 +143,23 @@ describe('solo `src/api/` puede llamar a `fetch`', () => {
     expect(culpables).toEqual([]);
   });
 
-  it('hoy tampoco lo llama `src/api/`: quien lo hace es `@kamayuk/api`', () => {
-    // La excepcion se situa igual, porque es donde la llamada tendria su sitio. Que hoy no haya
-    // ninguna es la mitad buena de enlazar la libreria: el unico `fetch` del producto vive en un
-    // paquete con su propia prueba de lo que sale por el cable.
+  it('en `src/api/` lo llama UN archivo, el canje silencioso, y solo hacia el emisor (issue 35)', () => {
+    // La API sigue sin un `fetch` propio: la llama `@kamayuk/api`, un paquete con su propia prueba
+    // de lo que sale por el cable, y esa es la mitad buena de enlazar la libreria.
+    //
+    // La unica llamada es la del canje del codigo del marco silencioso contra el endpoint de token
+    // del EMISOR, que no es la API y no puede ir por `solicitar()` —no lleva token, no es del mismo
+    // origen, no contesta `problem+json`—. Es la misma llamada que `@kamayuk/sesion` hace en su
+    // canje, que no se publica (ver la cabecera de `src/api/silencio.ts`). Un segundo archivo, o
+    // un segundo `fetch` en este, es otra decision y tiene que decirse aqui.
     const conFetch = deProduccion.filter(
       (ruta) =>
         ruta.startsWith('src/api/') && /\bfetch\s*\(/.test(readFileSync(join(FRONTEND, ruta), 'utf8')),
     );
+    expect(conFetch).toEqual(['src/api/silencio.ts']);
 
-    expect(conFetch).toEqual([]);
+    const silencio = readFileSync(join(FRONTEND, 'src/api/silencio.ts'), 'utf8');
+    const llamadas = [...silencio.matchAll(/\bfetch\s*\(([^,]*),/g)].map((c) => (c[1] ?? '').trim());
+    expect(llamadas).toEqual(['`${realm}/protocol/openid-connect/token`']);
   });
 });
