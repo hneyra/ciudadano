@@ -2,7 +2,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest';
 
 import i18n, { IDIOMA_MARCADO } from '../../i18n/i18n.ts';
-import { limpiarElPortal, marcado, montarElPortal } from '../../pruebas/portal.tsx';
+import { limpiarElPortal, marcado, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
 
 /**
  * **Paso 1 · Buscar mi deuda**: los errores, la busqueda valida y los textos del artboard.
@@ -56,6 +56,9 @@ const AMNISTIA_RESTO =
 const principal = () => screen.getByRole('main');
 const botonBuscar = (nombre = 'Buscar mi deuda') => within(principal()).getByRole('button', { name: nombre });
 const campoNumero = (nombre = 'Código de contribuyente') => within(principal()).getByRole('textbox', { name: nombre });
+
+// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
+plazosDelPortal();
 
 describe('los errores de la busqueda', () => {
   it('vacio muestra el primero con `role="alert"`; `12a`, el segundo; y escribir lo borra', async () => {

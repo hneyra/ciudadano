@@ -1,7 +1,12 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import { limpiarElPortal, montarElPortal, remendarJsdomParaElMenu } from '../../pruebas/portal.tsx';
+import {
+  limpiarElPortal,
+  montarElPortal,
+  remendarJsdomParaElMenu,
+  plazosDelPortal,
+} from '../../pruebas/portal.tsx';
 
 /**
  * **Tras «Cerrar sesión», el comprobante no queda a la vista** (revision del PR del issue 9).
@@ -16,6 +21,9 @@ import { limpiarElPortal, montarElPortal, remendarJsdomParaElMenu } from '../../
 
 beforeAll(remendarJsdomParaElMenu);
 afterEach(limpiarElPortal);
+
+// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
+plazosDelPortal();
 
 describe('cerrar sesion desde el comprobante', () => {
   it('vuelve a buscar, y `#/comprobante` redirige a `#/buscar` sin ensenar el recibo', async () => {

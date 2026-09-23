@@ -17,6 +17,28 @@ import { PANTALLAS, perezosa, precargarLasPantallas } from './pantallas.tsx';
  * 2. y que precargar es lo que evita ese hueco, y no otra cosa.
  */
 
+/**
+ * **Los siete modulos de pantalla, pedidos al RECOLECTAR el archivo y no dentro de un caso** (issue 42).
+ *
+ * Es la primera vez que este archivo transforma y evalua todas las pantallas y lo que importan
+ * (`@kamayuk/ui`, Radix, los formularios…). Dentro del caso eso contaba contra su plazo, y no es lo que
+ * el caso mide —que cada `precargar` devuelva el componente de SU modulo—: medido, el caso tardaba
+ * 12.3 s con la maquina libre (carga 7.5) y caducaba en 30 s con carga 15 (30.6 s con 3 procesos y
+ * 44.7 s con 2). La recoleccion no tiene plazo; el caso se queda con las mismas ocho comparaciones.
+ *
+ * `import()` con `await` de nivel superior, como `src/pruebas/portal.tsx`, y no importacion estatica:
+ * el modulo de la pantalla es el mismo objeto que luego devuelve `precargar`, que es lo que se compara.
+ */
+const LAS_SIETE = await Promise.all([
+  import('./entrar/Entrar.tsx'),
+  import('./buscar/Buscar.tsx'),
+  import('./deudas/Deudas.tsx'),
+  import('./identificar/Identificar.tsx'),
+  import('./pagar/Pagar.tsx'),
+  import('./comprobante/Comprobante.tsx'),
+  import('./historial/Historial.tsx'),
+]);
+
 const Hueco = () => <div aria-busy="true" data-testid="hueco" />;
 
 function dibujar(Pantalla: React.ComponentType) {
@@ -81,17 +103,8 @@ describe('las del recorrido', () => {
     expect(Object.keys(PANTALLAS).sort()).toEqual([...TODOS_LOS_PASOS].sort());
   });
 
-  // Con plazo: es la primera vez que este archivo transforma todas las pantallas y lo que importan.
-  it('y cada una carga la pantalla de su paso', { timeout: 30_000 }, async () => {
-    const [entrar, buscar, deudas, identificar, pagar, comprobante, historial] = await Promise.all([
-      import('./entrar/Entrar.tsx'),
-      import('./buscar/Buscar.tsx'),
-      import('./deudas/Deudas.tsx'),
-      import('./identificar/Identificar.tsx'),
-      import('./pagar/Pagar.tsx'),
-      import('./comprobante/Comprobante.tsx'),
-      import('./historial/Historial.tsx'),
-    ]);
+  it('y cada una carga la pantalla de su paso', async () => {
+    const [entrar, buscar, deudas, identificar, pagar, comprobante, historial] = LAS_SIETE;
 
     expect(await PANTALLAS.entrar.precargar()).toBe(entrar.Entrar);
     expect(await PANTALLAS.buscar.precargar()).toBe(buscar.Buscar);

@@ -35,7 +35,7 @@ vi.mock('./arranque.ts', () => ({
 // `import './aplicacion.tsx'` estatico evaluaria la fabrica de arriba ANTES de que
 // `fallaDeLaVuelta` exista, y el rojo seria un `ReferenceError` de zona muerta que no habla de
 // nada de esto.
-const { montarElPortal, limpiarElPortal, marcado } = await import('./pruebas/portal.tsx');
+const { montarElPortal, limpiarElPortal, marcado, plazosDelPortal } = await import('./pruebas/portal.tsx');
 const i18n = (await import('./i18n/i18n.ts')).default;
 const { IDIOMA_MARCADO } = await import('./i18n/i18n.ts');
 
@@ -48,6 +48,9 @@ beforeEach(() => {
 });
 
 afterEach(limpiarElPortal);
+
+// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
+plazosDelPortal();
 
 describe('sin vuelta fallida, el portal es el de siempre', () => {
   it('se dibuja el recorrido y no hay ningun aviso de sesion', () => {

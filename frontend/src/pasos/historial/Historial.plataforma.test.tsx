@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { identidad } from '../../api/identidad.ts';
 import type { SituacionDelContrato } from '../../datos/contrato.ts';
 import { crearFuenteDeLaPlataforma } from '../../datos/fuenteDeLaPlataforma.ts';
-import { limpiarElPortal, montarElPortal } from '../../pruebas/portal.tsx';
+import { limpiarElPortal, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
 
 /**
  * **«Mis pagos» con plataforma: lo que SI hay, y lo que todavia no se publica** (issue 28).
@@ -109,6 +109,9 @@ afterEach(async () => {
   vi.restoreAllMocks();
   await limpiarElPortal();
 });
+
+// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
+plazosDelPortal();
 
 describe('«Pagos realizados» con plataforma', () => {
   it('dice que el portal todavia no publica el historial, y no lo llama averia', async () => {

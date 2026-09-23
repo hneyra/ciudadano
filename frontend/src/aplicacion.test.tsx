@@ -2,7 +2,7 @@ import { screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import i18n, { IDIOMA_MARCADO } from './i18n/i18n.ts';
-import { limpiarElPortal, marcado, montarElPortal } from './pruebas/portal.tsx';
+import { limpiarElPortal, marcado, montarElPortal, plazosDelPortal } from './pruebas/portal.tsx';
 
 /**
  * **El marco dice lo que dice el artboard, y lo dice por `t()`.**
@@ -23,6 +23,9 @@ const ENLACES = ['Preguntas frecuentes', 'Reclamos', 'Términos'];
 // La instancia de i18next es global: si una prueba se queda en `marcado`, la siguiente veria texto
 // envuelto y fallaria por un motivo que no es el suyo. `limpiarElPortal` la devuelve a `es`.
 afterEach(limpiarElPortal);
+
+// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
+plazosDelPortal();
 
 describe('el marco del portal', () => {
   it('barra, franja, marcador del paso y pie con los textos del artboard', () => {

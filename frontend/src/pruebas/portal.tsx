@@ -1,6 +1,7 @@
 import { avisar } from '@kamayuk/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render } from '@testing-library/react';
+import { configure, render } from '@testing-library/react';
+import { vi } from 'vitest';
 
 import { haySesion } from '../api/claims.ts';
 import { Aplicacion } from '../aplicacion.tsx';
@@ -25,6 +26,46 @@ import { type EstadoDelRecorrido, estadoInicial } from '../recorrido/recorrido.t
  */
 
 const montados: Enrutador[] = [];
+
+/**
+ * **Los plazos de un caso que monta el portal entero** (issue 42): 20 s el caso, y no los 5 s de
+ * Vitest; 10 s cada espera de Testing Library (`findBy…`, `waitFor`), y no 1 s.
+ *
+ * Cada archivo que monta el portal los pide con `plazosDelPortal()` en su nivel superior, a la vista,
+ * y `verificaciones/la-suite-tiene-tope.test.ts` vigila que ninguno se lo salte.
+ *
+ * No es lentitud de como estan escritos: ya escriben con `fireEvent` y no con `userEvent` (lo que
+ * hacia pasar de 5 s al desplegable, `Buscar.test.tsx`), y `findBy` contesta en cuanto el elemento
+ * esta. Es lo que cuesta de verdad: jsdom dibujando el marco, la pantalla y Radix, y `getByRole`
+ * recorriendo el arbol entero; el PRIMER montaje de cada archivo paga ademas en frio a React, Radix y
+ * `@kamayuk/ui` (medido: 233 ms montar y 88 ms el primer `getByRole`, contra 56 y 41 ms en caliente).
+ * Con la maquina libre (carga 4-7) los casos mas largos tardan 1-2.3 s. Pero ese tiempo es de CPU, y
+ * crece con la carga de la maquina, que es COMPARTIDA —`k3s-server` y otras suites—. Medido el
+ * 2026-09-23 con carga 15 sostenida (8 procesos `yes` encima de lo que ya hubiera, pico 19.2):
+ *
+ *   · el peor caso, «cerrar sesion desde el comprobante» (`Comprobante.sesion.test.tsx`, 0.9 s libre),
+ *     tardo **8.7 s**; 40 casos de estos archivos pasaron de 2.5 s, y con 5 s caducaban 7 y 10 casos
+ *     por corrida, nunca los mismos, que en aislado pasaban: rojo de la maquina, no del codigo.
+ *   · con el plazo del caso ya en 20 s y carga 11, «la banda «Pago de S/ 3,149.92 registrado hoy»…»
+ *     (`Historial.test.tsx`) cayo igual: el hash ya era `#/pagar` y «Pagar ahora» no aparecio dentro
+ *     del segundo que `findByRole` espera por omision —la pantalla seguia en «Mis datos»—.
+ *
+ * 20 s es algo mas del doble del peor caso entero; 10 s por espera, porque una espera sola no puede
+ * tardar mas que el caso entero que la contiene (8.7 s lo peor medido). Un caso que se cuelga de
+ * verdad —un `waitFor` que no llega nunca— sigue saliendo rojo, solo que a los 10 s.
+ */
+export const PLAZO_DEL_PORTAL = 20_000;
+export const ESPERA_DEL_PORTAL = 10_000;
+
+/**
+ * Pone los dos plazos al archivo que la llama. En su nivel superior: `vi.setConfig` vale para los casos
+ * de ese archivo (Vitest lo deshace al acabarlo), y `configure` de Testing Library vive en el modulo, que
+ * con `isolate` es uno por archivo.
+ */
+export function plazosDelPortal(): void {
+  vi.setConfig({ testTimeout: PLAZO_DEL_PORTAL });
+  configure({ asyncUtilTimeout: ESPERA_DEL_PORTAL });
+}
 
 /**
  * **Las seis pantallas, cargadas ANTES de montar nada** (issue 11).

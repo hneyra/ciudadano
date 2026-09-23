@@ -12,7 +12,7 @@ import { identidad } from '../../api/identidad.ts';
 import type { SituacionDelContrato } from '../../datos/contrato.ts';
 import { crearFuenteDeLaPlataforma } from '../../datos/fuenteDeLaPlataforma.ts';
 import i18n, { ABRE, CIERRA, IDIOMA_MARCADO } from '../../i18n/i18n.ts';
-import { limpiarElPortal, marcado, montarElPortal } from '../../pruebas/portal.tsx';
+import { limpiarElPortal, marcado, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
 
 /**
  * **El paso 2 con plataforma: la deuda que cuenta el servidor** (issues 27 y 28).
@@ -153,6 +153,9 @@ afterEach(async () => {
   vi.restoreAllMocks();
   await limpiarElPortal();
 });
+
+// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
+plazosDelPortal();
 
 describe('mientras la consulta viaja', () => {
   it('dice «Consultando su deuda…», sin una sola cifra', async () => {

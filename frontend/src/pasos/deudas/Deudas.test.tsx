@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { CONTRIBUYENTE, DEUDAS } from '../../datos/demostracion.ts';
 import i18n, { ABRE, CIERRA, IDIOMA_MARCADO } from '../../i18n/i18n.ts';
-import { limpiarElPortal, marcado, montarElPortal } from '../../pruebas/portal.tsx';
+import { limpiarElPortal, marcado, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
 import type { EstadoDelRecorrido } from '../../recorrido/recorrido.ts';
 
 /**
@@ -44,6 +44,9 @@ const barraDePago = (boton: string) => {
   if (barra === null) throw new Error('No se encontro la barra de pago');
   return barra;
 };
+
+// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
+plazosDelPortal();
 
 describe('con los cuatro conceptos marcados', () => {
   it('el total, lo que queda con la amnistia y lo que se descuenta; la barra dice «Pagar todo»', () => {

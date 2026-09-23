@@ -7,7 +7,7 @@ import type { SituacionDelContrato } from '../../datos/contrato.ts';
 import { CONTRIBUYENTE, USUARIO } from '../../datos/demostracion.ts';
 import { crearFuenteDeLaPlataforma } from '../../datos/fuenteDeLaPlataforma.ts';
 import i18n, { IDIOMA_MARCADO } from '../../i18n/i18n.ts';
-import { limpiarElPortal, marcado, montarElPortal } from '../../pruebas/portal.tsx';
+import { limpiarElPortal, marcado, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
 
 /**
  * **AC4 — pagar y el comprobante con plataforma quedan simulados, y se dice** (issue 28).
@@ -149,6 +149,9 @@ afterEach(async () => {
   vi.restoreAllMocks();
   await limpiarElPortal();
 });
+
+// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
+plazosDelPortal();
 
 describe('AC4 — el paso 4, «Pagar»', () => {
   it('lleva el aviso de pago simulado, y el boton de confirmar lo repite', async () => {

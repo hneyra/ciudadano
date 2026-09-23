@@ -55,7 +55,13 @@ beforeAll(async () => {
 }, 60_000);
 
 describe('lo que hay en src/datos/ pasa ESLint limpio', () => {
-  it('ni un aviso en todo el directorio', async () => {
+  /**
+   * Con plazo propio (issue 42): el arranque en frio ya lo paga el `beforeAll`, pero esto es ESLint de
+   * verdad sobre todos los archivos de `src/datos/` —`demostracion.ts` entre ellos—, trabajo de CPU que
+   * crece con la carga de la maquina. Medido el 2026-09-23: 1.8 s con la maquina libre (carga 7.5), y
+   * 5.7 s, caducado, con carga 15 (pico 19.2). 15 s es algo mas del doble de lo peor medido.
+   */
+  it('ni un aviso en todo el directorio', { timeout: 15_000 }, async () => {
     const resultados = await eslint.lintFiles([DATOS]);
     const avisos = resultados.flatMap((r) =>
       r.messages.map((m) => `${r.filePath.slice(RAIZ.length + 1)}:${String(m.line)} — ${m.message}`),

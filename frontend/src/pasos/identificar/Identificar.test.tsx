@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { USUARIO } from '../../datos/demostracion.ts';
 import i18n, { IDIOMA_MARCADO } from '../../i18n/i18n.ts';
-import { limpiarElPortal, marcado, montarElPortal } from '../../pruebas/portal.tsx';
+import { limpiarElPortal, marcado, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
 import type { EstadoDelRecorrido } from '../../recorrido/recorrido.ts';
 
 /**
@@ -58,6 +58,9 @@ async function queTermineLaValidacion(): Promise<void> {
     await new Promise((listo) => setTimeout(listo, 20));
   });
 }
+
+// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
+plazosDelPortal();
 
 describe('lo que va a pagar', () => {
   it('con los 4 marcados, el parrafo dice el importe con amnistia: S/ 3,149.92', () => {

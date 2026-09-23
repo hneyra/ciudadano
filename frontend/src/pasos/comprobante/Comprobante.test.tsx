@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CONTRIBUYENTE, DEUDAS, USUARIO } from '../../datos/demostracion.ts';
 import i18n, { ABRE, CIERRA, IDIOMA_MARCADO } from '../../i18n/i18n.ts';
-import { limpiarElPortal, marcado, montarElPortal } from '../../pruebas/portal.tsx';
+import { limpiarElPortal, marcado, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
 import type { EstadoDelRecorrido } from '../../recorrido/recorrido.ts';
 
 /**
@@ -50,6 +50,9 @@ const meta = (contenedor: HTMLElement = recibo()) =>
   Object.fromEntries(
     [...contenedor.querySelectorAll('[data-meta] dt')].map((dt) => [dt.textContent, dt.nextElementSibling?.textContent]),
   );
+
+// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
+plazosDelPortal();
 
 describe('el recibo, tras pagar los cuatro conceptos con tarjeta', () => {
   it('4 filas con insoluto + gastos (293.72, 291.60, 1,854.60, 710.00) y el pie − 413.32 / 3,149.92', async () => {

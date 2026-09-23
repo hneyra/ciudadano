@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { limpiarElPortal, montarElPortal } from '../../pruebas/portal.tsx';
+import { limpiarElPortal, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
 
 /**
  * **El importe de cada fila del comprobante sale de las cuentas**, y no de una suma de la pantalla
@@ -19,6 +19,9 @@ vi.mock('../../datos/cuentas.ts', async (original) => {
 });
 
 afterEach(limpiarElPortal);
+
+// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
+plazosDelPortal();
 
 describe('las filas del comprobante son las de `cuentas.ts`', () => {
   it('cada fila pinta lo que `conAmnistiaDe` devuelve', async () => {
