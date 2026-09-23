@@ -135,13 +135,7 @@ export function Buscar() {
           <h1 className="m-0 text-[27px] font-bold tracking-[-0.01em] text-pretty text-azul">
             {t('Consulte y pague sus tributos')}
           </h1>
-          {/* `data-cuerpo`: el parrafo que mide `laLetraDibujadaCalzaConArial` (issue 36) como texto
-              de CUERPO — `body` no sirve de selector para CDP: no tiene texto DIRECTO propio (todo
-              esta en sus hijos) y `CSS.getPlatformFontsForNode` no informa ninguna fuente sobre el. */}
-          <p
-            data-cuerpo=""
-            className="mt-[11px] mb-0 max-w-[64ch] text-[16px] leading-[1.6] text-pretty text-tinta-2"
-          >
+          <p className="mt-[11px] mb-0 max-w-[64ch] text-[16px] leading-[1.6] text-pretty text-tinta-2">
             {t(
               'Escriba su código de contribuyente o su documento de identidad. Verá lo que debe, con su vencimiento, y podrá pagar todo o solo lo que elija.',
             )}

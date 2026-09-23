@@ -95,15 +95,8 @@ export async function filasDe(tabla: Locator): Promise<string[][]> {
 }
 
 /**
- * La familia que `--font-sans` de `clasico` declara (`kamayuk-lib`, `paquetes/ui/estilos/temas.css`).
- * Es la comparacion EXACTA, no un `toMatch`: un `toMatch(/^Arial\b/)` deja pasar «Arial-italico» o
- * una declaracion mas larga por delante, que no es lo que el tema fija.
- */
-const FAMILIA_DECLARADA = 'Arial, Helvetica, sans-serif';
-
-/**
  * **Lo que se mide en cada paso, a cada anchura** (issue 11): que la pagina no se desplace de lado,
- * que la barra sea el azul del artboard y que el cuerpo DECLARE la fuente de la identidad.
+ * que la barra sea el azul del artboard y que el cuerpo DECLARE la fuente del tema.
  *
  * `scrollWidth <= innerWidth` sobre `<html>`: si una tabla o una rejilla se sale, el documento entero
  * crece y se desplaza, aunque la pieza culpable este al fondo de la pagina.
@@ -116,6 +109,21 @@ const FAMILIA_DECLARADA = 'Arial, Helvetica, sans-serif';
  * sans-serif» igual, porque la declaracion no cambio. Por eso esta comprobacion solo puede fallar si
  * el CSS declara OTRA cosa —un `font-family` distinto en alguna pantalla—, y el nombre lo dice: lo
  * que de verdad se DIBUJA lo mide `laLetraDibujadaCalzaConArial`, con CDP, mas abajo.
+ *
+ * El valor esperado se LEE de la propia pagina —`--font-sans` de `[data-tema='clasico']`, el token
+ * que el preflight pinta en `body`— y no de un literal escrito aqui: el pin a «Arial, Helvetica,
+ * sans-serif» vive SOLO en `verificaciones/tailwind-emite-las-clases.test.ts` (vitest, contra el CSS
+ * compilado). Aqui lo que se exige es que `body` DECLARE lo que el tema dice, sea cual sea ese
+ * valor: un desacuerdo entre los dos es la rotura real —una pantalla con su propio `font-family`—,
+ * y no depende de mantener el mismo literal en dos sitios.
+ *
+ * <h2>Lo que esta comprobacion NO ve</h2>
+ *
+ * Solo lee `body`. Una clase `font-serif` o `font-mono` puesta a mano en UN elemento concreto —un
+ * boton, una celda— no la ve nadie aqui, salvo que ese elemento sea uno de los tres que
+ * `laLetraDibujadaCalzaConArial` mide (el cuerpo, un titulo, una cifra) y ademas cambie lo DIBUJADO.
+ * `sin-colores-propios.test.ts` es quien cierra ese hueco de verdad: un `font-family` a mano en
+ * `src/` sale rojo ahi, en cualquier elemento, sin esperar a que el arnes lo recorra.
  */
 export async function seVeBien(pagina: Page, donde: string): Promise<void> {
   const medido = await pagina.evaluate(() => {
@@ -125,14 +133,15 @@ export async function seVeBien(pagina: Page, donde: string): Promise<void> {
       ventana: window.innerWidth,
       barra: barra === null ? '(no hay barra)' : getComputedStyle(barra).backgroundColor,
       letra: getComputedStyle(document.body).fontFamily,
+      fuenteDelTema: getComputedStyle(document.documentElement).getPropertyValue('--font-sans').trim(),
     };
   });
   expect(medido.ancho, `${donde}: la pagina mide ${medido.ancho} px en una ventana de ${medido.ventana}`).toBeLessThanOrEqual(
     medido.ventana,
   );
   expect(medido.barra, `${donde}: la barra no es el azul #0D5FA8 del artboard`).toBe('rgb(13, 95, 168)');
-  expect(medido.letra, `${donde}: el cuerpo no DECLARA la fuente de la identidad («${FAMILIA_DECLARADA}»)`).toBe(
-    FAMILIA_DECLARADA,
+  expect(medido.letra, `${donde}: el cuerpo no DECLARA la fuente del tema («${medido.fuenteDelTema}»)`).toBe(
+    medido.fuenteDelTema,
   );
 }
 
@@ -146,7 +155,8 @@ export async function seVeBien(pagina: Page, donde: string): Promise<void> {
  *     metrica. Es la que instala `fonts-liberation` (Debian/Ubuntu, y el paso nuevo de
  *     `.github/workflows/frontend.yml`), y la que ya hay en esta maquina, en
  *     `~/.local/share/fonts/liberation` — de ahi que `fc-match Arial` conteste «Liberation Sans».
- *   · **Arimo**: la misma sustitucion de Google (Chrome OS y Android), con el mismo objetivo.
+ *   · **Arimo**: la misma sustitucion, pero de Google, y con el mismo objetivo: **no** es la de
+ *     Android (que usa Roboto) — es la de Chrome OS y las fuentes Croscore.
  *
  * `DejaVu Sans` NO esta: es la que cae por `fc-match sans-serif` en esta maquina SIN esas fuentes, y
  * es mas ancha que Arial — las medidas fijas del artboard (`e2e/se-ve.spec.ts`) se desvian con ella.
@@ -154,34 +164,65 @@ export async function seVeBien(pagina: Page, donde: string): Promise<void> {
 export const FAMILIAS_QUE_CALZAN_CON_ARIAL = ['Arial', 'Liberation Sans', 'Arimo'] as const;
 
 /**
- * Lo que Chromium usa de VERDAD para pintar el texto de `selector`, leido por CDP y no por
+ * El atributo con que se marca, EN TIEMPO DE PRUEBA, el nodo que CDP tiene que medir: el marcado de
+ * produccion no se toca solo para que el arnes tenga un selector (issue 36, ronda 1 de revision del
+ * PR #47). `laLetraDibujadaCalzaConArial` lo pone con `locator.evaluate` justo antes de medir y lo
+ * quita despues, asi que nunca queda en el DOM entre una medida y la siguiente.
+ */
+const ATRIBUTO_DE_MEDIDA = 'data-medir-fuente';
+
+/**
+ * Lo que Chromium usa de VERDAD para pintar el texto de `elemento`, leido por CDP y no por
  * `getComputedStyle` (issue 36): `CSS.getPlatformFontsForNode` devuelve la lista de familias con
  * las que el motor de texto compuso glifos dentro del nodo, cada una con cuantos glifos le tocaron.
- * Se toma la que mas glifos pinto, que es la que de verdad se ve.
+ *
+ * Devuelve **todas** las que de verdad pintaron algo (`glyphCount > 0`), no solo la que mas glifos
+ * tuvo: si el texto del nodo mezcla un caracter que la fuente principal no trae, ese caracter cae a
+ * otra familia por *fallback* —a menudo una que NO calza con Arial— y con pocos glifos puede
+ * esconderse detras de la que domina. Quien decide cuales de esas familias son aceptables es
+ * `laLetraDibujadaCalzaConArial`, mas abajo.
  */
-async function familiaDibujadaDe(pagina: Page, selector: string): Promise<string> {
-  const cdp = await pagina.context().newCDPSession(pagina);
+async function familiasDibujadasDe(
+  pagina: Page,
+  elemento: Locator,
+): Promise<ReadonlyArray<{ readonly familia: string; readonly glifos: number }>> {
+  await elemento.evaluate((nodo, atributo) => nodo.setAttribute(atributo, ''), ATRIBUTO_DE_MEDIDA);
   try {
-    const { root } = await cdp.send('DOM.getDocument');
-    const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector });
-    if (nodeId === 0) throw new Error(`CDP no encontro «${selector}» para medir que fuente se dibujo.`);
-    await cdp.send('CSS.enable');
-    const { fonts } = await cdp.send('CSS.getPlatformFontsForNode', { nodeId });
-    const pintada = [...fonts].sort((a, b) => b.glyphCount - a.glyphCount)[0];
-    if (pintada === undefined) throw new Error(`CDP no informo ninguna fuente pintada en «${selector}».`);
-    return pintada.familyName;
+    const cdp = await pagina.context().newCDPSession(pagina);
+    try {
+      const { root } = await cdp.send('DOM.getDocument');
+      const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: `[${ATRIBUTO_DE_MEDIDA}]` });
+      if (nodeId === 0) throw new Error('CDP no encontro el nodo marcado para medir que fuente se dibujo.');
+      await cdp.send('CSS.enable');
+      const { fonts } = await cdp.send('CSS.getPlatformFontsForNode', { nodeId });
+      const pintadas = fonts
+        .filter((f) => f.glyphCount > 0)
+        .map((f) => ({ familia: f.familyName, glifos: f.glyphCount }))
+        .sort((a, b) => b.glifos - a.glifos);
+      if (pintadas.length === 0) throw new Error('CDP no informo ninguna fuente pintada en el nodo marcado.');
+      return pintadas;
+    } finally {
+      await cdp.detach();
+    }
   } finally {
-    await cdp.detach();
+    await elemento.evaluate((nodo, atributo) => nodo.removeAttribute(atributo), ATRIBUTO_DE_MEDIDA);
   }
 }
 
-/** La familia DIBUJADA en `selector` tiene que ser Arial o una compatible en metricas (issue 36). */
-export async function laLetraDibujadaCalzaConArial(pagina: Page, selector: string, donde: string): Promise<void> {
-  const dibujada = await familiaDibujadaDe(pagina, selector);
+/**
+ * **TODAS** las familias DIBUJADAS en `elemento` tienen que ser Arial o una compatible en metricas
+ * (issue 36): basta que UNA letra caiga en una familia fuera de la lista —el *fallback* de un solo
+ * caracter que Liberation no trae, por ejemplo— para que el ancho del texto deje de ser el de Arial
+ * en algun punto, y eso ya no lo cubre medir solo la familia que mas glifos pinto.
+ */
+export async function laLetraDibujadaCalzaConArial(pagina: Page, elemento: Locator, donde: string): Promise<void> {
+  const pintadas = await familiasDibujadasDe(pagina, elemento);
+  const fuera = pintadas.filter((f) => !(FAMILIAS_QUE_CALZAN_CON_ARIAL as readonly string[]).includes(f.familia));
+  const resumen = pintadas.map((f) => `${f.familia}×${f.glifos}`).join(', ');
   expect(
-    (FAMILIAS_QUE_CALZAN_CON_ARIAL as readonly string[]).includes(dibujada),
-    `${donde}: Chromium dibujo «${dibujada}» en «${selector}», que no es Arial ni una compatible en ` +
-      `metricas (${FAMILIAS_QUE_CALZAN_CON_ARIAL.join(', ')}). Si es DejaVu Sans, al entorno le falta ` +
-      'una compatible: instale `fonts-liberation` (Debian/Ubuntu) o el paquete equivalente.',
-  ).toBe(true);
+    fuera,
+    `${donde}: Chromium dibujo con [${resumen}], y [${fuera.map((f) => f.familia).join(', ')}] no es Arial ni ` +
+      `una compatible en metricas (${FAMILIAS_QUE_CALZAN_CON_ARIAL.join(', ')}). Si es DejaVu Sans, al entorno ` +
+      'le falta una compatible: instale `fonts-liberation` (Debian/Ubuntu) o el paquete equivalente.',
+  ).toEqual([]);
 }
