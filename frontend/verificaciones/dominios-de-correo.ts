@@ -3,11 +3,13 @@
  *
  * <h2>El defecto que evita</h2>
  *
- * `fruiz159@gmail.com` tenia forma de ser una persona real, no coincidia con la ficha de ejemplo
- * («Maria E. Castillo») y viajaba en el paquete de produccion. Un correo de mentira que apunta a un
- * dominio registrable —`gmail.com`, `correo.com`, `correo.pe`— puede ser, sin que nadie lo decida,
- * el buzon de alguien: el issue 51 lo cambia por dominios que las RFC reservan para que nadie los
- * registre nunca.
+ * El correo del usuario de demostracion tenia forma de ser una persona real, en un dominio de
+ * webmail de verdad, y no coincidia con la ficha de ejemplo («Maria E. Castillo»); viajaba en el
+ * paquete de produccion. Un correo de mentira que apunta a un dominio registrable puede ser, sin
+ * que nadie lo decida, el buzon de alguien: el issue 51 lo cambia por dominios que las RFC reservan
+ * para que nadie los registre nunca. (Esta misma hoja se mide con la guarda que describe: ni un
+ * correo de dominio no reservado en su propio texto, ni siquiera de ejemplo — por eso arriba no se
+ * escribe ninguno entero.)
  *
  * <h2>Por que funciones puras sobre `(dominio)` y `(texto)`</h2>
  *

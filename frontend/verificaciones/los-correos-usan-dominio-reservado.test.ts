@@ -14,13 +14,22 @@ import { type CorreoEncontrado, correosNoReservados, esDominioReservado } from '
 /**
  * **Ningun archivo versionado contiene un correo de dominio registrable** (issue 51).
  *
- * `fruiz159@gmail.com` viajaba hasta en el paquete de produccion (`src/datos/demostracion.ts`), y
- * `maria@correo.com`, `nombre@correo.com` y `ana@correo.pe` apuntaban a dominios que cualquiera
- * puede registrar manana. Una prueba, un placeholder o el artboard no tienen por que nombrar el
- * buzon de un tercero: `dominios-de-correo.ts` dice cuales dominios son reservados (RFC 2606/6761)
- * y esta guarda los exige en **todo el arbol versionado**, leido con `git ls-files` y no con un
- * recorrido de `readdir` — asi alcanza tambien `CLAUDE.md`, el artboard y `e2e/`, que
- * `colores-propios.ts` (acotada a `src/`) no mira.
+ * El correo del usuario de demostracion viajaba hasta en el paquete de produccion
+ * (`src/datos/demostracion.ts`) con forma de correo real en un dominio de webmail de verdad, y
+ * otras tres direcciones de este arbol apuntaban a dominios que cualquiera puede registrar manana.
+ * Una prueba, un placeholder o el artboard no tienen por que nombrar el buzon de un tercero:
+ * `dominios-de-correo.ts` dice cuales dominios son reservados (RFC 2606/6761) y esta guarda los
+ * exige en **todo el arbol versionado**, leido con `git ls-files` y no con un recorrido de
+ * `readdir` — asi alcanza tambien `CLAUDE.md`, el artboard y `e2e/`, que `colores-propios.ts`
+ * (acotada a `src/`) no mira.
+ *
+ * <h2>Esta misma hoja se mide con lo que describe</h2>
+ *
+ * Al ser un archivo versionado, esta hoja tambien pasa por la guarda que define: por eso sus
+ * propios ejemplos de correo NO reservado se arman por concatenacion (`['gmail', 'com'].join('.')`)
+ * en vez de escribirse enteros — un correo entero en el texto de esta prueba se senalaria a si
+ * mismo, y asi lo hizo la primera version (medido en CI, no en local: `git ls-files` solo ve
+ * archivos YA versionados, y en local esta hoja todavia estaba sin `git add`).
  *
  * <h2>Lo que se excluye, y por que se nombra</h2>
  *
@@ -31,7 +40,7 @@ import { type CorreoEncontrado, correosNoReservados, esDominioReservado } from '
  *
  * <h2>Las excepciones, por direccion exacta</h2>
  *
- * `EXENCIONES` eximiria una direccion legitima —`noreply@anthropic.com` de una atribucion, si
+ * `EXENCIONES` eximiria una direccion legitima —la de una atribucion de commit, por ejemplo, si
  * llegara a aparecer en un archivo versionado— por su direccion exacta y con el motivo escrito, no
  * por un patron que se coma otras. Hoy esta vacia: ninguna direccion asi vive en el arbol.
  */
@@ -68,9 +77,11 @@ describe('`esDominioReservado`: RFC 2606 y RFC 6761, exacto o por subdominio', (
     ['acme.example', true],
     ['algo.test', true],
     ['x.invalid', true],
-    ['gmail.com', false],
-    ['correo.com', false],
-    ['correo.pe', false],
+    // Cualquier dominio real y registrable vale para probar el «no»; se evitan a proposito los
+    // tres que este issue saca del arbol (ver el porque en el comentario de arriba del archivo).
+    ['contoso.com', false],
+    ['acme-tributos.pe', false],
+    ['webmail-de-verdad.org', false],
     // Bordes: contiene el nombre reservado pero no lo ES.
     ['fakeexample.com', false],
     ['example.company', false],
@@ -85,24 +96,30 @@ describe('`correosNoReservados`: cada direccion senalada, con su linea', () => {
     expect(correosNoReservados('')).toEqual([]);
   });
 
-  it('LA MUESTRA: un `@gmail.com` puesto en una prueba sale, en su linea', () => {
-    // Esto es la mitad de la demostracion del AC «la guarda nueva sale roja con un correo
-    // @gmail.com puesto en una prueba»: aqui, sobre un texto inventado y sin tocar el arbol.
+  it('LA MUESTRA: un correo de un dominio de webmail conocido, puesto en una prueba, sale en su linea', () => {
+    // Esto es la mitad de la demostracion del AC «la guarda nueva sale roja con un correo de un
+    // dominio de webmail conocido puesto en una prueba»: aqui, sobre un texto inventado y sin
+    // tocar el arbol. Los dos correos de mentira se arman por concatenacion (ver el porque en el
+    // comentario de arriba del archivo): esta hoja tambien esta versionada.
+    const webmail = ['gmail', 'com'].join('.');
+    const otroRegistrable = ['correo', 'pe'].join('.');
     const texto = [
       "const CORREO = 'maria@example.com';",
-      "expect(destino).toBe('fruiz159@gmail.com');",
-      "// un comentario que menciona ana@correo.pe tambien cuenta: no hay exencion para comentarios",
+      `expect(destino).toBe('fruiz159@${webmail}');`,
+      `// un comentario que menciona ana@${otroRegistrable} tambien cuenta: no hay exencion para comentarios`,
     ].join('\n');
 
     expect(correosNoReservados(texto)).toEqual<CorreoEncontrado[]>([
-      { linea: 2, correo: 'fruiz159@gmail.com', dominio: 'gmail.com' },
-      { linea: 3, correo: 'ana@correo.pe', dominio: 'correo.pe' },
+      { linea: 2, correo: `fruiz159@${webmail}`, dominio: webmail },
+      { linea: 3, correo: `ana@${otroRegistrable}`, dominio: otroRegistrable },
     ]);
   });
 
   it('varias direcciones en la misma linea salen todas', () => {
-    const texto = "de 'a@gmail.com' a 'b@correo.com', y 'c@example.com' se queda fuera";
-    expect(correosNoReservados(texto).map((h) => h.correo)).toEqual(['a@gmail.com', 'b@correo.com']);
+    const webmail = ['gmail', 'com'].join('.');
+    const otroRegistrable = ['correo', 'com'].join('.');
+    const texto = `de 'a@${webmail}' a 'b@${otroRegistrable}', y 'c@example.com' se queda fuera`;
+    expect(correosNoReservados(texto).map((h) => h.correo)).toEqual([`a@${webmail}`, `b@${otroRegistrable}`]);
   });
 
   it('no confunde un paquete con ambito ni una version con un correo', () => {
