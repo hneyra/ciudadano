@@ -28,8 +28,8 @@ verificaciones y como se demostro que cada una muerde— esta en [`CLAUDE.md`](C
 ## Requisitos
 
 - **Node 24** y yarn classic (1.x). El numero vive en `frontend/.nvmrc` —`nvm use` en `frontend/`
-  lo coge de ahi— y lo repiten `engines.node` de `frontend/package.json` y el `node-version` de los
-  **dos** trabajos del workflow. Que los cuatro digan lo mismo, y que no queden por debajo del
+  lo coge de ahi— y lo repiten `engines.node` de `frontend/package.json`, el `node-version` de los
+  **dos** trabajos del workflow y el `FROM node:24-alpine` de `frontend/Dockerfile`. Que los cinco digan lo mismo, y que no queden por debajo del
   `>=24` que exige `kamayuk-lib` en su `package.json`, lo comprueba
   `frontend/verificaciones/el-motor-es-uno-solo.test.ts` dentro de `yarn verificar`.
 - **`kamayuk-lib` clonado al lado de este repositorio, y en `main`**: `frontend/package.json` enlaza

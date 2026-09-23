@@ -109,12 +109,12 @@ export function losDelWorkflow(crudo: string, donde = SITIO_DEL_WORKFLOW): Decla
  * `la-version-de-node-es-una-sola.test.ts` (rentas#289). Sin comentarios, por lo mismo que el
  * workflow: la prosa del `Dockerfile` que cuenta de donde sale el motor nombra el numero.
  */
-export function elDelDockerfile(crudo: string, donde = 'frontend/Dockerfile → FROM node'): Declaracion[] {
+export function elDelDockerfile(crudo: string, donde = 'frontend/Dockerfile'): Declaracion[] {
   const salida: Declaracion[] = [];
   crudo.split('\n').forEach((linea, indice) => {
     if (linea.trim().startsWith('#')) return;
     const etiqueta = /^\s*FROM\s+(?:--\S+\s+)*node:(\S+)/i.exec(linea)?.[1];
-    if (etiqueta !== undefined) salida.push(declara(`${donde}:${indice + 1}`, etiqueta));
+    if (etiqueta !== undefined) salida.push(declara(`${donde}:${indice + 1} → FROM node`, etiqueta));
   });
   return salida;
 }
