@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { identidad } from './api/identidad.ts';
 import { laFuente } from './datos/laFuente.ts';
-import { limpiarElPortal, montarElPortal } from './pruebas/portal.tsx';
+import { limpiarElPortal, montarElPortal, plazosDelPortal } from './pruebas/portal.tsx';
 
 /**
  * **Con la bandera encendida, el portal no habla con nadie** (issue 27).
@@ -43,6 +43,9 @@ afterEach(async () => {
   vi.restoreAllMocks();
   await limpiarElPortal();
 });
+
+// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
+plazosDelPortal();
 
 describe('el recorrido entero en modo demostracion', () => {
   it('EL CENTINELA: la fuente elegida es la de demostracion, y no tiene consulta', async () => {

@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { limpiarElPortal, montarElPortal } from '../../pruebas/portal.tsx';
+import { limpiarElPortal, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
 
 /**
  * **Toda cifra del paso 4 sale de las cuentas**, y ninguna de una suma de la pantalla (issue 8).
@@ -25,6 +25,9 @@ vi.mock('../../datos/cuentas.ts', async (original) => {
 });
 
 afterEach(limpiarElPortal);
+
+// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
+plazosDelPortal();
 
 describe('las cifras del paso 4 son las de `cuentas.ts`', () => {
   it('el resumen, el `{{TOTAL}}` de las instrucciones y lo que se sella pintan lo que las cuentas devuelven', async () => {

@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DEUDAS, MEDIOS, USUARIO } from '../../datos/demostracion.ts';
 import type { MedioDePago } from '../../datos/tipos.ts';
 import i18n, { ABRE, CIERRA, IDIOMA_MARCADO } from '../../i18n/i18n.ts';
-import { limpiarElPortal, marcado, montarElPortal } from '../../pruebas/portal.tsx';
+import { limpiarElPortal, marcado, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
 import type { EstadoDelRecorrido } from '../../recorrido/recorrido.ts';
 import { textosDelMedio } from './textosDeLosMedios.ts';
 
@@ -41,6 +41,9 @@ function totalDelResumen(rotulo: string): string {
 }
 
 const nombreDelMedio = (m: MedioDePago) => m.rotulo;
+
+// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
+plazosDelPortal();
 
 describe('el selector de medio y su panel', () => {
   it('por omision, «Tarjeta» activa con sus 4 campos; «Yape o Plin» muestra «969 032 194» y el paso 3 con S/ 3,149.92', () => {

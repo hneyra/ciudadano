@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { identidad } from '../../api/identidad.ts';
 import { crearFuenteDeLaPlataforma } from '../../datos/fuenteDeLaPlataforma.ts';
 import i18n, { ABRE, CIERRA, IDIOMA_MARCADO } from '../../i18n/i18n.ts';
-import { limpiarElPortal, marcado, montarElPortal } from '../../pruebas/portal.tsx';
+import { limpiarElPortal, marcado, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
 
 /**
  * **Paso 1 con plataforma: «Entrar», y la franja renumerada** (issue 28, AC1).
@@ -49,6 +49,9 @@ afterEach(async () => {
   vi.restoreAllMocks();
   await limpiarElPortal();
 });
+
+// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
+plazosDelPortal();
 
 describe('AC1 — la franja renumerada', () => {
   it('con plataforma son CUATRO pasos y el primero es «Entrar»', async () => {

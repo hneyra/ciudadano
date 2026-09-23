@@ -5,7 +5,12 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { identidad } from '../api/identidad.ts';
 import { USUARIO } from '../datos/demostracion.ts';
 import { crearFuenteDeLaPlataforma } from '../datos/fuenteDeLaPlataforma.ts';
-import { limpiarElPortal, montarElPortal, remendarJsdomParaElMenu } from '../pruebas/portal.tsx';
+import {
+  limpiarElPortal,
+  montarElPortal,
+  remendarJsdomParaElMenu,
+  plazosDelPortal,
+} from '../pruebas/portal.tsx';
 
 /**
  * **La sesion del marco, con plataforma** (issue 27).
@@ -52,6 +57,9 @@ afterEach(async () => {
   vi.restoreAllMocks();
   await limpiarElPortal();
 });
+
+// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
+plazosDelPortal();
 
 describe('sin sesion', () => {
   it('«Iniciar sesión» va a la PUERTA, y no al paso «Mis datos»', async () => {

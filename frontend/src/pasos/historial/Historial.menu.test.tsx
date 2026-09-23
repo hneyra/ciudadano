@@ -3,7 +3,12 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { HISTORIAL, UNIDADES } from '../../datos/demostracion.ts';
 import type { FuenteDelPortal } from '../../datos/fuente.ts';
-import { limpiarElPortal, montarElPortal, remendarJsdomParaElMenu } from '../../pruebas/portal.tsx';
+import {
+  limpiarElPortal,
+  montarElPortal,
+  remendarJsdomParaElMenu,
+  plazosDelPortal,
+} from '../../pruebas/portal.tsx';
 
 /**
  * **«Mis pagos» y «Mis predios y vehículos» del menu de la sesion** llevan al historial (issue 10).
@@ -39,6 +44,9 @@ async function queSeCierreElMenu(): Promise<void> {
     await new Promise((listo) => setTimeout(listo, 20));
   });
 }
+
+// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
+plazosDelPortal();
 
 describe('el menu de la sesion lleva al historial', () => {
   it('«Mis predios y vehículos»: `#/historial`, con el foco y la vista en «De dónde sale lo que paga»', async () => {

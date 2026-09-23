@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { limpiarElPortal, montarElPortal } from '../pruebas/portal.tsx';
+import { limpiarElPortal, montarElPortal, plazosDelPortal } from '../pruebas/portal.tsx';
 import { imprimirEnClaro } from './impresionEnClaro.ts';
 
 /**
@@ -23,6 +23,9 @@ afterEach(async () => {
   window.localStorage.removeItem(CLAVE_DEL_MODO);
   raiz.removeAttribute('data-modo');
 });
+
+// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
+plazosDelPortal();
 
 describe('el portal montado', () => {
   it('con el modo oscuro ELEGIDO: imprime en claro, vuelve a oscuro y no toca la preferencia guardada', () => {

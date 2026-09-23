@@ -7,7 +7,7 @@ import { crearSilencio } from './api/silencio.ts';
 import { arrancar } from './arranque.ts';
 import { crearFuenteDeLaPlataforma } from './datos/fuenteDeLaPlataforma.ts';
 import { callado, conSesion, emisorFalso, sinSesion, type Contestacion } from './pruebas/emisorFalso.ts';
-import { limpiarElPortal, montarElPortal } from './pruebas/portal.tsx';
+import { limpiarElPortal, montarElPortal, plazosDelPortal } from './pruebas/portal.tsx';
 
 /**
  * **Recargar con plataforma: lo que la persona VE despues del canje silencioso** (issue 35).
@@ -71,6 +71,9 @@ afterEach(async () => {
   vi.restoreAllMocks();
   await limpiarElPortal();
 });
+
+// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
+plazosDelPortal();
 
 describe('recargar con plataforma', () => {
   it('AC1 — con la sesion del emisor viva, se sigue DENTRO sin pulsar nada', async () => {

@@ -2,7 +2,13 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import i18n, { IDIOMA_MARCADO } from '../i18n/i18n.ts';
-import { limpiarElPortal, marcado, montarElPortal, remendarJsdomParaElMenu } from '../pruebas/portal.tsx';
+import {
+  limpiarElPortal,
+  marcado,
+  montarElPortal,
+  remendarJsdomParaElMenu,
+  plazosDelPortal,
+} from '../pruebas/portal.tsx';
 import { ICONO_SOLO_EN_EL_CELULAR } from './Barra.tsx';
 
 /**
@@ -27,6 +33,9 @@ function abrirElMenu(): HTMLElement[] {
   expect(disparador).toHaveAttribute('aria-expanded', 'true');
   return screen.getAllByRole('menuitem');
 }
+
+// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
+plazosDelPortal();
 
 describe('la barra sin sesion', () => {
   it('ofrece «Iniciar sesión», que lleva a «Mis datos»', async () => {

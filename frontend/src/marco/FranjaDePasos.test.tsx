@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { limpiarElPortal, montarElPortal } from '../pruebas/portal.tsx';
+import { limpiarElPortal, montarElPortal, plazosDelPortal } from '../pruebas/portal.tsx';
 
 /**
  * **La franja de pasos**: dice donde se esta, deja volver y no deja saltar.
@@ -13,6 +13,9 @@ import { limpiarElPortal, montarElPortal } from '../pruebas/portal.tsx';
 afterEach(limpiarElPortal);
 
 const franja = () => screen.getByRole('navigation');
+
+// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
+plazosDelPortal();
 
 describe('la franja de pasos', () => {
   it('marca el actual con `aria-current="step"`, y solo el actual', async () => {

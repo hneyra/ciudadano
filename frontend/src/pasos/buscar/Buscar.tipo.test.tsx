@@ -2,7 +2,13 @@ import { act, fireEvent, screen, within } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import i18n, { IDIOMA_MARCADO } from '../../i18n/i18n.ts';
-import { limpiarElPortal, marcado, montarElPortal, remendarJsdomParaElMenu } from '../../pruebas/portal.tsx';
+import {
+  limpiarElPortal,
+  marcado,
+  montarElPortal,
+  remendarJsdomParaElMenu,
+  plazosDelPortal,
+} from '../../pruebas/portal.tsx';
 
 /**
  * **«Buscar por»**: cambiar de tipo cambia la etiqueta y el ejemplo del numero, y lo vacia.
@@ -34,6 +40,9 @@ function abrirElTipo(nombre = 'Buscar por'): HTMLElement[] {
   expect(disparador).toHaveAttribute('aria-expanded', 'true');
   return screen.getAllByRole('option');
 }
+
+// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
+plazosDelPortal();
 
 describe('cambiar de tipo', () => {
   it('a «DNI» cambia etiqueta y placeholder, vacia el campo y quita el error', async () => {
