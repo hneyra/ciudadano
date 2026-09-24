@@ -11,6 +11,13 @@ import type { SituacionDelContrato } from './datos/contrato.ts';
 import { crearFuenteDeLaPlataforma } from './datos/fuenteDeLaPlataforma.ts';
 import { FRASES_QUE_AFIRMAN, laDice, nombreDe } from './pruebas/frasesQueAfirman.ts';
 import { limpiarElPortal, montarElPortal, plazosDelPortal, remendarJsdomParaElMenu } from './pruebas/portal.tsx';
+import {
+  type Paso,
+  TODOS_LOS_PASOS,
+  estadoInicial,
+  pasoAlcanzable,
+  pasosNumerados,
+} from './recorrido/recorrido.ts';
 
 /**
  * **La guarda POR MODO: con plataforma, ninguna pantalla alcanzable afirma un hecho que no ocurrio**
@@ -150,6 +157,29 @@ async function quieta(): Promise<void> {
 /** Lo que dice TODO el documento: marco, franja, pie y avisos incluidos. */
 const todoElDocumento = () => document.body.textContent ?? '';
 
+/** Los pasos en que la guarda leyo el documento, en todos los finales. Los rellena `recorrer`. */
+const VISITADOS = new Set<Paso>();
+
+/**
+ * **Los pasos que una persona puede alcanzar con plataforma, DERIVADOS del recorrido** (revision
+ * del PR #53).
+ *
+ * No se escriben aqui: salen de `TODOS_LOS_PASOS` preguntando a `pasoAlcanzable` en los dos extremos
+ * del recorrido con plataforma —sin sesion, donde esta el primer paso, y con sesion en el ULTIMO paso
+ * numerado (`pasosNumerados`), desde donde todos los anteriores y los que no son numerados pero se
+ * alcanzan con sesion (`historial`) son alcanzables—. Un paso que el dia de manana se anada a
+ * `PASOS_CON_PLATAFORMA`, o una pantalla nueva alcanzable con sesion, entra aqui sola, y la ultima
+ * prueba de este archivo sale roja hasta que `recorrer` la visite.
+ */
+function alcanzablesConPlataforma(): readonly Paso[] {
+  const sinSesion = estadoInicial({ conPlataforma: true, autenticado: false, amnistia: false });
+  const conSesion = estadoInicial({ conPlataforma: true, autenticado: true, amnistia: false });
+  const alFinal = { ...conSesion, paso: pasosNumerados(conSesion).at(-1) ?? conSesion.paso };
+  return TODOS_LOS_PASOS.filter(
+    (paso) => pasoAlcanzable(sinSesion, paso) || pasoAlcanzable(alFinal, paso),
+  );
+}
+
 /**
  * Recorre los pasos alcanzables en un final y devuelve lo leido en cada uno, con su nombre.
  *
@@ -158,11 +188,17 @@ const todoElDocumento = () => document.body.textContent ?? '';
  */
 async function recorrer(final: Final): Promise<ReadonlyMap<string, string>> {
   const leido = new Map<string, string>();
+  // Lee el documento y apunta EN QUE PASO se leyo, sacado de la ruta y no del nombre: es lo que
+  // compara la ultima prueba con los pasos que el recorrido deja alcanzar.
+  const leer = (nombre: string) => {
+    leido.set(nombre, todoElDocumento());
+    VISITADOS.add(window.location.hash.replace(/^#\//, '') as Paso);
+  };
 
   // La portada, sin sesion.
   montarElPortal({ hash: '#/entrar', fuente: fuenteQue(final.contesta) });
   await screen.findByRole('heading', { level: 1, name: 'Entre con su cuenta del portal' });
-  leido.set('#/entrar', todoElDocumento());
+  leer('#/entrar');
   await limpiarElPortal();
 
   // «Mis pagos» DIRECTO, con sesion: el caso medido del issue.
@@ -170,7 +206,7 @@ async function recorrer(final: Final): Promise<ReadonlyMap<string, string>> {
   montarElPortal({ hash: '#/historial', fuente: fuenteQue(final.contesta) });
   await screen.findByRole('heading', { level: 1, name: 'Mis pagos' });
   await quieta();
-  leido.set('#/historial directo', todoElDocumento());
+  leer('#/historial directo');
 
   // «Cambiar mi clave»: su aviso es un `toast`, fuera de `main`.
   const disparador = within(screen.getByRole('banner')).getByRole('button', { expanded: false, name: /Rufina/ });
@@ -182,7 +218,7 @@ async function recorrer(final: Final): Promise<ReadonlyMap<string, string>> {
   await act(async () => {
     await new Promise((resuelve) => setTimeout(resuelve, 50));
   });
-  leido.set('«Cambiar mi clave»', todoElDocumento());
+  leer('«Cambiar mi clave»');
   await limpiarElPortal();
 
   // El paso 2.
@@ -190,21 +226,21 @@ async function recorrer(final: Final): Promise<ReadonlyMap<string, string>> {
   montarElPortal({ hash: '#/deudas', fuente: fuenteQue(final.contesta) });
   await quieta();
   await screen.findByRole('heading', { level: 1 });
-  leido.set('#/deudas', todoElDocumento());
+  leer('#/deudas');
 
   if (final.conDeuda) {
     fireEvent.click(within(principal()).getByRole('button', { name: 'Pagar todo' }));
     await waitFor(() => expect(window.location.hash).toBe('#/pagar'));
-    leido.set('#/pagar', todoElDocumento());
+    leer('#/pagar');
 
     fireEvent.click(within(principal()).getByRole('button', { name: 'Simular el pago: no se cobra nada' }));
     await waitFor(() => expect(window.location.hash).toBe('#/comprobante'));
-    leido.set('#/comprobante', todoElDocumento());
+    leer('#/comprobante');
 
     window.location.hash = '#/historial';
     await screen.findByRole('heading', { level: 1, name: 'Mis pagos' });
     await quieta();
-    leido.set('#/historial tras simular', todoElDocumento());
+    leer('#/historial tras simular');
   }
   await limpiarElPortal();
   return leido;
@@ -242,5 +278,18 @@ describe('con plataforma, ninguna frase de la lista llega al documento', () => {
         ? ['#/entrar', '#/historial directo', '«Cambiar mi clave»', '#/deudas', '#/pagar', '#/comprobante', '#/historial tras simular']
         : ['#/entrar', '#/historial directo', '«Cambiar mi clave»', '#/deudas'],
     );
+  });
+
+  // Despues de los cinco finales (Vitest corre los casos de un archivo en orden).
+  it('y la guarda VISITO cada paso que el recorrido con plataforma deja alcanzar', () => {
+    const alcanzables = alcanzablesConPlataforma();
+    const sinVisitar = alcanzables.filter((paso) => !VISITADOS.has(paso));
+    expect(
+      sinVisitar,
+      `El recorrido con plataforma deja alcanzar ${JSON.stringify(sinVisitar)} y la guarda no lo visita: ` +
+        'lo que alli se diga no lo mira nadie. Anadelo a `recorrer`.',
+    ).toEqual([]);
+    // Y la derivacion no esta vacia por accidente: al menos los cuatro pasos de la franja.
+    expect(alcanzables.length).toBeGreaterThan(4);
   });
 });
