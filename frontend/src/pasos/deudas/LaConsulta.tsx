@@ -1,6 +1,6 @@
 import { type Fecha, type Importe as ImporteDecimal, formatearFecha, formatearImporte } from '@kamayuk/formato';
 import { Boton, Casilla, Importe, avisar, cn } from '@kamayuk/ui';
-import { type ReactNode, useEffect, useId } from 'react';
+import { type ReactNode, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { peldanoDelPortal } from '../../api/escalera.ts';
@@ -10,7 +10,7 @@ import { fechaDelImporte, quienDebeDe } from '../../datos/deLaSituacion.ts';
 import { useLaSituacion } from '../../datos/fuente.ts';
 import type { DeudaDelServidor, SituacionDelServidor } from '../../datos/tipos.ts';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
-import { cuenta, destinoAlPagar, seleccion, vivasDelServidor } from '../../recorrido/recorrido.ts';
+import { cuenta, destinoAlPagar, estaMarcada, seleccion, vivasDelServidor } from '../../recorrido/recorrido.ts';
 
 /**
  * **La deuda que cuenta el servidor, con sus cinco finales** (issues 27 y 28).
@@ -332,7 +332,7 @@ function ConceptoDelServidor({ deuda }: { readonly deuda: DeudaDelServidor }) {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
   const idDelDetalle = useId();
-  const marcada = estado.marcadas[deuda.id] === true;
+  const marcada = estaMarcada(estado, deuda.id);
   const abierta = estado.abierta === deuda.id;
 
   const componentes: readonly { readonly rotulo: string; readonly valor: ImporteDecimal; readonly campo: keyof DeudaDelServidor['actualizadoA'] }[] = [
@@ -484,24 +484,20 @@ function BarraDePagoDelServidor({ aLaFecha }: { readonly aLaFecha: Fecha }) {
   );
 }
 
-/** Hay deuda, y es la del servidor: quien es, lo que el sumo, los conceptos y el pago. */
+/**
+ * Hay deuda, y es la del servidor: quien es, lo que el sumo, los conceptos y el pago.
+ *
+ * **Los conceptos son los del recorrido, y el recorrido los lee de la misma cache** (issue 50): no hay
+ * efecto que los copie, asi que en el mismo dibujo en que `situacion` llega, `vivasDelServidor` ya
+ * los tiene. Hasta el issue 50 habia un dibujo entre medias con la lista vacia —que antes del 49
+ * decia «No le queda nada por pagar» delante de una deuda de verdad, y en el 49 se tapo dibujando
+ * nada—. Lo mide la sonda de `LaConsulta.unaVerdad.test.tsx`, AC1.
+ */
 function ConDeuda({ situacion }: { readonly situacion: SituacionDelServidor }) {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
   const viva = vivasDelServidor(estado);
   const todo = seleccion(estado).length === viva.length;
-
-  // Los conceptos del servidor pasan a ser los del recorrido. Es idempotente con la MISMA lista —la
-  // que guarda la cache de consultas—, asi que volver a este paso no vuelve a marcarlo todo.
-  useEffect(() => {
-    despachar({ tipo: 'situacionLeida', deudas: situacion.deudas, contribuyente: quienDebeDe(situacion) });
-  }, [situacion, despachar]);
-
-  // Con plataforma lo simulado no se da por pagado, asi que la deuda viva solo esta vacia en el dibujo
-  // de ANTES de que el efecto de arriba copie la situacion al recorrido. Ahi no se dice nada: antes
-  // se dibujaba «No le queda nada por pagar» un instante, delante de una deuda de verdad (issue 49).
-  // Sacar esa copia del recorrido es el issue 50.
-  if (viva.length === 0) return null;
 
   return (
     <div>
@@ -537,12 +533,23 @@ function ConDeuda({ situacion }: { readonly situacion: SituacionDelServidor }) {
  * `useLaSituacion` no reintenta (`retry: false`, en `src/datos/fuente.ts`): un 401 reintentado tres
  * veces son tres 401, y el remedio es entrar, no insistir. Quien decide volver a preguntar es la
  * persona, con «Reintentar la consulta», que es un `refetch` y no un reintento automatico.
+ *
+ * <h2>Una deuda ya leida gana a un error posterior (issue 50)</h2>
+ *
+ * Si una consulta REPETIDA falla, React Query conserva la respuesta anterior en `data` y solo cambia
+ * `status` a `error`. Preguntando antes por `isError`, un 401 a mitad de la eleccion borraba la lista
+ * y lo marcado. Ahora, **con deuda ya leida, se sigue viendo la deuda**: cada importe dice a que fecha
+ * es, asi que lo que se ve no se hace pasar por mas nuevo de lo que es.
+ *
+ * Solo con deuda: en los otros finales no hay nada a medio elegir, y el error es lo que la persona
+ * necesita leer —un 401 trae el boton «Entrar», que la nota de «no se pudo consultar» no tiene—.
  */
 export function LaConsulta() {
   const consulta = useLaSituacion();
   const alReintentar = () => void consulta.refetch();
 
   if (consulta.isPending) return <Pidiendo />;
+  if (consulta.data?.estado === 'con-deuda') return <ConDeuda situacion={consulta.data} />;
   if (consulta.isError) return <NoSePudoPreguntar fallo={consulta.error} alReintentar={alReintentar} />;
 
   const situacion = consulta.data;

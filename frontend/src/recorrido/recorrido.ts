@@ -1,6 +1,7 @@
 import type { Importe } from '@kamayuk/formato';
 
 import { type ConSaldo, type Cuenta, conAmnistiaDe, cuentaDe, type Resumen, resumenDe, totalDe } from '../datos/cuentas.ts';
+import { quienDebeDe } from '../datos/deLaSituacion.ts';
 import { COMPROBANTE, CONTRIBUYENTE, DEUDAS, USUARIO } from '../datos/demostracion.ts';
 import type {
   ComprobanteDeDemostracion,
@@ -9,6 +10,7 @@ import type {
   DeudaDelServidor,
   MedioDePago,
   QuienDebe,
+  SituacionDelServidor,
 } from '../datos/tipos.ts';
 
 /**
@@ -40,13 +42,29 @@ import type {
  * · `toast`: los avisos son `avisar` de `@kamayuk/ui` (sonner). Un reductor puro no levanta avisos;
  *   quien despacha, avisa.
  *
- * <h2>De donde salen los conceptos: `estado.deudas`, y no una lista escrita aqui (issue 28)</h2>
+ * <h2>De donde salen los conceptos: `estado.deudas`, que se LEE y no se guarda (issues 28 y 50)</h2>
  *
  * Hasta el issue 27 el reductor leia `DEUDAS` de `src/datos/demostracion.ts` en cada selector. Con
  * plataforma los conceptos los trae `GET /portal/situacion`, y el recorrido tiene que poder marcar,
- * pagar y sellar **esos**. Asi que la lista vive en el estado: `ESTADO_INICIAL.deudas` es la del
- * artboard —en demostracion nada cambia, es la misma lista de siempre— y con plataforma arranca
- * vacia y la pone `situacionLeida` cuando la consulta contesta. No se copia ni un concepto aqui.
+ * pagar y sellar **esos**.
+ *
+ * Entre los issues 28 y 50 la lista vivia DENTRO del estado del reductor: un `useEffect` de
+ * `LaConsulta` la copiaba de la cache de consultas con la accion `situacionLeida`. Dos copias del
+ * mismo dato del servidor daban tres defectos (issue 50): un dibujo con la respuesta ya llegada y la
+ * lista todavia vacia, una consulta repetida que volvia a marcarlo todo, y un error en ella que
+ * borraba la lista a mitad de la eleccion. Ahora hay **una sola verdad** para lo que manda el
+ * servidor, la cache de React Query, y el estado se parte en dos:
+ *
+ *   · `DecisionesDelRecorrido`: lo que decide la persona —en que paso esta, que marco (por id), que
+ *     pago y con que medio—. Es lo UNICO que guarda el reductor montado (`ProveedorDelRecorrido`).
+ *   · `DatosLeidos`: los conceptos y a nombre de quien estan. En demostracion son los del artboard
+ *     (`DATOS_DE_LA_DEMOSTRACION`); con plataforma, `datosDeLaSituacion` de lo que la cache tenga
+ *     en ese momento. **No se guardan**: el proveedor los pone al lado de las decisiones en cada
+ *     dibujo, y en cada accion que los necesita.
+ *
+ * `EstadoDelRecorrido` es la suma de las dos, y es lo que leen los selectores y las pantallas. Por
+ * eso este reductor sigue siendo una funcion pura sobre el estado entero —se prueba igual que
+ * antes—, y lo que cambio es quien la llama: con los datos de ESE momento, no con una copia.
  *
  * <h2>Dos recorridos, y el modo lo dice el estado</h2>
  *
@@ -99,15 +117,41 @@ export type TipoDeDocumento = 'Código de contribuyente' | 'DNI' | 'RUC';
 
 /** Lo que el comprobante dice para siempre, sellado en `confirmarPago`. */
 export interface PagoSellado extends Cuenta {
-  /** Los conceptos pagados, en el orden de `DEUDAS`. */
-  readonly ids: readonly string[];
+  /**
+   * **Los conceptos pagados, tal como estaban al pagar**, en el orden de la lista de la que salen.
+   *
+   * Los conceptos enteros y no sus ids (issue 50): con plataforma la lista es la de la cache de
+   * consultas, y si una consulta posterior trae otra, un sello de ids quedaria apuntando a conceptos
+   * que ya no estan —el recibo perderia filas, o las cambiaria de importe—. El comprobante dice lo
+   * que se cobro, no lo que hoy dice el servidor.
+   */
+  readonly conceptos: readonly ConceptoDeDeuda[];
+  /** A nombre de quien estaba esa deuda al pagar. Por lo mismo: no se vuelve a leer de la cache. */
+  readonly contribuyente: QuienDebe | null;
   readonly medio: MedioDePago['id'];
   /** A donde se envio el comprobante; `null` es «su correo» (artboard, linea 1027). */
   readonly destino: string | null;
   readonly comprobante: ComprobanteDeDemostracion;
 }
 
-export interface EstadoDelRecorrido {
+/**
+ * **Lo que se LEE**: los conceptos y a nombre de quien estan (issue 50).
+ *
+ * No lo guarda el reductor: lo pone `ProveedorDelRecorrido` en cada dibujo, de la demostracion o de
+ * la cache de consultas. Ver la cabecera.
+ */
+export interface DatosLeidos {
+  /**
+   * Los conceptos sobre los que trabaja el recorrido: los del artboard en demostracion, los de
+   * `GET /portal/situacion` con plataforma. De aqui cuelgan `vivas`, `seleccion` y lo que se sella.
+   */
+  readonly deudas: readonly ConceptoDeDeuda[];
+  /** De quien es esa deuda. `null` con plataforma mientras la consulta no ha contestado con deuda. */
+  readonly contribuyente: QuienDebe | null;
+}
+
+/** **Lo que DECIDE la persona**: lo unico que guarda el reductor montado (issue 50). */
+export interface DecisionesDelRecorrido {
   readonly paso: Paso;
   /** Si el portal lee de la plataforma. Se fija al montar y no cambia: ver la cabecera. */
   readonly conPlataforma: boolean;
@@ -118,17 +162,18 @@ export interface EstadoDelRecorrido {
    * lo que se cobra (`aCobrar`, `aCobrarDe`) y si las pantallas la nombran.
    */
   readonly amnistia: boolean;
-  /**
-   * Los conceptos sobre los que trabaja el recorrido: los del artboard en demostracion, los de
-   * `GET /portal/situacion` con plataforma. De aqui cuelgan `vivas`, `seleccion` y lo que se sella.
-   */
-  readonly deudas: readonly ConceptoDeDeuda[];
-  /** De quien es esa deuda. `null` con plataforma mientras la consulta no ha contestado. */
-  readonly contribuyente: QuienDebe | null;
   readonly tipoDeDocumento: TipoDeDocumento;
   /** El codigo o el documento que se busco. */
   readonly numero: string;
-  /** Lo que el ciudadano marco para pagar, por id. */
+  /**
+   * Lo que el ciudadano marco o desmarco, por id. **Un id que no esta aqui vale lo de por omision**
+   * (`estaMarcada`): con plataforma, marcado —el artboard abre con todo marcado, linea 929—; en
+   * demostracion, desmarcado, porque alli las cuatro marcas del artboard ya estan escritas.
+   *
+   * Por id y con omision, y no una lista marcada entera (issue 50): asi un concepto que llega en una
+   * consulta posterior sale marcado como los demas, y lo que la persona ya decidio de los que siguen
+   * no se toca. Antes `situacionLeida` lo reescribia todo cada vez que la lista cambiaba.
+   */
   readonly marcadas: Readonly<Record<string, boolean>>;
   /** Lo ya pagado, por id. La unica verdad sobre la deuda viva. */
   readonly pagadas: Readonly<Record<string, true>>;
@@ -152,17 +197,52 @@ export interface EstadoDelRecorrido {
   readonly enfocarUnidades: boolean;
 }
 
-/** El estado con que se abre el portal EN DEMOSTRACION. Artboard, lineas 927-940. */
-export const ESTADO_INICIAL: EstadoDelRecorrido = {
-  paso: 'buscar',
-  conPlataforma: false,
-  amnistia: true,
+/** Lo que leen los selectores y las pantallas: lo decidido y lo leido, juntos. */
+export interface EstadoDelRecorrido extends DecisionesDelRecorrido, DatosLeidos {}
+
+/** Los datos del artboard: los cuatro conceptos y la persona de la demostracion. */
+export const DATOS_DE_LA_DEMOSTRACION: DatosLeidos = {
   deudas: DEUDAS,
   contribuyente: {
     nombre: CONTRIBUYENTE.nombre,
     codigo: CONTRIBUYENTE.codigo,
     documento: `${CONTRIBUYENTE.tipoDeDocumento} ${CONTRIBUYENTE.numeroDeDocumento}`,
   },
+};
+
+/** Nada leido todavia: con plataforma, mientras la consulta no contesta con deuda. */
+export const SIN_DATOS: DatosLeidos = { deudas: [], contribuyente: null };
+
+/**
+ * **Lo que el recorrido lee de una respuesta del servidor** (issue 50): sus conceptos y a nombre de
+ * quien estan, solo si contesto CON DEUDA. Pura: la misma respuesta da los mismos conceptos —el
+ * mismo arreglo, el que guarda la cache—, asi que una respuesta igual no cambia nada de lo que se
+ * dibuja.
+ *
+ * Mientras no hay respuesta (`undefined`) y en los otros tres finales, `SIN_DATOS`: no hay nada que
+ * marcar ni que pagar, y esas pantallas no dibujan la lista.
+ */
+export function datosDeLaSituacion(situacion: SituacionDelServidor | undefined): DatosLeidos {
+  if (situacion?.estado !== 'con-deuda') return SIN_DATOS;
+  return { deudas: situacion.deudas, contribuyente: quienDebeDe(situacion) };
+}
+
+/**
+ * **Las decisiones, sin los datos leidos**: lo que el reductor montado guarda. Si un estado entero
+ * llega aqui —el `inicial` de una prueba, o lo que devuelve `recorrido`—, lo leido se tira: la
+ * proxima vez lo vuelve a poner quien lo lee, de donde este en ese momento.
+ */
+export function decisionesDe(estado: DecisionesDelRecorrido & Partial<DatosLeidos>): DecisionesDelRecorrido {
+  const { deudas: _deudas, contribuyente: _contribuyente, ...decisiones } = estado;
+  return decisiones;
+}
+
+/** El estado con que se abre el portal EN DEMOSTRACION. Artboard, lineas 927-940. */
+export const ESTADO_INICIAL: EstadoDelRecorrido = {
+  paso: 'buscar',
+  conPlataforma: false,
+  amnistia: true,
+  ...DATOS_DE_LA_DEMOSTRACION,
   tipoDeDocumento: 'Código de contribuyente',
   numero: '',
   marcadas: { pred26: true, arb26: true, pred24: true, veh24: true },
@@ -191,16 +271,16 @@ export interface ComoEmpieza {
  * **El estado con que se abre el portal, segun de donde lea** (issue 28).
  *
  * Con plataforma no hay deuda que ensenar hasta que la consulta conteste: la lista arranca **vacia**
- * y sin nada marcado. Las cuatro marcas de `ESTADO_INICIAL` son las de los cuatro conceptos del
- * artboard, y arrastrarlas a un recorrido cuyos conceptos son otros dejaria marcadas unas cosas que
- * no existen.
+ * (`SIN_DATOS`) y sin ninguna marca escrita —lo que llegue, llega marcado por omision—. Las cuatro
+ * marcas de `ESTADO_INICIAL` son las de los cuatro conceptos del artboard, y arrastrarlas a un
+ * recorrido cuyos conceptos son otros dejaria escritas unas decisiones sobre cosas que no existen.
  *
  * Quien lo llama es `ProveedorDelRecorrido`, una sola vez: la bandera es de construccion y el token
  * lo fija el canje ANTES de montar (`src/arranque.ts`).
  */
 export function estadoInicial({ conPlataforma, autenticado, amnistia }: ComoEmpieza): EstadoDelRecorrido {
   const base: EstadoDelRecorrido = conPlataforma
-    ? { ...ESTADO_INICIAL, conPlataforma: true, autenticado, amnistia, deudas: [], marcadas: {}, contribuyente: null }
+    ? { ...ESTADO_INICIAL, ...SIN_DATOS, conPlataforma: true, autenticado, amnistia, marcadas: {} }
     : { ...ESTADO_INICIAL, autenticado, amnistia };
   return { ...base, paso: primerPaso(base) };
 }
@@ -231,20 +311,7 @@ export type AccionDelRecorrido =
   /** «Mis predios y vehículos» del menu: al historial, con la vista en sus unidades (issue 10). */
   | { readonly tipo: 'verPrediosYVehiculos' }
   /** El historial ya llevo la vista a las unidades: no se vuelve a hacer en cada dibujo. */
-  | { readonly tipo: 'unidadesEnfocadas' }
-  /**
-   * **La consulta a la plataforma contesto con deuda** (issue 28): sus conceptos pasan a ser los del
-   * recorrido, y se marcan todos, como el artboard abre con los suyos marcados (linea 929).
-   *
-   * La despacha `LaConsulta` cuando `useLaSituacion` trae datos. Es idempotente: con la MISMA lista
-   * —la que la cache de consultas guarda— devuelve el estado tal cual, asi que volver a entrar en el
-   * paso 2 no borra lo que se acababa de marcar.
-   */
-  | {
-      readonly tipo: 'situacionLeida';
-      readonly deudas: readonly DeudaDelServidor[];
-      readonly contribuyente: QuienDebe;
-    };
+  | { readonly tipo: 'unidadesEnfocadas' };
 
 // ── Selectores ─────────────────────────────────────────────────────────────────────────────────
 
@@ -292,9 +359,17 @@ export function vivasDelServidor(estado: EstadoDelRecorrido): readonly DeudaDelS
   return vivas(estado).filter((deuda): deuda is DeudaDelServidor => deuda.detalle === null);
 }
 
+/**
+ * Si un concepto esta marcado: lo que decidio la persona, o, si no decidio nada de el, lo de por
+ * omision —marcado con plataforma, desmarcado en demostracion—. Ver `marcadas`.
+ */
+export function estaMarcada(estado: DecisionesDelRecorrido, id: string): boolean {
+  return estado.marcadas[id] ?? estado.conPlataforma;
+}
+
 /** Lo marcado DE LA DEUDA VIVA: lo pagado no se vuelve a cobrar aunque siga marcado. */
 export function seleccion(estado: EstadoDelRecorrido): readonly ConceptoDeDeuda[] {
-  return vivas(estado).filter((deuda) => estado.marcadas[deuda.id] === true);
+  return vivas(estado).filter((deuda) => estaMarcada(estado, deuda.id));
 }
 
 /** La cuenta de lo seleccionado (artboard, `cuenta()`, lineas 992-998). */
@@ -319,14 +394,6 @@ export function pendientes(estado: EstadoDelRecorrido): readonly ConceptoDeDeuda
  */
 export function cuentaPendiente(estado: EstadoDelRecorrido): Cuenta {
   return cuentaDe(pendientes(estado));
-}
-
-/**
- * Los conceptos de un pago sellado, en el orden de `DEUDAS`: las filas del comprobante (artboard,
- * linea 1283 y 1302-1310). Salen de `pago.ids` y de nada mas: ni de `marcadas` ni de la deuda viva.
- */
-export function conceptosDelPago(estado: EstadoDelRecorrido, pago: PagoSellado): readonly ConceptoDeDeuda[] {
-  return estado.deudas.filter((deuda) => pago.ids.includes(deuda.id));
 }
 
 /**
@@ -474,7 +541,7 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
     case 'alternar':
       return {
         ...estado,
-        marcadas: { ...estado.marcadas, [accion.id]: estado.marcadas[accion.id] !== true },
+        marcadas: { ...estado.marcadas, [accion.id]: !estaMarcada(estado, accion.id) },
       };
 
     case 'marcarTodo': {
@@ -526,7 +593,8 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
               ...Object.fromEntries(pagado.map((deuda) => [deuda.id, true as const])),
             },
         ultimo: {
-          ids: pagado.map((deuda) => deuda.id),
+          conceptos: pagado,
+          contribuyente: estado.contribuyente,
           ...cuentaDe(pagado),
           medio: estado.medio,
           destino: destinoDelComprobante(estado),
@@ -545,7 +613,8 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
       // (`valores`: numero, vencimiento, CVV), el correo, lo que busco y lo que marco. Con el recibo
       // olvidado y la tarjeta todavia escrita en el paso 4, el equipo compartido seguia siendo un
       // problema. `marcadas` queda VACIO y no con las cuatro marcas del artboard: esas no son una
-      // eleccion de nadie (`hayQuePagar`), y tras cerrar sesion no hay nadie que haya elegido.
+      // eleccion de nadie (`hayQuePagar`), y tras cerrar sesion no hay nadie que haya elegido. Vacio
+      // es «nadie decidio nada»: cada concepto vale lo de por omision (`estaMarcada`).
       return {
         ...estado,
         autenticado: false,
@@ -569,18 +638,5 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
 
     case 'unidadesEnfocadas':
       return estado.enfocarUnidades ? { ...estado, enfocarUnidades: false } : estado;
-
-    case 'situacionLeida':
-      // La MISMA lista no es una lectura nueva: es el mismo objeto que guarda la cache de consultas,
-      // que la pantalla vuelve a ver cada vez que se monta. Sin esta salida, volver al paso 2 desde
-      // «Cambiar lo que voy a pagar» volveria a marcarlo todo.
-      if (estado.deudas === accion.deudas) return estado;
-      return {
-        ...estado,
-        deudas: accion.deudas,
-        contribuyente: accion.contribuyente,
-        // Todo marcado, como el artboard abre con sus cuatro (linea 929).
-        marcadas: Object.fromEntries(accion.deudas.map((deuda) => [deuda.id, true as const])),
-      };
   }
 }

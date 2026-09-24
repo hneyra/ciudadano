@@ -20,7 +20,7 @@ import { useHistorial, useLaSituacion, useUnidades } from '../../datos/fuente.ts
 import type { PredioDelPortal, Unidad } from '../../datos/tipos.ts';
 import { AvisoConFilo } from '../../piezas/AvisoConFilo.tsx';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
-import { type PagoSellado, aCobrar, conceptosDelPago, cuentaPendiente, pendientes } from '../../recorrido/recorrido.ts';
+import { type PagoSellado, aCobrar, cuentaPendiente, pendientes } from '../../recorrido/recorrido.ts';
 import { rotuloDelMedio } from '../pagar/textosDeLosMedios.ts';
 
 /**
@@ -33,7 +33,7 @@ import { rotuloDelMedio } from '../pagar/textosDeLosMedios.ts';
  * <h2>De donde sale cada cosa</h2>
  *
  * · **El pago reciente** —la banda y la primera fila de la tabla— sale SOLO de `estado.ultimo`, el pago
- *   sellado, y solo si `recienPagado`: sus conceptos (`conceptosDelPago`), su importe, su medio y los
+ *   sellado, y solo si `recienPagado`: sus conceptos (`pago.conceptos`), su importe, su medio y los
  *   numeros del comprobante. Como en el comprobante, nada de `marcadas` ni de la seleccion.
  * · **Los pagos anteriores y las unidades** se leen de la fuente del portal (`useHistorial`,
  *   `useUnidades`), como los leeria un portal con backend: mientras llegan, su seccion queda
@@ -178,9 +178,7 @@ function PagosRealizados() {
       : [
           {
             fecha: formatearFecha(pago.comprobante.fecha),
-            concepto: conceptosDelPago(estado, pago)
-              .map((deuda) => deuda.concepto)
-              .join(' · '),
+            concepto: pago.conceptos.map((deuda) => deuda.concepto).join(' · '),
             medio: t(rotuloDelMedio(pago.medio)),
             comprobante: pago.comprobante.numero,
             importe: cifraSinSimbolo(aCobrar(estado, pago)),
@@ -394,8 +392,8 @@ function LoQueQuedaPendiente() {
 /**
  * **«Lo que queda pendiente» con plataforma: lo que dijo la CONSULTA, y nada que no dijera** (issue 49).
  *
- * Hasta el issue 49 esta seccion leia la deuda viva del recorrido, que con plataforma solo existe
- * despues de pasar por el paso 2 (alli la pone `situacionLeida`). Entrando directo a `#/historial`
+ * Hasta el issue 49 esta seccion leia la deuda viva del recorrido, que con plataforma solo existia
+ * despues de pasar por el paso 2 (alli la copiaba `situacionLeida`). Entrando directo a `#/historial`
  * la lista estaba vacia y la pantalla decia **«Sin deuda pendiente»**, **«Al día»** y ofrecia la
  * constancia de no adeudo a una persona que debia S/ 1,842.60 (medido: la sonda del issue). Y lo
  * mismo con «no se pudo consultar», que es la respuesta real de hoy: un cero de consuelo.
@@ -408,7 +406,8 @@ function LoQueQuedaPendiente() {
  *   · **sin deuda**: que no tiene deuda pendiente, que es lo que el servidor dijo. Sin «Al día» ni
  *     constancia: el portal no emite ninguna.
  *
- * No se toca la copia de la situacion al recorrido (`LaConsulta.tsx`): sacarla de ahi es el issue 50.
+ * Desde el issue 50 esa copia ya no existe —el recorrido lee la misma cache—, pero la seccion sigue
+ * preguntando a la consulta y no a la deuda viva: es la que distingue «no contesto» de «sin deuda».
  */
 function LoQueQuedaPendienteConPlataforma() {
   const { t } = useTranslation();

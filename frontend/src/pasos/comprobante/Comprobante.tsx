@@ -18,7 +18,7 @@ import { cifraSinSimbolo } from '../../datos/cuentas.ts';
 import { ORDENANZA } from '../../datos/demostracion.ts';
 import { AvisoDePagoSimulado } from '../../piezas/AvisoDePagoSimulado.tsx';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
-import { type PagoSellado, aCobrar, aCobrarDe, conceptosDelPago, vivas } from '../../recorrido/recorrido.ts';
+import { type PagoSellado, aCobrar, aCobrarDe, vivas } from '../../recorrido/recorrido.ts';
 import { rotuloDelMedio } from '../pagar/textosDeLosMedios.ts';
 
 /**
@@ -34,7 +34,7 @@ import { rotuloDelMedio } from '../pagar/textosDeLosMedios.ts';
  *
  * <h2>El recibo se dibuja SOLO con el pago sellado</h2>
  *
- * Todo sale de `estado.ultimo`, que `confirmarPago` sello: los conceptos (`conceptosDelPago`), los
+ * Todo sale de `estado.ultimo`, que `confirmarPago` sello: los conceptos (`pago.conceptos`), los
  * importes, el medio, el destino y los numeros del comprobante. Nada de `marcadas`, `seleccion` ni
  * `cuenta`: volver a elegir qué pago y regresar aqui ensena el mismo recibo. Lo unico que se lee del
  * estado vivo es lo que el artboard tambien lee vivo (1283-1286): si hay sesion —que acciones se
@@ -182,7 +182,8 @@ function Recibo({ pago }: { readonly pago: PagoSellado }) {
   const idDelTitulo = useId();
   const medio = useRotuloDelMedio(pago);
   const { comprobante } = pago;
-  const quien = estado.contribuyente;
+  // Del sello, como las filas (issue 50): a nombre de quien estaba la deuda AL PAGAR.
+  const quien = pago.contribuyente;
   const simulado = estado.conPlataforma;
 
   const columnas = [
@@ -254,7 +255,7 @@ function Recibo({ pago }: { readonly pago: PagoSellado }) {
           </tr>
         </TablaCabecera>
         <TablaCuerpo>
-          {conceptosDelPago(estado, pago).map((deuda) => (
+          {pago.conceptos.map((deuda) => (
             <TablaFila key={deuda.id}>
               <TablaCelda identifica className={cn('font-bold', CELDA_DEL_RECIBO)}>
                 {deuda.concepto}

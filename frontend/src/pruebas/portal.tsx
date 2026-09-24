@@ -1,10 +1,11 @@
 import { avisar } from '@kamayuk/ui';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, configure, render } from '@testing-library/react';
 import { vi } from 'vitest';
 
 import { haySesion } from '../api/claims.ts';
 import { Aplicacion } from '../aplicacion.tsx';
+import { crearClienteDeConsultas } from '../datos/consultas.ts';
 import { FuenteActiva, type FuenteDelPortal, hayPlataforma } from '../datos/fuente.ts';
 // La de demostracion, importada A PROPOSITO de forma estatica: esto es andamiaje de pruebas y no
 // entra en el paquete (solo lo importan los `*.test.tsx`). Que siga siendo asi —y que ningun archivo
@@ -235,7 +236,9 @@ export function montarElPortal({ hash = '#/buscar', estado = {}, fuente = fuente
   });
   const enrutador = crearEnrutador();
   montados.push(enrutador);
-  const consultas = new QueryClient();
+  // La MISMA politica que `main.tsx` (issue 50): con los valores por omision, el foco volveria a pedir
+  // la situacion y la prueba mediria otro portal.
+  const consultas = crearClienteDeConsultas();
   const utilidades = render(
     <QueryClientProvider client={consultas}>
       <FuenteActiva value={fuente}>
@@ -243,7 +246,7 @@ export function montarElPortal({ hash = '#/buscar', estado = {}, fuente = fuente
       </FuenteActiva>
     </QueryClientProvider>,
   );
-  return { ...utilidades, enrutador };
+  return { ...utilidades, enrutador, consultas };
 }
 
 /**

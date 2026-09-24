@@ -21,7 +21,7 @@ import { CONTRIBUYENTE, FECHA_DE_CORTE } from '../../datos/demostracion.ts';
 import { hayPlataforma, useLaFuente } from '../../datos/fuente.ts';
 import type { Deuda, TonoDeInsignia } from '../../datos/tipos.ts';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
-import { cuenta, destinoAlPagar, inicio, resumen, seleccion, vivasDelArtboard } from '../../recorrido/recorrido.ts';
+import { cuenta, destinoAlPagar, estaMarcada, inicio, resumen, seleccion, vivasDelArtboard } from '../../recorrido/recorrido.ts';
 import { fechaEnPalabras } from './fechaEnPalabras.ts';
 import { LaConsulta } from './LaConsulta.tsx';
 
@@ -267,7 +267,7 @@ function Concepto({ deuda }: { readonly deuda: Deuda }) {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
   const idDelDetalle = useId();
-  const marcada = estado.marcadas[deuda.id] === true;
+  const marcada = estaMarcada(estado, deuda.id);
   const abierta = estado.abierta === deuda.id;
   const recargo = recargoDe(deuda);
 
