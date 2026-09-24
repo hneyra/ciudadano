@@ -1,4 +1,5 @@
 import type { Cliente } from '@kamayuk/api';
+import type { QueryClient } from '@tanstack/react-query';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -114,6 +115,18 @@ function montarEnElPaso2(cliente: Cliente) {
 
 const LA_LISTA = 'Lo que debe, por concepto';
 
+/**
+ * Vuelve a pedir la situacion, como lo haria «Reintentar la consulta» o una invalidacion, y deja
+ * llegar el aviso: React Query avisa a sus observadores en la vuelta siguiente del bucle, y sin
+ * esperarla lo que se mire despues seria la pantalla de ANTES — una prueba que no mide nada.
+ */
+async function repetirLaConsulta(consultas: QueryClient): Promise<void> {
+  await act(async () => {
+    await consultas.refetchQueries({ queryKey: LLAVES.situacion });
+    await new Promise((listo) => setTimeout(listo, 50));
+  });
+}
+
 /** Cada casilla de concepto, por su nombre, con si esta marcada. */
 function lasMarcas(): Record<string, boolean> {
   return Object.fromEntries(
@@ -177,7 +190,7 @@ describe('AC2 — una consulta repetida no vuelve a marcarlo todo', () => {
     fireEvent.click(enMain().getByRole('checkbox', { name: 'Pagar Impuesto predial 2024' }));
     expect(lasMarcas()).toEqual({ 'Pagar Impuesto predial 2024': false, 'Pagar Impuesto predial 2025': true });
 
-    await act(() => consultas.refetchQueries({ queryKey: LLAVES.situacion }));
+    await repetirLaConsulta(consultas);
     expect(veces()).toBe(2);
     expect(lasMarcas()).toEqual({ 'Pagar Impuesto predial 2024': false, 'Pagar Impuesto predial 2025': true });
   });
@@ -194,7 +207,7 @@ describe('AC2 — una consulta repetida no vuelve a marcarlo todo', () => {
     fireEvent.click(enMain().getByRole('checkbox', { name: 'Pagar Impuesto predial 2024' }));
     fireEvent.click(enMain().getByRole('checkbox', { name: 'Pagar Impuesto predial 2025' }));
 
-    await act(() => consultas.refetchQueries({ queryKey: LLAVES.situacion }));
+    await repetirLaConsulta(consultas);
     await waitFor(() => expect(enMain().queryByRole('checkbox', { name: 'Pagar Impuesto predial 2025' })).toBeNull());
     expect(lasMarcas()).toEqual({
       'Pagar Impuesto predial 2023': true,
@@ -231,6 +244,9 @@ describe('AC2 — y el comprobante no cuelga de la lista', () => {
     // (`useLaSituacionSinPedir`): `refetchQueries` se salta las consultas apagadas. Se pide a mano.
     await act(async () => {
       await consultas.getQueryCache().find({ queryKey: LLAVES.situacion })?.fetch();
+      // React Query avisa a sus observadores en la vuelta siguiente del bucle: se le deja llegar, o el
+      // recibo se leeria antes de que el recorrido viera la respuesta nueva y la prueba no mediria nada.
+      await new Promise((listo) => setTimeout(listo, 50));
     });
     expect(consultas.getQueryData<{ deudas: unknown[] }>(LLAVES.situacion)?.deudas).toHaveLength(1);
 
@@ -252,7 +268,7 @@ describe('AC3 — un error en una consulta repetida no borra lo que ya se ve', (
     await enMain().findByRole('heading', { level: 1, name: LA_LISTA });
     fireEvent.click(enMain().getByRole('checkbox', { name: 'Pagar Impuesto predial 2025' }));
 
-    await act(() => consultas.refetchQueries({ queryKey: LLAVES.situacion }));
+    await repetirLaConsulta(consultas);
     expect(veces()).toBe(2);
     await waitFor(() => expect(consultas.getQueryState(LLAVES.situacion)?.status).toBe('error'));
 
