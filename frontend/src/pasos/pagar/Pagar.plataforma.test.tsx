@@ -4,11 +4,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { identidad } from '../../api/identidad.ts';
 import type { SituacionDelContrato } from '../../datos/contrato.ts';
-import { CONTRIBUYENTE, USUARIO } from '../../datos/demostracion.ts';
+import { CONTRIBUYENTE, DEUDAS, USUARIO } from '../../datos/demostracion.ts';
 import { crearFuenteDeLaPlataforma } from '../../datos/fuenteDeLaPlataforma.ts';
 import i18n, { IDIOMA_MARCADO } from '../../i18n/i18n.ts';
 import { FRASES_QUE_AFIRMAN, laDice, nombreDe } from '../../pruebas/frasesQueAfirman.ts';
 import { limpiarElPortal, marcado, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
+import { DATOS_DE_LA_DEMOSTRACION } from '../../recorrido/recorrido.ts';
 
 /**
  * **AC4 — pagar y el comprobante con plataforma quedan simulados, y se dice** (issue 28).
@@ -211,7 +212,8 @@ describe('AC4 — el paso 5, «Comprobante»', () => {
         pagadas: { pred26: true },
         recienPagado: true,
         ultimo: {
-          ids: ['pred26'],
+          conceptos: DEUDAS.filter((deuda) => deuda.id === 'pred26'),
+          contribuyente: DATOS_DE_LA_DEMOSTRACION.contribuyente,
           insoluto: '293.72',
           reajuste: '0.00',
           interes: '0.00',

@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { DEUDAS } from '../datos/demostracion.ts';
-import type { DeudaDelServidor, QuienDebe } from '../datos/tipos.ts';
+import type { DeudaDelServidor, QuienDebe, SituacionDelServidor } from '../datos/tipos.ts';
 import {
   ESTADO_INICIAL,
   PASOS_CON_PLATAFORMA,
   PASOS_DE_LA_DEMOSTRACION,
+  SIN_DATOS,
   type EstadoDelRecorrido,
   aCobrar,
   aCobrarDe,
@@ -13,7 +14,10 @@ import {
   cuentaPorPagar,
   cuentaPendiente,
   destinoAlPagar,
+  datosDeLaSituacion,
+  decisionesDe,
   destinoDelComprobante,
+  estaMarcada,
   estadoInicial,
   inicio,
   pasoAlcanzable,
@@ -73,13 +77,19 @@ const tras = (acciones: readonly Parameters<typeof recorrido>[1][]) => acciones.
 const conSesion = estadoInicial({ conPlataforma: true, autenticado: true, amnistia: false });
 const sinSesion = estadoInicial({ conPlataforma: true, autenticado: false, amnistia: false });
 
-/** Con plataforma, sesion y dos conceptos leidos: el estado desde el que se puede pagar. */
+/**
+ * Con plataforma, sesion y dos conceptos leidos: el estado desde el que se puede pagar.
+ *
+ * Lo leido se pone AL LADO de las decisiones, como lo hace `ProveedorDelRecorrido` en cada dibujo
+ * (issue 50): no hay accion que lo copie al reductor.
+ */
 const DOS = [delServidor('predial-2024', '1000.00'), delServidor('predial-2025', '500.00')];
-const conDeuda: EstadoDelRecorrido = recorrido(conSesion, {
-  tipo: 'situacionLeida',
-  deudas: DOS,
+const conLeido = (decisiones: EstadoDelRecorrido, deudas: readonly DeudaDelServidor[]): EstadoDelRecorrido => ({
+  ...decisiones,
+  deudas,
   contribuyente: QUIEN,
 });
+const conDeuda: EstadoDelRecorrido = conLeido(conSesion, DOS);
 
 describe('los dos recorridos, y sus pasos', () => {
   it('con plataforma son cuatro y empiezan por entrar; en demostracion, los cinco de siempre', () => {
@@ -165,22 +175,64 @@ describe('AC1 — a donde llevan las acciones con plataforma', () => {
   });
 });
 
-describe('`situacionLeida`: los conceptos del servidor pasan a ser los del recorrido', () => {
-  it('los guarda, los marca todos y guarda a nombre de quien estan', () => {
-    expect(conDeuda.deudas).toBe(DOS);
-    expect(conDeuda.marcadas).toEqual({ 'predial-2024': true, 'predial-2025': true });
-    expect(conDeuda.contribuyente).toBe(QUIEN);
+describe('lo leido: los conceptos del servidor son los del recorrido (issues 28 y 50)', () => {
+  it('llegan todos marcados —nadie decidio nada de ellos— y a nombre de quien estan', () => {
+    expect(conDeuda.marcadas).toEqual({});
+    expect(seleccion(conDeuda).map((deuda) => deuda.id)).toEqual(['predial-2024', 'predial-2025']);
     expect(vivasDelServidor(conDeuda).map((deuda) => deuda.id)).toEqual(['predial-2024', 'predial-2025']);
     // Y no son deuda del artboard: la pantalla de demostracion no dibujaria ninguno.
     expect(vivasDelArtboard(conDeuda)).toEqual([]);
   });
 
-  it('con la MISMA lista no cambia nada: volver al paso 2 no vuelve a marcarlo todo', () => {
+  it('`estaMarcada`: lo decidido manda, y lo no decidido vale lo de por omision de cada modo', () => {
     const conUnaQuitada = recorrido(conDeuda, { tipo: 'alternar', id: 'predial-2025' });
-    const otraVez = recorrido(conUnaQuitada, { tipo: 'situacionLeida', deudas: DOS, contribuyente: QUIEN });
+    expect(conUnaQuitada.marcadas).toEqual({ 'predial-2025': false });
+    expect(estaMarcada(conUnaQuitada, 'predial-2024')).toBe(true);
+    expect(estaMarcada(conUnaQuitada, 'predial-2025')).toBe(false);
+    // En demostracion, lo no escrito es desmarcado: las cuatro marcas del artboard ya estan escritas.
+    expect(estaMarcada(ESTADO_INICIAL, 'otro')).toBe(false);
+    expect(estaMarcada(ESTADO_INICIAL, 'pred26')).toBe(true);
+  });
 
-    expect(otraVez).toBe(conUnaQuitada);
-    expect(seleccion(otraVez).map((deuda) => deuda.id)).toEqual(['predial-2024']);
+  it('AC2 — una respuesta DISTINTA se reconcilia sola: lo que sigue conserva su marca, lo nuevo llega marcado', () => {
+    const conUnaQuitada = recorrido(conDeuda, { tipo: 'alternar', id: 'predial-2024' });
+    // 2025 se pago en la ventanilla y aparece 2023: la misma persona, otra lista.
+    const otraLista = [delServidor('predial-2023', '40.00'), delServidor('predial-2024', '1000.00')];
+    const despues = conLeido(conUnaQuitada, otraLista);
+
+    expect(seleccion(despues).map((deuda) => deuda.id)).toEqual(['predial-2023']);
+    expect(estaMarcada(despues, 'predial-2024')).toBe(false);
+    expect(cuenta(despues).total).toBe('40.00');
+  });
+
+  it('`datosDeLaSituacion`: solo con deuda hay algo que leer, y es el MISMO arreglo de la respuesta', () => {
+    const situacion = (estado: SituacionDelServidor['estado']): SituacionDelServidor => ({
+      estado,
+      tipoDeDocumento: 'DNI',
+      numeroDeDocumento: '03593174',
+      aLaFecha: '2026-09-16',
+      municipalidadesRecorridas: 1,
+      totalConsolidado: null,
+      notaDelTotal: null,
+      municipalidades: [],
+      deudas: estado === 'con-deuda' ? DOS : [],
+    });
+    const leido = datosDeLaSituacion(situacion('con-deuda'));
+    // El mismo arreglo, no una copia: una respuesta repetida e igual no cambia nada de lo que se dibuja.
+    expect(leido.deudas).toBe(DOS);
+    expect(leido.contribuyente).toEqual({ nombre: '', codigo: null, documento: 'DNI 03593174' });
+    // Sin respuesta, y en los otros tres finales, nada que marcar ni que pagar.
+    expect(datosDeLaSituacion(undefined)).toBe(SIN_DATOS);
+    for (const final of ['sin-deuda', 'sin-registros', 'no-se-pudo-consultar'] as const) {
+      expect(datosDeLaSituacion(situacion(final)), final).toBe(SIN_DATOS);
+    }
+  });
+
+  it('el reductor montado no guarda lo leido: `decisionesDe` lo tira', () => {
+    const decisiones = decisionesDe(conDeuda);
+    expect('deudas' in decisiones).toBe(false);
+    expect('contribuyente' in decisiones).toBe(false);
+    expect(decisiones.marcadas).toBe(conDeuda.marcadas);
   });
 
   it('las cuentas se hacen sobre lo que trajo el servidor, y no sobre el artboard', () => {
@@ -189,12 +241,22 @@ describe('`situacionLeida`: los conceptos del servidor pasan a ser los del recor
     expect(cuenta(soloUno).total).toBe('1000.00');
   });
 
-  it('y pagar sella lo del servidor: al comprobante, con sus ids y sus importes', () => {
+  it('y pagar sella lo del servidor: al comprobante, con sus conceptos, sus importes y su contribuyente', () => {
     const pagado = recorrido(recorrido(conDeuda, { tipo: 'irA', paso: 'pagar' }), { tipo: 'confirmarPago' });
 
     expect(pagado.paso).toBe('comprobante');
-    expect(pagado.ultimo?.ids).toEqual(['predial-2024', 'predial-2025']);
+    expect(pagado.ultimo?.conceptos).toEqual(DOS);
     expect(pagado.ultimo?.total).toBe('1500.00');
+    expect(pagado.ultimo?.contribuyente).toBe(QUIEN);
+  });
+
+  it('issue 50 — el sello no cuelga de la lista: otra respuesta despues no le quita ni le cambia filas', () => {
+    const pagado = recorrido(conDeuda, { tipo: 'confirmarPago' });
+    const otraRespuesta = conLeido(pagado, [delServidor('predial-2023', '40.00')]);
+
+    expect(otraRespuesta.ultimo).toBe(pagado.ultimo);
+    expect(otraRespuesta.ultimo?.conceptos.map((deuda) => deuda.id)).toEqual(['predial-2024', 'predial-2025']);
+    expect(otraRespuesta.ultimo?.contribuyente).toBe(QUIEN);
   });
 
   it('REVISION — pero la deuda NO se da por pagada: no hubo cobro', () => {
@@ -229,7 +291,7 @@ describe('issue 49 — la amnistia sale de la FUENTE, y con plataforma no hay ni
     gastos: '100.00',
     totalDelServidor: '1842.60',
   };
-  const leida = recorrido(conSesion, { tipo: 'situacionLeida', deudas: [conInteres], contribuyente: QUIEN });
+  const leida = conLeido(conSesion, [conInteres]);
 
   it('el estado la lleva desde el arranque: la fuente dice si hay, y la de la plataforma dice que no', () => {
     expect(conSesion.amnistia).toBe(false);

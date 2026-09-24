@@ -1,10 +1,11 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode, StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { I18nextProvider } from 'react-i18next';
 
 import { Aplicacion, ComprobandoLaSesion } from './aplicacion.tsx';
 import { arrancar } from './arranque.ts';
+import { crearClienteDeConsultas } from './datos/consultas.ts';
 import { FuenteActiva, type FuenteDelPortal, hayPlataforma } from './datos/fuente.ts';
 import { laFuente } from './datos/laFuente.ts';
 import { crearEnrutador } from './enrutador.tsx';
@@ -25,11 +26,10 @@ if (raiz === null) {
  * Un solo cliente de consultas para toda la pagina, creado FUERA del render: dentro, `StrictMode`
  * lo crearia dos veces en desarrollo y cada uno tendria su propia cache.
  *
- * Hoy no hay ninguna consulta —no hay backend—, pero las pantallas de los issues siguientes leen
- * sus datos de demostracion por `useQuery`, y el proveedor tiene que estar ya para que la primera
- * no tenga que tocar este archivo.
+ * Con la politica del portal (issue 50): lo leido no caduca solo, y ni el foco ni la red lo vuelven a
+ * pedir. El porque, en `src/datos/consultas.ts`.
  */
-const consultas = new QueryClient();
+const consultas = crearClienteDeConsultas();
 
 /** El enrutador, por lo mismo: fuera del render, una sola vez (ver `src/enrutador.tsx`). */
 const enrutador = crearEnrutador();

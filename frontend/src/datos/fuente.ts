@@ -140,6 +140,29 @@ export function useLaSituacion() {
   });
 }
 
+/**
+ * **La situacion que ya este en la cache, sin pedirla** (issue 50).
+ *
+ * La lee `ProveedorDelRecorrido`, que esta montado en todo el portal: si pidiera, preguntaria
+ * tambien en `#/entrar`, sin token, y se llevaria un 401. Apagada (`enabled: false`) no pide nunca,
+ * pero sigue a la cache: cuando `useLaSituacion` —la del paso 2 o la del historial— trae la
+ * respuesta, este gancho la ve en el MISMO dibujo, porque los dos observan la misma llave.
+ *
+ * Que la respuesta siga ahi al volver al paso 2 —sin volver a dibujar «Consultando…»— no depende de
+ * este observador sino de la politica del cliente (`src/datos/consultas.ts`): `gcTime: Infinity` no
+ * la tira nunca y `staleTime: Infinity` no la vuelve a pedir al montar.
+ */
+export function useLaSituacionSinPedir() {
+  const fuente = useContext(FuenteActiva);
+  const consulta = fuente.consulta;
+  return useQuery({
+    queryKey: LLAVES.situacion,
+    queryFn: consulta === null ? skipToken : consulta,
+    enabled: false,
+    retry: false,
+  });
+}
+
 /** Los pagos ya hechos. */
 export function useHistorial() {
   const fuente = useContext(FuenteActiva);

@@ -1,10 +1,11 @@
 import { avisar } from '@kamayuk/ui';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, configure, render } from '@testing-library/react';
 import { vi } from 'vitest';
 
 import { haySesion } from '../api/claims.ts';
 import { Aplicacion } from '../aplicacion.tsx';
+import { crearClienteDeConsultas } from '../datos/consultas.ts';
 import { FuenteActiva, type FuenteDelPortal, hayPlataforma } from '../datos/fuente.ts';
 // La de demostracion, importada A PROPOSITO de forma estatica: esto es andamiaje de pruebas y no
 // entra en el paquete (solo lo importan los `*.test.tsx`). Que siga siendo asi —y que ningun archivo
@@ -13,7 +14,7 @@ import { fuenteDeDemostracion } from '../datos/fuenteDeDemostracion.ts';
 import { type Enrutador, crearEnrutador } from '../enrutador.tsx';
 import i18n, { ABRE, CIERRA, IDIOMA_POR_OMISION } from '../i18n/i18n.ts';
 import { precargarLasPantallas } from '../pasos/pantallas.tsx';
-import { type EstadoDelRecorrido, estadoInicial } from '../recorrido/recorrido.ts';
+import { type DecisionesDelRecorrido, estadoInicial } from '../recorrido/recorrido.ts';
 
 /**
  * **Montar el portal entero en una prueba**, entrando por un hash como entraria el navegador.
@@ -148,7 +149,12 @@ await precargarLasPantallas();
 
 export interface ComoMontar {
   readonly hash?: string;
-  readonly estado?: Partial<EstadoDelRecorrido>;
+  /**
+   * Las decisiones con que se empieza. Solo DECISIONES (issue 50): los conceptos y el contribuyente
+   * se leen —de la demostracion o de la `fuente`—, y un `deudas` sembrado aqui el proveedor lo tiraria
+   * en silencio. Con este tipo, sembrarlo no compila.
+   */
+  readonly estado?: Partial<DecisionesDelRecorrido>;
   /** De donde leen las pantallas (issue 10). Por omision, la de demostracion, como en `main.tsx`. */
   readonly fuente?: FuenteDelPortal;
 }
@@ -235,7 +241,9 @@ export function montarElPortal({ hash = '#/buscar', estado = {}, fuente = fuente
   });
   const enrutador = crearEnrutador();
   montados.push(enrutador);
-  const consultas = new QueryClient();
+  // La MISMA politica que `main.tsx` (issue 50): con los valores por omision, el foco volveria a pedir
+  // la situacion y la prueba mediria otro portal.
+  const consultas = crearClienteDeConsultas();
   const utilidades = render(
     <QueryClientProvider client={consultas}>
       <FuenteActiva value={fuente}>
@@ -243,7 +251,7 @@ export function montarElPortal({ hash = '#/buscar', estado = {}, fuente = fuente
       </FuenteActiva>
     </QueryClientProvider>,
   );
-  return { ...utilidades, enrutador };
+  return { ...utilidades, enrutador, consultas };
 }
 
 /**

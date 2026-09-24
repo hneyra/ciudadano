@@ -6,7 +6,7 @@ import type { FalloDelSilencio } from './api/silencio.ts';
 import { preguntaFallida, vueltaFallida, type VueltaFallida } from './arranque.ts';
 import type { Enrutador } from './enrutador.tsx';
 import { ProveedorDelRecorrido } from './recorrido/ProveedorDelRecorrido.tsx';
-import type { EstadoDelRecorrido } from './recorrido/recorrido.ts';
+import type { DecisionesDelRecorrido } from './recorrido/recorrido.ts';
 
 /**
  * **El tema de este portal** (issue 2): dos decisiones, y ningun color.
@@ -151,7 +151,7 @@ export function ComprobandoLaSesion() {
  */
 export interface AplicacionProps {
   readonly enrutador: Enrutador;
-  readonly inicial?: EstadoDelRecorrido;
+  readonly inicial?: DecisionesDelRecorrido;
 }
 
 export function Aplicacion({ enrutador, inicial }: AplicacionProps) {

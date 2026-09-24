@@ -5,7 +5,7 @@ import { DEUDAS, HISTORIAL, UNIDADES, USUARIO } from '../../datos/demostracion.t
 import type { FuenteDelPortal } from '../../datos/fuente.ts';
 import i18n, { ABRE, CIERRA, IDIOMA_MARCADO } from '../../i18n/i18n.ts';
 import { limpiarElPortal, marcado, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
-import type { EstadoDelRecorrido } from '../../recorrido/recorrido.ts';
+import { DATOS_DE_LA_DEMOSTRACION, type EstadoDelRecorrido } from '../../recorrido/recorrido.ts';
 import { textosDeLaUnidad, textosDelPago } from './textosDelHistorial.ts';
 
 /**
@@ -202,7 +202,8 @@ describe('sin haber pagado nada en esta visita', () => {
         pagadas: { pred26: true },
         recienPagado: false,
         ultimo: {
-          ids: ['pred26'],
+          conceptos: DEUDAS.filter((deuda) => deuda.id === 'pred26'),
+          contribuyente: DATOS_DE_LA_DEMOSTRACION.contribuyente,
           insoluto: '293.72',
           reajuste: '0.00',
           interes: '0.00',

@@ -7,7 +7,6 @@ import {
   type EstadoDelRecorrido,
   PASOS_DE_LA_DEMOSTRACION,
   cuenta,
-  conceptosDelPago,
   cuentaPendiente,
   cuentaPorPagar,
   destinoAlEntrar,
@@ -101,7 +100,7 @@ describe('confirmarPago', () => {
     // tiene que sellar SOLO el arbitrio.
     const segundo = tras([{ tipo: 'alternar', id: 'arb26' }, { tipo: 'confirmarPago' }], pagado);
     expect(segundo.marcadas.pred26).toBe(true);
-    expect(segundo.ultimo?.ids).toEqual(['arb26']);
+    expect(ids(segundo.ultimo?.conceptos ?? [])).toEqual(['arb26']);
     expect(segundo.ultimo?.conAmnistia).toBe('291.60');
     expect(vivas(segundo)).toEqual([]);
   });
@@ -109,7 +108,8 @@ describe('confirmarPago', () => {
   it('sella `ultimo` con los ids, los importes como texto, el medio y el destino', () => {
     // 293.72 + 1842.60 + 614.00 = 2750.32 · 0 + 212.44 + 182.44 = 394.88 · 0 + 12 + 96 = 108.00
     expect(pagado.ultimo).toStrictEqual({
-      ids: ['pred26', 'pred24', 'veh24'],
+      conceptos: DEUDAS.filter((deuda) => ['pred26', 'pred24', 'veh24'].includes(deuda.id)),
+      contribuyente: ESTADO_INICIAL.contribuyente,
       insoluto: '2750.32',
       reajuste: '0.00',
       interes: '394.88',
@@ -171,7 +171,7 @@ describe('confirmarPago', () => {
 
     const pagado = recorrido(conSesion, { tipo: 'confirmarPago' });
     expect(pagado.paso).toBe('comprobante');
-    expect(pagado.ultimo?.ids).toEqual(['pred26']);
+    expect(ids(pagado.ultimo?.conceptos ?? [])).toEqual(['pred26']);
     expect(pagado.pagadas).toStrictEqual({ pred26: true });
 
     // Con sesion pero la seleccion viva vacia, no hay nada que pagar.
@@ -197,7 +197,7 @@ describe('el sello no se mueve', () => {
   it('cambiar `marcadas` despues de pagar NO cambia `ultimo`', () => {
     const pagado = tras([{ tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '1' }, { tipo: 'confirmarPago' }]);
     const sello = pagado.ultimo;
-    expect(sello?.ids).toEqual(['pred26', 'arb26', 'pred24', 'veh24']);
+    expect(ids(sello?.conceptos ?? [])).toEqual(['pred26', 'arb26', 'pred24', 'veh24']);
 
     const despues = tras(
       [
@@ -211,7 +211,8 @@ describe('el sello no se mueve', () => {
     expect(despues.marcadas).not.toStrictEqual(pagado.marcadas);
     expect(despues.ultimo).toBe(sello);
     expect(despues.ultimo).toStrictEqual({
-      ids: ['pred26', 'arb26', 'pred24', 'veh24'],
+      conceptos: DEUDAS,
+      contribuyente: ESTADO_INICIAL.contribuyente,
       insoluto: '3041.92',
       reajuste: '0.00',
       interes: '413.32',
@@ -480,7 +481,7 @@ describe('las acciones sueltas', () => {
   });
 });
 
-describe('`conceptosDelPago` (issue 9)', () => {
+describe('los conceptos del pago (issues 9 y 50)', () => {
   it('son los del sello, en el orden de `DEUDAS`, y no cambian con lo que se marque despues', () => {
     const pagado = tras([
       { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '1' },
@@ -490,10 +491,10 @@ describe('`conceptosDelPago` (issue 9)', () => {
     ]);
     const sello = pagado.ultimo;
     if (sello === null) throw new Error('confirmarPago no sello nada');
-    expect(ids(conceptosDelPago(pagado, sello))).toEqual(['arb26', 'veh24']);
+    expect(ids(sello.conceptos)).toEqual(['arb26', 'veh24']);
 
     const despues = tras([{ tipo: 'irA', paso: 'deudas' }, { tipo: 'alternar', id: 'pred24' }, { tipo: 'marcarTodo' }], pagado);
     expect(despues.ultimo).toBe(sello);
-    expect(ids(conceptosDelPago(despues, sello))).toEqual(['arb26', 'veh24']);
+    expect(ids(despues.ultimo?.conceptos ?? [])).toEqual(['arb26', 'veh24']);
   });
 });
