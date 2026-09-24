@@ -20,7 +20,7 @@ import { useHistorial, useLaSituacion, useUnidades } from '../../datos/fuente.ts
 import type { PredioDelPortal, Unidad } from '../../datos/tipos.ts';
 import { AvisoConFilo } from '../../piezas/AvisoConFilo.tsx';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
-import { type PagoSellado, conceptosDelPago, cuentaPendiente, pendientes } from '../../recorrido/recorrido.ts';
+import { type PagoSellado, aCobrar, conceptosDelPago, cuentaPendiente, pendientes } from '../../recorrido/recorrido.ts';
 import { rotuloDelMedio } from '../pagar/textosDeLosMedios.ts';
 
 /**
@@ -122,8 +122,8 @@ function PagoReciente({ pago }: { readonly pago: PagoSellado }) {
       <span className="min-w-[200px] flex-1">
         <h2 id={idDelTitulo} className={cn('m-0 text-[15px] font-bold', simulado ? null : 'text-ok-tinta')}>
           {simulado
-            ? t('Pago simulado de {{importe}} en esta visita', { importe: formatearImporte(pago.conAmnistia) })
-            : t('Pago de {{importe}} registrado hoy', { importe: formatearImporte(pago.conAmnistia) })}
+            ? t('Pago simulado de {{importe}} en esta visita', { importe: formatearImporte(aCobrar(estado, pago)) })
+            : t('Pago de {{importe}} registrado hoy', { importe: formatearImporte(aCobrar(estado, pago)) })}
         </h2>
         <span
           className={cn('mt-[3px] block text-[13.5px] text-pretty', simulado ? 'text-tinta-3' : 'text-ok-tinta')}
@@ -183,7 +183,7 @@ function PagosRealizados() {
               .join(' · '),
             medio: t(rotuloDelMedio(pago.medio)),
             comprobante: pago.comprobante.numero,
-            importe: cifraSinSimbolo(pago.conAmnistia),
+            importe: cifraSinSimbolo(aCobrar(estado, pago)),
             reciente: true,
           },
         ]),
@@ -391,6 +391,114 @@ function LoQueQuedaPendiente() {
   );
 }
 
+/**
+ * **«Lo que queda pendiente» con plataforma: lo que dijo la CONSULTA, y nada que no dijera** (issue 49).
+ *
+ * Hasta el issue 49 esta seccion leia la deuda viva del recorrido, que con plataforma solo existe
+ * despues de pasar por el paso 2 (alli la pone `situacionLeida`). Entrando directo a `#/historial`
+ * la lista estaba vacia y la pantalla decia **«Sin deuda pendiente»**, **«Al día»** y ofrecia la
+ * constancia de no adeudo a una persona que debia S/ 1,842.60 (medido: la sonda del issue). Y lo
+ * mismo con «no se pudo consultar», que es la respuesta real de hoy: un cero de consuelo.
+ *
+ * Aqui se pregunta a la consulta, y cada final dice lo suyo:
+ *
+ *   · **con deuda**: los conceptos del servidor y el total que sumo el servidor, tal cual;
+ *   · **no se pudo consultar**, o la consulta **no contesto**: que no se pudo, sin cifra, y reintentar;
+ *   · **sin registros**: que no figura nada a su nombre;
+ *   · **sin deuda**: que no tiene deuda pendiente, que es lo que el servidor dijo. Sin «Al día» ni
+ *     constancia: el portal no emite ninguna.
+ *
+ * No se toca la copia de la situacion al recorrido (`LaConsulta.tsx`): sacarla de ahi es el issue 50.
+ */
+function LoQueQuedaPendienteConPlataforma() {
+  const { t } = useTranslation();
+  const { despachar } = useRecorrido();
+  const consulta = useLaSituacion();
+  const situacion = consulta.data;
+  const alReintentar = () => void consulta.refetch();
+
+  let cifra: string;
+  let dicho: string | null = null;
+  let reintentar = false;
+  if (consulta.isPending) {
+    cifra = t('Consultando…');
+  } else if (situacion === undefined) {
+    cifra = t('Sin total');
+    dicho = t('No pudimos consultar su deuda. Vuelva a intentarlo en unos minutos.');
+    reintentar = true;
+  } else if (situacion.estado === 'con-deuda') {
+    cifra = situacion.totalConsolidado === null ? '' : formatearImporte(situacion.totalConsolidado.importe);
+  } else if (situacion.estado === 'no-se-pudo-consultar') {
+    cifra = t('Sin total');
+    dicho = t('No pudimos consultar toda su deuda, así que no le mostramos ningún total.');
+    reintentar = true;
+  } else if (situacion.estado === 'sin-registros') {
+    cifra = t('Sin registros');
+    dicho = t('No encontramos deuda a su nombre en las municipalidades del sistema.');
+  } else {
+    cifra = t('Nada pendiente');
+    dicho = t('Según la consulta de hoy, no tiene deuda pendiente en las municipalidades del sistema.');
+  }
+  const deudas = situacion?.estado === 'con-deuda' ? situacion.deudas : [];
+
+  return (
+    <Seccion
+      ocupada={consulta.isPending}
+      className="mb-[18px]"
+      cabecera={(idDelTitulo) => (
+        <div className="flex flex-wrap items-center gap-3 border-b border-linea-2 px-5 py-[14px]">
+          <h2 id={idDelTitulo} className="m-0 min-w-[180px] flex-1 text-[17px] font-bold">
+            {t('Lo que queda pendiente')}
+          </h2>
+          <span data-total-pendiente="" className="text-[15px] font-bold text-mal-tinta tabular-nums">
+            {cifra}
+          </span>
+        </div>
+      )}
+    >
+      {deudas.length > 0 ? (
+        <ul className="m-0 list-none p-0">
+          {deudas.map((deuda) => (
+            <FilaPendiente
+              key={deuda.id}
+              concepto={deuda.concepto}
+              // El contrato no trae vencimiento ni estado (issue 26): va la unidad, y sin insignia.
+              vence={t(deuda.unidad)}
+              insignia={null}
+              monto={formatearImporte(totalDe(deuda))}
+            />
+          ))}
+        </ul>
+      ) : null}
+      {dicho === null ? null : (
+        <p className="m-0 border-b border-linea-2 px-5 py-[13px] text-[14.5px] text-pretty">{dicho}</p>
+      )}
+      {deudas.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-3 bg-sup px-5 py-4">
+          <p className="m-0 min-w-[180px] flex-1 text-[13.5px] text-pretty text-tinta-3">
+            {t('Puede pagar todo o elegir solo algunos conceptos.')}
+          </p>
+          <Boton
+            type="button"
+            variante="primario"
+            onClick={() => despachar({ tipo: 'irA', paso: 'deudas' })}
+            className="min-h-[46px] px-6 py-0 text-[15.5px]"
+          >
+            {t('Pagar lo pendiente')}
+          </Boton>
+        </div>
+      ) : null}
+      {reintentar ? (
+        <div className="bg-sup px-5 py-4">
+          <Boton type="button" onClick={alReintentar} className="min-h-[44px] px-5 py-0 text-[14.5px]">
+            {t('Reintentar la consulta')}
+          </Boton>
+        </div>
+      ) : null}
+    </Seccion>
+  );
+}
+
 /** Un predio o vehiculo, con los datos sobre los que se calcula su tributo (lineas 649-666). */
 function UnaUnidad({ unidad }: { readonly unidad: Unidad }) {
   const { t } = useTranslation();
@@ -559,12 +667,18 @@ export function Historial() {
     <div>
       <h1 className="mt-0 mb-[6px] text-[24px] font-bold text-azul">{t('Mis pagos')}</h1>
       <p className="mt-0 mb-[18px] max-w-[68ch] text-[15.5px] leading-[1.6] text-pretty text-tinta-2">
-        {t('Todos sus pagos, con sus comprobantes. Abajo está lo que le queda pendiente.')}
+        {/*
+          Con plataforma no hay «todos sus pagos» ni comprobantes: el backend no publica ninguno
+          (issue 49). Se dice lo que la pantalla ensena de verdad.
+        */}
+        {estado.conPlataforma
+          ? t('Lo que le queda pendiente, según la consulta de hoy, y los predios a su nombre. El portal todavía no publica sus pagos.')
+          : t('Todos sus pagos, con sus comprobantes. Abajo está lo que le queda pendiente.')}
       </p>
 
       {pago === null ? null : <PagoReciente pago={pago} />}
       <PagosRealizados />
-      <LoQueQuedaPendiente />
+      {estado.conPlataforma ? <LoQueQuedaPendienteConPlataforma /> : <LoQueQuedaPendiente />}
       {/*
         Con plataforma las unidades salen de la CONSULTA y no de `useUnidades`, que el backend no
         publica. El foco de «Mis predios y vehículos» es del recorrido de la demostracion: con

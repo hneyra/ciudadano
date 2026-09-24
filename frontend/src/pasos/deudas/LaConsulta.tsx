@@ -209,8 +209,10 @@ function SinRegistros({ situacion }: { readonly situacion: SituacionDelServidor 
 /**
  * Se leyo todo y no hay nada pendiente.
  *
- * La constancia se ofrece igual que en la demostracion (`SinDeuda`, en `Deudas.tsx`), y el aviso
- * dice lo mismo: es una demostracion, aqui no se emite nada.
+ * **Sin «Pagó» y sin constancia** (issue 49). El texto del artboard —«Pagó todos sus conceptos
+ * pendientes. Puede pedir su constancia de no adeudo…»— alli es verdad porque se acaba de pagar en la
+ * demostracion. Aqui el servidor solo dice que no hay saldo: nadie sabe si se pago, si se prescribio o
+ * si nunca hubo deuda, y el portal no emite ninguna constancia. Se dice lo que el servidor dijo.
  */
 function SinDeudaDelServidor() {
   const { t } = useTranslation();
@@ -218,16 +220,9 @@ function SinDeudaDelServidor() {
   return (
     <section className="mb-[18px] border border-l-[5px] border-ok-tinta/25 border-l-ok-tinta bg-ok-fondo px-[22px] py-5">
       <h1 className="m-0 text-[18px] font-bold text-ok-tinta">{t('No le queda nada por pagar')}</h1>
-      <p className="mt-[7px] mb-[14px] max-w-[66ch] text-[14.5px] leading-[1.6] text-pretty text-ok-tinta">
-        {t('Pagó todos sus conceptos pendientes. Puede pedir su constancia de no adeudo, que acredita que está al día.')}
+      <p className="mt-[7px] mb-0 max-w-[66ch] text-[14.5px] leading-[1.6] text-pretty text-ok-tinta">
+        {t('Según la consulta de hoy, no tiene deuda pendiente en las municipalidades del sistema.')}
       </p>
-      <Boton
-        type="button"
-        onClick={() => avisar(t('Se emitiría su constancia de no adeudo al día de hoy.'))}
-        className="min-h-[44px] border-ok-tinta px-5 py-0 text-[14.5px] font-bold text-ok-tinta hover:border-ok-tinta hover:bg-ok-fondo"
-      >
-        {t('Pedir mi constancia de no adeudo')}
-      </Boton>
     </section>
   );
 }
@@ -453,12 +448,19 @@ function BarraDePagoDelServidor({ aLaFecha }: { readonly aLaFecha: Fecha }) {
           <span className="mt-[3px] block text-[27px] [&_span]:font-bold [&_span]:text-azul">
             <Importe valor={lo.total} fechaCalculo={aLaFecha} fechaImplicita />
           </span>
-          <span className="mt-[3px] block text-[13.5px] text-ok-tinta">
-            {t('Con la amnistía paga {{conAmnistia}}: se descuentan {{interes}} de interés', {
-              conAmnistia: formatearImporte(lo.conAmnistia),
-              interes: formatearImporte(lo.interes),
-            })}
-          </span>
+          {/*
+            La amnistia, SOLO si la fuente la aporta (issue 49). El contrato de `/portal/situacion` no
+            trae ninguna: la linea del artboard aqui aplicaba a una deuda de verdad el descuento de una
+            ordenanza de la demostracion.
+          */}
+          {estado.amnistia ? (
+            <span className="mt-[3px] block text-[13.5px] text-ok-tinta">
+              {t('Con la amnistía paga {{conAmnistia}}: se descuentan {{interes}} de interés', {
+                conAmnistia: formatearImporte(lo.conAmnistia),
+                interes: formatearImporte(lo.interes),
+              })}
+            </span>
+          ) : null}
         </span>
         <Boton
           type="button"
@@ -495,7 +497,11 @@ function ConDeuda({ situacion }: { readonly situacion: SituacionDelServidor }) {
     despachar({ tipo: 'situacionLeida', deudas: situacion.deudas, contribuyente: quienDebeDe(situacion) });
   }, [situacion, despachar]);
 
-  if (viva.length === 0) return <SinDeudaDelServidor />;
+  // Con plataforma lo simulado no se da por pagado, asi que la deuda viva solo esta vacia en el dibujo
+  // de ANTES de que el efecto de arriba copie la situacion al recorrido. Ahi no se dice nada: antes
+  // se dibujaba «No le queda nada por pagar» un instante, delante de una deuda de verdad (issue 49).
+  // Sacar esa copia del recorrido es el issue 50.
+  if (viva.length === 0) return null;
 
   return (
     <div>

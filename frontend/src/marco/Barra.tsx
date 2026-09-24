@@ -264,7 +264,19 @@ export function Barra() {
             >
               {t('Mis predios y vehículos')}
             </OpcionDelMenu>
-            <OpcionDelMenu className="px-4 py-3 text-[14.5px]" onSelect={() => avisar(t('Abriría el cambio de clave.'))}>
+            {/*
+              «Abriría el cambio de clave.» es del artboard y en demostracion se queda. Con plataforma
+              la clave es de la cuenta del portal y este portal no la cambia: prometer que lo abriria
+              es afirmar algo que no va a pasar (issue 49).
+            */}
+            <OpcionDelMenu
+              className="px-4 py-3 text-[14.5px]"
+              onSelect={() =>
+                avisar(
+                  conPlataforma ? t('El portal todavía no permite cambiar la clave.') : t('Abriría el cambio de clave.'),
+                )
+              }
+            >
               {t('Cambiar mi clave')}
             </OpcionDelMenu>
             <OpcionDelMenu peligrosa className="px-4 py-3 text-[14.5px]" onSelect={cerrarSesion}>

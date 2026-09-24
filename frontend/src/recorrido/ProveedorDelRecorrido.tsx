@@ -35,11 +35,12 @@ export interface ProveedorDelRecorridoProps {
 }
 
 export function ProveedorDelRecorrido({ children, inicial }: ProveedorDelRecorridoProps) {
-  const conPlataforma = hayPlataforma(useLaFuente());
+  const fuente = useLaFuente();
+  const conPlataforma = hayPlataforma(fuente);
   const [estado, despachar] = useReducer(recorrido, inicial, (dado) =>
     // `haySesion()` solo se pregunta con plataforma: en demostracion no hay ninguna puerta a la que
     // haber entrado, y la sesion del artboard la enciende el paso «Mis datos».
-    dado ?? estadoInicial({ conPlataforma, autenticado: conPlataforma && haySesion() }),
+    dado ?? estadoInicial({ conPlataforma, autenticado: conPlataforma && haySesion(), amnistia: fuente.amnistia }),
   );
   // `despachar` es estable; sin memo, cada render del proveedor daria un objeto nuevo y volveria a
   // dibujar a todos los que leen, aunque el estado no hubiera cambiado.

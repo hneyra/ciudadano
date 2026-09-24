@@ -136,12 +136,23 @@ describe('la pantalla de entrar', () => {
     expect(enMain().queryByRole('button', { name: 'Crear mi cuenta' })).toBeNull();
   });
 
-  it('conserva «Qué puede hacer aquí» y el aviso de la amnistia', async () => {
+  it('conserva «Qué puede hacer aquí», pero con lo que el portal hace DE VERDAD, y sin amnistia (issue 49)', async () => {
     montarElPortal({ hash: '#/entrar', fuente: conPlataforma() });
 
-    expect(await enMain().findByRole('heading', { level: 2, name: 'Qué puede hacer aquí' })).toBeInTheDocument();
-    expect(enMain().getByText('Descargar comprobantes')).toBeInTheDocument();
-    expect(enMain().getByText('Amnistía vigente hasta el 31 de diciembre.')).toBeInTheDocument();
+    const seccion = await enMain().findByRole('region', { name: 'Qué puede hacer aquí' });
+    expect(
+      within(seccion)
+        .getAllByRole('listitem')
+        .map((capacidad) => capacidad.textContent),
+    ).toEqual([
+      'Ver lo que debeLo que debe en cada municipalidad del sistema, por tributo y año, con la fecha de cada importe.',
+      'Ver sus prediosLos predios que figuran a su nombre, con su código catastral.',
+      'Pagar en la ventanillaEl pago en línea todavía no está disponible: se paga con su documento en la municipalidad.',
+    ]);
+    // Lo que el artboard promete y aqui no hay: pagar con tarjeta o Yape, descargar comprobantes, el
+    // vencimiento de cada cuota. Y el aviso de una amnistia que el contrato no trae.
+    expect(principal().textContent).not.toMatch(/Pagar en línea|Descargar comprobantes|vencimiento|amnist[ií]a/i);
+    expect(principal().textContent).not.toMatch(/podrá pagar/);
   });
 
   it('y si no se pudo ni llegar al emisor, se dice en vez de no hacer nada visible', async () => {

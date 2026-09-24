@@ -136,3 +136,30 @@ describe('con sesion', () => {
     expect(disparador).toHaveTextContent('CE 001234567');
   });
 });
+
+describe('issue 49, casos 3 y 4 — el marco no afirma nada falso con plataforma', () => {
+  it('«Cambiar mi clave» no promete abrir nada: dice que el portal no lo permite', async () => {
+    identidad.fijarToken(tokenCon({ name: 'Rufina Medina Medina', tipo_documento: 'DNI', numero_documento: '03593174' }));
+    montarElPortal({ hash: '#/deudas', fuente: conPlataforma() });
+
+    const disparador = within(barra()).getByRole('button', { expanded: false, name: /Rufina Medina Medina/ });
+    act(() => disparador.focus());
+    fireEvent.keyDown(disparador, { key: 'Enter' });
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Cambiar mi clave' }));
+
+    expect(await screen.findByText('El portal todavía no permite cambiar la clave.')).toBeInTheDocument();
+    expect(screen.queryByText('Abriría el cambio de clave.')).toBeNull();
+  });
+
+  it('el pie no dice que los datos son de demostracion: con plataforma son los de la persona', () => {
+    montarElPortal({ hash: '#/entrar', fuente: conPlataforma() });
+
+    const pie = screen.getByRole('contentinfo');
+    expect(
+      within(pie).getByText(
+        'Municipalidad Distrital de Catacaos — Pago de tributos en línea. Atención en ventanilla de lunes a viernes, de 8:00 a 16:00.',
+      ),
+    ).toBeInTheDocument();
+    expect(pie.textContent).not.toMatch(/demostración/);
+  });
+});

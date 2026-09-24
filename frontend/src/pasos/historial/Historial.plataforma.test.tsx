@@ -1,3 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import type { Cliente } from '@kamayuk/api';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -154,6 +158,64 @@ describe('«De dónde sale lo que paga» con plataforma', () => {
     expect(seccion).not.toBeNull();
     expect(within(seccion as HTMLElement).queryByText(/Autovalúo 2026|Base imponible/)).toBeNull();
     expect((seccion as HTMLElement).textContent).not.toMatch(/S\/\s?[\d,]+\.\d{2}/);
+  });
+});
+
+/** La respuesta REAL de la plataforma local: «no se pudo consultar». Ver `diseno/medidas/README.md`. */
+const MEDIDA = JSON.parse(
+  readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), '../../../diseno/medidas/situacion-2026-09-16.json'),
+    'utf8',
+  ),
+) as SituacionDelContrato;
+
+/** Lo que la version anterior decia en «Lo que queda pendiente», fuera cual fuera la consulta. */
+const LO_QUE_NO_SABE = /Sin deuda pendiente(?! al )|Al día|constancia de no adeudo|No le queda nada pendiente/;
+
+describe('issue 49, caso 1 — «Mis pagos» DIRECTO no afirma que no hay deuda', () => {
+  /** Directo a `#/historial`, con sesion, SIN pasar por el paso 2: la sonda que midio el caso. */
+  async function directo(situacion: SituacionDelContrato): Promise<HTMLElement> {
+    identidad.fijarToken(tokenDeMentira());
+    montarElPortal({ hash: '#/historial', fuente: crearFuenteDeLaPlataforma(clienteCon(situacion)) });
+    await enMain().findByRole('heading', { level: 1, name: 'Mis pagos' });
+    await waitFor(() => expect(principal().querySelector('[aria-busy="true"]')).toBeNull());
+    const seccion = enMain().getByRole('heading', { level: 2, name: 'Lo que queda pendiente' }).closest('section');
+    expect(seccion).not.toBeNull();
+    return seccion as HTMLElement;
+  }
+
+  it('con deuda real: su total y su concepto, y ni «Sin deuda pendiente», ni «Al día», ni constancia', async () => {
+    const seccion = await directo(CON_DEUDA_Y_PREDIO);
+
+    expect(principal().querySelector('[data-total-pendiente]')?.textContent).toBe('S/ 1,842.60');
+    expect(within(seccion).getByText('Impuesto predial 2024')).toBeInTheDocument();
+    expect(principal().textContent).not.toMatch(LO_QUE_NO_SABE);
+    expect(enMain().queryByRole('button', { name: /constancia/i })).toBeNull();
+    expect(enMain().getByRole('button', { name: 'Pagar lo pendiente' })).toBeInTheDocument();
+  });
+
+  it('con «no se pudo consultar» (la respuesta de hoy): lo dice, sin cifra, y ofrece reintentar', async () => {
+    const seccion = await directo(MEDIDA);
+
+    expect(principal().querySelector('[data-total-pendiente]')?.textContent).toBe('Sin total');
+    expect(
+      within(seccion).getByText('No pudimos consultar toda su deuda, así que no le mostramos ningún total.'),
+    ).toBeInTheDocument();
+    // Ni un cero de consuelo: ninguna cifra en la seccion.
+    expect(seccion.textContent).not.toMatch(/S\/\s?[\d,]+\.\d{2}/);
+    expect(principal().textContent).not.toMatch(LO_QUE_NO_SABE);
+    expect(within(seccion).getByRole('button', { name: 'Reintentar la consulta' })).toBeInTheDocument();
+  });
+
+  it('la entrada de la pantalla no promete «todos sus pagos, con sus comprobantes»', async () => {
+    await directo(CON_DEUDA_Y_PREDIO);
+
+    expect(principal().textContent).not.toContain('Todos sus pagos, con sus comprobantes');
+    expect(
+      enMain().getByText(
+        'Lo que le queda pendiente, según la consulta de hoy, y los predios a su nombre. El portal todavía no publica sus pagos.',
+      ),
+    ).toBeInTheDocument();
   });
 });
 

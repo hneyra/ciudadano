@@ -28,6 +28,8 @@ import type { FuenteDelPortal } from './fuente.ts';
  */
 export const fuenteDeDemostracion: FuenteDelPortal = {
   consulta: null,
+  // La del artboard: la Ordenanza 012-2026-MPS condona el interes entero (issue 49).
+  amnistia: true,
   historial: () => Promise.resolve(HISTORIAL),
   unidades: () => Promise.resolve(UNIDADES),
 };

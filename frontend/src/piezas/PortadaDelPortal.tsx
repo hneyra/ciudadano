@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { ORDENANZA } from '../datos/demostracion.ts';
 import { TRAZOS_DEL_ARTBOARD, type TrazoDelArtboard } from '../pasos/buscar/trazos.ts';
+import { useRecorrido } from '../recorrido/ProveedorDelRecorrido.tsx';
 import { AvisoConFilo } from './AvisoConFilo.tsx';
 
 /**
@@ -17,6 +18,13 @@ import { AvisoConFilo } from './AvisoConFilo.tsx';
  *
  * Copiarlas en la pantalla nueva habria sido mas corto y habria dejado dos textos del artboard que
  * el dia que uno se retoque dejan de decir lo mismo en las dos puertas de entrada del portal.
+ *
+ * <h2>Con plataforma, lo que el portal sabe hacer DE VERDAD (issue 49)</h2>
+ *
+ * Las cuatro capacidades del artboard prometen lo que con plataforma no hay: pagar en linea con
+ * tarjeta o Yape, descargar comprobantes, el vencimiento de cada cuota, el autovaluo y los metros de
+ * frontis. Y el aviso de la amnistia anuncia un descuento que el contrato no trae. Con plataforma se
+ * dice lo que si hace, y la amnistia sale solo si la fuente la aporta (`estado.amnistia`).
  */
 
 /** Lo que el portal sabe hacer, con su trazo: `lupa` es de la libreria, los demas del artboard. */
@@ -58,28 +66,48 @@ export function QuePuedeHacerAqui() {
   const { t } = useTranslation();
   const idDeCapacidades = useId();
 
-  const capacidades: readonly Capacidad[] = [
-    {
-      titulo: t('Ver lo que debe'),
-      detalle: t('Su impuesto predial, arbitrios y vehicular, con el vencimiento de cada cuota.'),
-      icono: 'lupa',
-    },
-    {
-      titulo: t('Pagar en línea'),
-      detalle: t('Con tarjeta, Yape, pagalo.pe o un código para el banco.'),
-      icono: 'pagar',
-    },
-    {
-      titulo: t('Descargar comprobantes'),
-      detalle: t('El del pago que acaba de hacer y los de años anteriores.'),
-      icono: 'recibo',
-    },
-    {
-      titulo: t('Saber de dónde sale'),
-      detalle: t('El autovalúo de su predio, los metros de frontis y la tabla que se le aplica.'),
-      icono: 'detalle',
-    },
-  ];
+  const { estado } = useRecorrido();
+
+  const capacidades: readonly Capacidad[] = estado.conPlataforma
+    ? [
+        {
+          titulo: t('Ver lo que debe'),
+          detalle: t('Lo que debe en cada municipalidad del sistema, por tributo y año, con la fecha de cada importe.'),
+          icono: 'lupa',
+        },
+        {
+          titulo: t('Ver sus predios'),
+          detalle: t('Los predios que figuran a su nombre, con su código catastral.'),
+          icono: 'detalle',
+        },
+        {
+          titulo: t('Pagar en la ventanilla'),
+          detalle: t('El pago en línea todavía no está disponible: se paga con su documento en la municipalidad.'),
+          icono: 'pagar',
+        },
+      ]
+    : [
+        {
+          titulo: t('Ver lo que debe'),
+          detalle: t('Su impuesto predial, arbitrios y vehicular, con el vencimiento de cada cuota.'),
+          icono: 'lupa',
+        },
+        {
+          titulo: t('Pagar en línea'),
+          detalle: t('Con tarjeta, Yape, pagalo.pe o un código para el banco.'),
+          icono: 'pagar',
+        },
+        {
+          titulo: t('Descargar comprobantes'),
+          detalle: t('El del pago que acaba de hacer y los de años anteriores.'),
+          icono: 'recibo',
+        },
+        {
+          titulo: t('Saber de dónde sale'),
+          detalle: t('El autovalúo de su predio, los metros de frontis y la tabla que se le aplica.'),
+          icono: 'detalle',
+        },
+      ];
 
   return (
     <section aria-labelledby={idDeCapacidades} className="border-t border-linea-2 bg-sup px-[26px] pt-[18px] pb-5">
@@ -106,6 +134,9 @@ export function QuePuedeHacerAqui() {
 /** El aviso de la amnistia, debajo de la tarjeta del paso 1. */
 export function AvisoDeAmnistia() {
   const { t } = useTranslation();
+  const { estado } = useRecorrido();
+  // Solo si la fuente aporta una amnistia: con plataforma el contrato no trae ninguna (issue 49).
+  if (!estado.amnistia) return null;
 
   return (
     <AvisoConFilo tono="atencion" className="mt-[18px] px-[18px] py-[15px] leading-[1.6]">

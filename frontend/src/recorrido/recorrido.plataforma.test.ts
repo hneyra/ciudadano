@@ -7,7 +7,10 @@ import {
   PASOS_CON_PLATAFORMA,
   PASOS_DE_LA_DEMOSTRACION,
   type EstadoDelRecorrido,
+  aCobrar,
+  aCobrarDe,
   cuenta,
+  cuentaPorPagar,
   cuentaPendiente,
   destinoAlPagar,
   destinoDelComprobante,
@@ -67,8 +70,8 @@ const QUIEN: QuienDebe = { nombre: 'Rufina Medina Medina', codigo: '00000025673'
 /** Aplica una lista de acciones desde el estado inicial de demostracion. */
 const tras = (acciones: readonly Parameters<typeof recorrido>[1][]) => acciones.reduce(recorrido, ESTADO_INICIAL);
 
-const conSesion = estadoInicial({ conPlataforma: true, autenticado: true });
-const sinSesion = estadoInicial({ conPlataforma: true, autenticado: false });
+const conSesion = estadoInicial({ conPlataforma: true, autenticado: true, amnistia: false });
+const sinSesion = estadoInicial({ conPlataforma: true, autenticado: false, amnistia: false });
 
 /** Con plataforma, sesion y dos conceptos leidos: el estado desde el que se puede pagar. */
 const DOS = [delServidor('predial-2024', '1000.00'), delServidor('predial-2025', '500.00')];
@@ -214,5 +217,40 @@ describe('`situacionLeida`: los conceptos del servidor pasan a ser los del recor
 
     expect(Object.keys(pagado.pagadas)).toEqual(['pred26', 'arb26', 'pred24', 'veh24']);
     expect(vivas(pagado)).toEqual([]);
+  });
+});
+
+describe('issue 49 — la amnistia sale de la FUENTE, y con plataforma no hay ninguna', () => {
+  /** Una obligacion con interes: sin el, cobrar «con amnistia» y cobrar el total darian lo mismo. */
+  const conInteres: DeudaDelServidor = {
+    ...delServidor('predial-2024', '1500.00'),
+    reajuste: '42.60',
+    interes: '200.00',
+    gastos: '100.00',
+    totalDelServidor: '1842.60',
+  };
+  const leida = recorrido(conSesion, { tipo: 'situacionLeida', deudas: [conInteres], contribuyente: QUIEN });
+
+  it('el estado la lleva desde el arranque: la fuente dice si hay, y la de la plataforma dice que no', () => {
+    expect(conSesion.amnistia).toBe(false);
+    expect(estadoInicial({ conPlataforma: true, autenticado: true, amnistia: true }).amnistia).toBe(true);
+    // En demostracion, la del artboard (la Ordenanza 012-2026-MPS).
+    expect(ESTADO_INICIAL.amnistia).toBe(true);
+  });
+
+  it('sin amnistia se cobra el TOTAL, interes incluido: en lo elegido, en cada concepto y en el sello', () => {
+    // 1500 + 42.60 + 200 + 100: el interes no se condona, porque nadie lo condono.
+    expect(aCobrar(leida, cuentaPorPagar(leida))).toBe('1842.60');
+    expect(aCobrarDe(leida, conInteres)).toBe('1842.60');
+
+    const sellado = recorrido(leida, { tipo: 'confirmarPago' });
+    expect(sellado.ultimo).not.toBeNull();
+    expect(aCobrar(sellado, sellado.ultimo!)).toBe('1842.60');
+  });
+
+  it('con amnistia, todo menos el interes, como el artboard', () => {
+    const conAmnistia: EstadoDelRecorrido = { ...leida, amnistia: true };
+    expect(aCobrar(conAmnistia, cuentaPorPagar(conAmnistia))).toBe('1642.60');
+    expect(aCobrarDe(conAmnistia, conInteres)).toBe('1642.60');
   });
 });

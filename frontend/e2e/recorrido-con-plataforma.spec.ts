@@ -263,8 +263,10 @@ test.describe('el recorrido con plataforma', () => {
     await expect(principal(page)).toContainText('Comprobante de ejemplo');
     await expect(principal(page)).toContainText('Total que se pagaría');
     await expect(principal(page).getByText('Impuesto predial 2024')).toBeVisible();
-    // 1500 + 42.60 + 100 = 1642.60, sin el interes que la amnistia condona.
-    await expect(principal(page).getByText('1,642.60').first()).toBeVisible();
+    // 1500 + 42.60 + 200 + 100 = 1842.60: el saldo entero. Con plataforma no hay amnistia que condone
+    // el interes (issue 49), y el recibo no nombra ninguna.
+    await expect(principal(page).getByText('1,842.60').first()).toBeVisible();
+    await expect(principal(page)).not.toContainText(/amnist[ií]a|Interés condonado/i);
 
     // Y la deuda sigue donde estaba: volver al paso 2 la encuentra entera.
     await page.getByRole('navigation').getByRole('button', { name: 'Elegir qué pago' }).click();

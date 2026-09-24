@@ -64,6 +64,10 @@ export function crearFuenteDeLaPlataforma(cliente: Cliente): FuenteDelPortal {
       // `unknown` y no el tipo del contrato: lo que trae el cable no tiene forma hasta que
       // `leerLaSituacion` la comprueba (issue 34). El adaptador solo ve lo que paso la frontera.
       deLaSituacion(leerLaSituacion(await cliente.solicitar<unknown>(RUTA_DE_LA_SITUACION))),
+    // `GET /portal/situacion` no trae ninguna amnistia (issue 49): cobrar «con amnistia» a una deuda
+    // de verdad seria aplicarle el descuento de una ordenanza del artboard. El dia que el contrato
+    // la traiga, sale de la respuesta y no de aqui.
+    amnistia: false,
     historial: (): Promise<readonly PagoDelHistorial[]> => noPublicado(),
     unidades: (): Promise<readonly Unidad[]> => noPublicado(),
   };

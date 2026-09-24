@@ -43,6 +43,14 @@ export interface FuenteDelPortal {
    * eso la fuente ya no ofrece «la deuda de este documento»: el servidor no lo ofrece.
    */
   readonly consulta: (() => Promise<SituacionDelServidor>) | null;
+  /**
+   * **Si hay una amnistia que condone el interes moratorio** (issue 49).
+   *
+   * La dice la fuente y no cada pantalla: en demostracion, la de la Ordenanza del artboard; con
+   * plataforma, ninguna, porque el contrato de `GET /portal/situacion` no la trae. El recorrido la
+   * copia al arrancar (`estadoInicial`) y de ella cuelga lo que se cobra (`aCobrar`) y si se nombra.
+   */
+  readonly amnistia: boolean;
   /** Los pagos ya hechos por la cuenta con sesion. */
   historial(): Promise<readonly PagoDelHistorial[]>;
   /** Los predios y vehiculos del contribuyente de la cuenta con sesion. */
@@ -74,6 +82,8 @@ const SIN_INYECTAR =
 
 const NADIE: FuenteDelPortal = {
   consulta: null,
+  // Nadie dijo que la haya: no se condona nada.
+  amnistia: false,
   historial: () => Promise.reject(new Error(SIN_INYECTAR)),
   unidades: () => Promise.reject(new Error(SIN_INYECTAR)),
 };

@@ -9,7 +9,7 @@ import type { CampoDelMedio, MedioDePago } from '../../datos/tipos.ts';
 import { AvisoDePagoSimulado } from '../../piezas/AvisoDePagoSimulado.tsx';
 import { MEDIDAS_DE_CONTROL, Rotulo } from '../../piezas/Rotulo.tsx';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
-import { cuentaPorPagar, destinoDelComprobante, porPagar } from '../../recorrido/recorrido.ts';
+import { aCobrar, cuentaPorPagar, destinoDelComprobante, porPagar } from '../../recorrido/recorrido.ts';
 import { ejemploSeTraduce } from './textosDeLosMedios.ts';
 
 /**
@@ -184,7 +184,7 @@ function CodigoDelMedio({ medio }: { readonly medio: MedioDePago }) {
   if (medio.codigo === undefined) return null;
   const pasos = pasosConTotal(
     (medio.pasos ?? []).map((paso) => t(paso)),
-    cuentaPorPagar(estado).conAmnistia,
+    aCobrar(estado, cuentaPorPagar(estado)),
   );
 
   return (
@@ -408,14 +408,33 @@ function Resumen() {
             <Total rotulo={t('Impuesto y arbitrios')} className="py-[9px]">
               <Cifra valor={lo.insoluto} />
             </Total>
-            <Total
-              rotulo={t('Interés condonado')}
-              className="border-t border-linea-2 py-[9px]"
-              tintaDeLaCifra="text-ok-tinta"
-            >
-              {'− '}
-              <Cifra valor={lo.interes} className="[&_span]:text-ok-tinta" />
-            </Total>
+            {/*
+              El reajuste solo lo trae el servidor (issue 26); el artboard no lo tiene y su resumen
+              son tres filas. Sin esta fila, con plataforma las filas no sumaban el total.
+            */}
+            {estado.conPlataforma ? (
+              <Total rotulo={t('Reajuste')} className="border-t border-linea-2 py-[9px]">
+                <Cifra valor={lo.reajuste} />
+              </Total>
+            ) : null}
+            {/*
+              El interes se condona SOLO si la fuente aporta una amnistia (issue 49). Sin ella se
+              cobra, y se dice como lo que es: el interes moratorio, sumado.
+            */}
+            {estado.amnistia ? (
+              <Total
+                rotulo={t('Interés condonado')}
+                className="border-t border-linea-2 py-[9px]"
+                tintaDeLaCifra="text-ok-tinta"
+              >
+                {'− '}
+                <Cifra valor={lo.interes} className="[&_span]:text-ok-tinta" />
+              </Total>
+            ) : (
+              <Total rotulo={t('Interés moratorio')} className="border-t border-linea-2 py-[9px]">
+                <Cifra valor={lo.interes} />
+              </Total>
+            )}
             <Total rotulo={t('Gastos y costas')} className="border-t border-linea-2 py-[9px]">
               <Cifra valor={lo.gastos} />
             </Total>
@@ -424,7 +443,7 @@ function Resumen() {
               className="border-t-2 border-linea bg-sup py-[14px] text-[19px] font-bold"
               tintaDeLaCifra="text-azul"
             >
-              <Cifra valor={lo.conAmnistia} className="[&_span]:font-bold [&_span]:text-azul" />
+              <Cifra valor={aCobrar(estado, lo)} className="[&_span]:font-bold [&_span]:text-azul" />
             </Total>
           </dl>
         </>

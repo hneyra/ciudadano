@@ -358,7 +358,7 @@ const LITERALES = [
   // Paso 1 · Entrar (`src/pasos/entrar/Entrar.tsx`). No esta en el artboard: alli el paso 1 es
   // buscar por documento, y el backend ya no ofrece eso (ADR-0020).
   'Entre con su cuenta del portal',
-  'Su deuda está a nombre de su documento, así que lo primero es saber quién pregunta. Al entrar verá lo que debe en todas las municipalidades del sistema, y podrá pagar todo o solo lo que elija.',
+  'Su deuda está a nombre de su documento, así que lo primero es saber quién pregunta. Al entrar verá lo que debe en todas las municipalidades del sistema.',
   'Entrar con mi cuenta',
   'Si todavía no tiene cuenta, se la abren en la ventanilla de la municipalidad con su documento: aquí no se puede crear. Es a propósito, porque nadie puede acreditar desde una pantalla que usted es usted.',
   // La franja: la etiqueta del paso 1 con plataforma es la misma clave «Entrar» de arriba, y el
@@ -398,6 +398,24 @@ const LITERALES = [
   'Código catastral {{codigo}}',
   '{{porcentaje}} % de titularidad',
   'El portal todavía no publica sus vehículos: aquí solo están los predios.',
+  // Con plataforma, lo que de verdad se sabe en lugar de lo que el artboard afirma (issue 49): «Mis
+  // pagos» segun la consulta, el paso 2 sin deuda, la portada, el pie y «Cambiar mi clave».
+  'Lo que le queda pendiente, según la consulta de hoy, y los predios a su nombre. El portal todavía no publica sus pagos.',
+  'Consultando…',
+  'Sin total',
+  'No pudimos consultar su deuda. Vuelva a intentarlo en unos minutos.',
+  'No pudimos consultar toda su deuda, así que no le mostramos ningún total.',
+  'Sin registros',
+  'No encontramos deuda a su nombre en las municipalidades del sistema.',
+  'Nada pendiente',
+  'Según la consulta de hoy, no tiene deuda pendiente en las municipalidades del sistema.',
+  'Lo que debe en cada municipalidad del sistema, por tributo y año, con la fecha de cada importe.',
+  'Ver sus predios',
+  'Los predios que figuran a su nombre, con su código catastral.',
+  'Pagar en la ventanilla',
+  'El pago en línea todavía no está disponible: se paga con su documento en la municipalidad.',
+  '{{entidad}} — Pago de tributos en línea. Atención en ventanilla de lunes a viernes, de 8:00 a 16:00.',
+  'El portal todavía no permite cambiar la clave.',
 
   // Los plurales: cada forma que i18next pide para `es` (`_one`, `_many`, `_other`). Lo que dice
   // cada una esta en `PLURALES`.

@@ -231,6 +231,7 @@ export function montarElPortal({ hash = '#/buscar', estado = {}, fuente = fuente
   const base = estadoInicial({
     conPlataforma: hayPlataforma(fuente),
     autenticado: hayPlataforma(fuente) && haySesion(),
+    amnistia: fuente.amnistia,
   });
   const enrutador = crearEnrutador();
   montados.push(enrutador);
