@@ -78,6 +78,12 @@ function useLoLeido(conPlataforma: boolean): DatosLeidos {
 
 export interface ValorDelRecorrido {
   readonly estado: EstadoDelRecorrido;
+  /**
+   * Con que cambiar el estado. **No es el `dispatch` estable de `useReducer`** aunque tenga su tipo
+   * (issue 50): envia cada accion con lo leido en ese momento, asi que cambia de identidad cuando cambia
+   * lo leido. En demostracion, nunca; con plataforma, cuando la cache trae una respuesta distinta. Un
+   * efecto que lo tenga entre sus dependencias vuelve a correr entonces: que no haga nada la segunda vez.
+   */
   readonly despachar: Dispatch<AccionDelRecorrido>;
 }
 

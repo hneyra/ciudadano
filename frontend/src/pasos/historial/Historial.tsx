@@ -659,7 +659,9 @@ export function Historial() {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
   const pago = estado.recienPagado ? estado.ultimo : null;
-  // Estable entre dibujos: si cambiara, el efecto de `DeDondeSale` volveria a correr sin motivo.
+  // Estable mientras lo sea `despachar`: en demostracion, siempre; con plataforma cambia cuando la
+  // cache trae otra respuesta (issue 50), y entonces el efecto de `DeDondeSale` vuelve a correr, pero
+  // no hace nada: cumple solo con `enfocar` encendido, y lo apaga al cumplir.
   const alEnfocar = useCallback(() => despachar({ tipo: 'unidadesEnfocadas' }), [despachar]);
 
   return (

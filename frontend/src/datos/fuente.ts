@@ -148,8 +148,9 @@ export function useLaSituacion() {
  * pero sigue a la cache: cuando `useLaSituacion` —la del paso 2 o la del historial— trae la
  * respuesta, este gancho la ve en el MISMO dibujo, porque los dos observan la misma llave.
  *
- * Y de paso, estando siempre montado, la consulta nunca se queda sin observadores: la cache no la
- * tira a los cinco minutos (`gcTime`) y volver al paso 2 no vuelve a dibujar «Consultando…».
+ * Que la respuesta siga ahi al volver al paso 2 —sin volver a dibujar «Consultando…»— no depende de
+ * este observador sino de la politica del cliente (`src/datos/consultas.ts`): `gcTime: Infinity` no
+ * la tira nunca y `staleTime: Infinity` no la vuelve a pedir al montar.
  */
 export function useLaSituacionSinPedir() {
   const fuente = useContext(FuenteActiva);
