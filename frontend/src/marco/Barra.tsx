@@ -14,10 +14,9 @@ import { useTranslation } from 'react-i18next';
 import escudo from '../../diseno/escudo-catacaos.png';
 import { claimsDelCiudadano, haySesion } from '../api/claims.ts';
 import { entrar, salir } from '../arranque.ts';
-import { USUARIO } from '../datos/demostracion.ts';
 import { hayPlataforma, useLaFuente } from '../datos/fuente.ts';
 import { useRecorrido } from '../recorrido/ProveedorDelRecorrido.tsx';
-import { inicio } from '../recorrido/recorrido.ts';
+import { type EstadoDelRecorrido, inicio, laDemostracion } from '../recorrido/recorrido.ts';
 
 /**
  * **La barra del portal**: la marca y la sesion (`diseno/Ciudadano.dc.html`, lineas 59-101 y 1046-1061).
@@ -105,15 +104,20 @@ function inicialesDe(nombre: string): string {
     .join('');
 }
 
-/** Quien entro segun el artboard: la persona de `USUARIO`, con su codigo y su correo. */
-function deLaDemostracion(autenticado: boolean): QuienEntro | null {
-  if (!autenticado) return null;
+/**
+ * Quien entro segun el artboard: la usuaria de la demostracion, con su codigo y su correo. Llega con
+ * la fuente (`LaDemostracion.usuario`, issue 58): importada de `demostracion.ts`, viajaba en el paquete
+ * de produccion aunque con plataforma no se dibujara nunca.
+ */
+function deLaDemostracion(estado: EstadoDelRecorrido): QuienEntro | null {
+  if (!estado.autenticado) return null;
+  const { usuario } = laDemostracion(estado);
   return {
-    iniciales: USUARIO.iniciales,
-    nombre: USUARIO.nombre,
-    documento: `${USUARIO.tipoDeDocumento} ${USUARIO.numeroDeDocumento}`,
-    codigo: USUARIO.codigo,
-    correo: USUARIO.correo,
+    iniciales: usuario.iniciales,
+    nombre: usuario.nombre,
+    documento: `${usuario.tipoDeDocumento} ${usuario.numeroDeDocumento}`,
+    codigo: usuario.codigo,
+    correo: usuario.correo,
   };
 }
 
@@ -150,7 +154,7 @@ export function Barra() {
    * `salir()` tambien). Un estado que lo copiara no tendria ningun momento en que refrescarse, y el
    * dia que lo tuviera seria una copia del token viviendo mas de lo que vive el token.
    */
-  const quien: QuienEntro | null = conPlataforma ? delToken(t) : deLaDemostracion(estado.autenticado);
+  const quien: QuienEntro | null = conPlataforma ? delToken(t) : deLaDemostracion(estado);
 
   /**
    * **«Iniciar sesión»**: la puerta de verdad cuando hay plataforma, el paso «Mis datos» cuando no.

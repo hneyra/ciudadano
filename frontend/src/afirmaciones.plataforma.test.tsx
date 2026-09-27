@@ -172,8 +172,8 @@ const VISITADOS = new Set<Paso>();
  * prueba de este archivo sale roja hasta que `recorrer` la visite.
  */
 function alcanzablesConPlataforma(): readonly Paso[] {
-  const sinSesion = estadoInicial({ conPlataforma: true, autenticado: false, amnistia: false });
-  const conSesion = estadoInicial({ conPlataforma: true, autenticado: true, amnistia: false });
+  const sinSesion = estadoInicial({ conPlataforma: true, autenticado: false, amnistia: false, demostracion: null });
+  const conSesion = estadoInicial({ conPlataforma: true, autenticado: true, amnistia: false, demostracion: null });
   const alFinal = { ...conSesion, paso: pasosNumerados(conSesion).at(-1) ?? conSesion.paso };
   return TODOS_LOS_PASOS.filter(
     (paso) => pasoAlcanzable(sinSesion, paso) || pasoAlcanzable(alFinal, paso),

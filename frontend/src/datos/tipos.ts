@@ -167,6 +167,22 @@ export interface Situacion {
   readonly deudas: readonly Deuda[];
 }
 
+/** Por que se busca la deuda en demostracion (artboard, linea 1084). Es dato y se traduce al dibujarse. */
+export type TipoDeDocumento = 'Código de contribuyente' | 'DNI' | 'RUC';
+
+/**
+ * **Los ejemplos de los campos de documento** (issue 58): lo que el artboard pone de `placeholder`.
+ *
+ * Son el codigo y el DNI del contribuyente de la demostracion —y un RUC—, o sea DATO de una persona
+ * aunque se dibujen como ayuda: por eso viajan con la demostracion y no en la pantalla.
+ */
+export interface EjemplosDeDocumento {
+  /** El de «Buscar mi deuda», segun el tipo elegido. Artboard, linea 1087. */
+  readonly busqueda: Readonly<Record<TipoDeDocumento, string>>;
+  /** El del documento de «Con mi cuenta». Artboard, linea 340. */
+  readonly cuenta: string;
+}
+
 /** Los numeros que sella el comprobante de demostracion. */
 export interface ComprobanteDeDemostracion {
   readonly numero: string;
@@ -327,4 +343,36 @@ export interface SituacionDelServidor {
   readonly notaDelTotal: string | null;
   readonly municipalidades: readonly MunicipalidadDelPortal[];
   readonly deudas: readonly DeudaDelServidor[];
+}
+
+/**
+ * **Lo que la fuente de demostracion aporta, y la de la plataforma no tiene** (issue 58).
+ *
+ * Hasta el issue 58 cada pantalla lo importaba de `demostracion.ts` y, por esos `import` estaticos,
+ * el nombre, los documentos, el correo, los comprobantes y los predios del artboard viajaban en el
+ * paquete de PRODUCCION. Ahora llega todo junto, por la fuente (`FuenteDelPortal.demostracion`), y
+ * la fuente de demostracion solo se alcanza por el `import()` que Rollup pliega al construir.
+ *
+ * Lo leen el recorrido (`DatosLeidos.demostracion`: la deuda, el sello, el correo de la cuenta) y las
+ * pantallas que solo existen en demostracion. Con plataforma es `null`.
+ */
+export interface LaDemostracion {
+  /** El contribuyente que devuelve cualquier busqueda. */
+  readonly contribuyente: Contribuyente;
+  /** La persona que entra con la cuenta del artboard. */
+  readonly usuario: Usuario;
+  /** Sus cuatro conceptos, con su desglose. */
+  readonly deudas: readonly Deuda[];
+  /** Los numeros con que se sella el comprobante. */
+  readonly comprobante: ComprobanteDeDemostracion;
+  /** Los cuatro medios del paso «Pagar»: con plataforma no se ofrece ninguno (issue 28). */
+  readonly medios: readonly MedioDePago[];
+  readonly ejemplos: EjemplosDeDocumento;
+  /**
+   * **Lo que estos datos dicen, para el idioma**: la parte del locale que es de la demostracion
+   * (`src/i18n/locales/es.demostracion.json`). Las pantallas pasan esos textos por `t()` con una
+   * variable; en un paquete de produccion no hay ninguno que traducir, y el locale que viaja siempre
+   * (`es.json`) no los lleva. Lo suma al idioma `sumarLosTextosDeLaFuente` (`src/i18n/i18n.ts`).
+   */
+  readonly textos: Readonly<Record<string, string>>;
 }

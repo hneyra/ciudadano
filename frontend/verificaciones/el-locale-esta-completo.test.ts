@@ -6,9 +6,11 @@ import { describe, expect, it } from 'vitest';
 import { clavesDeLaEscalera } from '../src/api/escalera.ts';
 import { clavesDelEmisor } from '../src/api/emisor.ts';
 import { clavesDeLaUnidad } from '../src/datos/deLaSituacion.ts';
+import { HISTORIAL, MEDIOS, UNIDADES } from '../src/datos/demostracion.ts';
 import { clavesDelHistorial } from '../src/pasos/historial/textosDelHistorial.ts';
 import { clavesDeLosMedios } from '../src/pasos/pagar/textosDeLosMedios.ts';
 import { RAIZ } from './artboards.ts';
+import { marcasDeLaDemostracion } from './marcas-de-la-demostracion.ts';
 
 /**
  * **El locale tiene todas las claves, y ninguna se aparta de la suya** (rentas#103, AC5).
@@ -36,6 +38,15 @@ import { RAIZ } from './artboards.ts';
  * pantalla los traduce con una variable, que `i18next-cli` no ve. Entran DERIVADOS de
  * `clavesDeLosMedios()` (`src/pasos/pagar/textosDeLosMedios.ts`), no copiados aqui.
  *
+ * <h2>Dos archivos: lo que dice el portal, y lo que dicen los datos de la demostracion (issue 58)</h2>
+ *
+ * Los textos de los medios, de los pagos anteriores y de las unidades son DATOS del artboard —la
+ * direccion de un predio, su ficha catastral, el nombre de la tarjeta de ejemplo—, y en `es.json`
+ * viajaban en el paquete de produccion, que es el unico sitio donde no pintan nada. Asi que salen a
+ * `es.demostracion.json`, que solo importa la fuente de demostracion y que `sumarLosTextosDeLaFuente`
+ * suma al idioma al montar. Se derivan igual que antes, ahora con los datos como argumento. Una clave
+ * que tambien escribe el portal como literal se queda en `es.json`: la dice el portal.
+ *
  * <h2>Y por que el locale se REGENERA en vez de escribirse</h2>
  *
  * Porque sale de esta lista: a mano se queda viejo a la primera frase nueva.
@@ -43,6 +54,7 @@ import { RAIZ } from './artboards.ts';
  */
 
 const LOCALE = join(RAIZ, 'src/i18n/locales/es.json');
+const LOCALE_DE_LA_DEMOSTRACION = join(RAIZ, 'src/i18n/locales/es.demostracion.json');
 
 /**
  * Las formas plurales del paso 2 (issue 6). `es` tiene tres categorias (`one`, `many` y `other`); la
@@ -422,10 +434,9 @@ const LITERALES = [
   ...Object.keys(PLURALES_DEL_PASO_2),
   ...Object.keys(PLURALES_DE_LA_BUSQUEDA),
 
-  // Lo que dicen los cuatro medios de pago (issue 8), derivado del dato.
-  ...clavesDeLosMedios(),
-  // Lo que dicen los pagos anteriores y las unidades del historial (issue 10), derivado del dato.
-  ...clavesDelHistorial(),
+  // Lo que dicen los medios de pago (issue 8) y los pagos y las unidades del historial (issue 10) ya
+  // no esta aqui: es de los datos de la demostracion, y va a su propio archivo (issue 58). Ver
+  // `DE_LA_DEMOSTRACION`.
   // Lo que el ADAPTADOR escribe cuando el contrato no deja identificar la unidad (issue 26). La
   // pantalla las traduce con una variable —`unidad` es a veces el predio de verdad, que es dato—,
   // asi que `i18next-cli` no las ve.
@@ -444,32 +455,47 @@ const LITERALES = [
 /** Lo que tiene que decir cada forma plural, con el mecanismo de `rentas`. */
 const PLURALES: Readonly<Record<string, string>> = { ...PLURALES_DEL_PASO_2, ...PLURALES_DE_LA_BUSQUEDA };
 
-function elQueDeberiaSer(): Readonly<Record<string, string>> {
-  const claves = [...new Set(LITERALES)].sort((a, b) => a.localeCompare(b, 'es'));
-  return Object.fromEntries(claves.map((c) => [c, PLURALES[c] ?? c]));
+/**
+ * **Lo que dicen los DATOS de la demostracion** (issues 8, 10 y 58): los medios de pago, los pagos
+ * anteriores y las unidades, derivado de los datos. Sin lo que el portal ya dice como literal.
+ */
+const DE_LA_DEMOSTRACION = [...clavesDeLosMedios(MEDIOS), ...clavesDelHistorial(HISTORIAL, UNIDADES)].filter(
+  (clave) => !LITERALES.includes(clave),
+);
+
+function elQueDeberiaSer(claves: readonly string[]): Readonly<Record<string, string>> {
+  const ordenadas = [...new Set(claves)].sort((a, b) => a.localeCompare(b, 'es'));
+  return Object.fromEntries(ordenadas.map((c) => [c, PLURALES[c] ?? c]));
 }
 
+const escribir = (ruta: string, contenido: Readonly<Record<string, string>>) =>
+  writeFileSync(ruta, `${JSON.stringify(contenido, null, 2)}\n`, 'utf8');
+const leerDelDisco = (ruta: string) => JSON.parse(readFileSync(ruta, 'utf8')) as Record<string, string>;
+
 describe('el locale `es` esta completo y no se aparta', () => {
-  const esperado = elQueDeberiaSer();
+  const esperado = elQueDeberiaSer(LITERALES);
+  const esperadoDeLaDemostracion = elQueDeberiaSer(DE_LA_DEMOSTRACION);
 
   if (process.env.KAMAYUK_REGENERAR === '1') {
-    writeFileSync(LOCALE, `${JSON.stringify(esperado, null, 2)}\n`, 'utf8');
+    escribir(LOCALE, esperado);
+    escribir(LOCALE_DE_LA_DEMOSTRACION, esperadoDeLaDemostracion);
   }
 
-  const enDisco = JSON.parse(readFileSync(LOCALE, 'utf8')) as Record<string, string>;
+  const enDisco = leerDelDisco(LOCALE);
+  const enDiscoDeLaDemostracion = leerDelDisco(LOCALE_DE_LA_DEMOSTRACION);
 
   it('EL CENTINELA: la lista trae las claves del marcador', () => {
     // Sin esto, una lista vaciada haria que «no falta ninguna» pasara en verde sobre la nada.
     expect(Object.keys(esperado), 'la lista de claves vino corta').toEqual(
       expect.arrayContaining(['Pago de tributos en línea', 'Municipalidad Distrital de Catacaos']),
     );
-    // Y la parte derivada de `MEDIOS`: si la derivacion se vaciara, sus claves faltarian del locale sin
-    // que el resto de la lista lo notara.
-    expect(Object.keys(esperado), 'la lista no trae lo que dicen los medios de pago').toEqual(
+    // Y la parte derivada de `MEDIOS`, en el locale de la demostracion (issue 58): si la derivacion se
+    // vaciara, sus claves faltarian sin que el resto de la lista lo notara.
+    expect(Object.keys(esperadoDeLaDemostracion), 'la lista no trae lo que dicen los medios de pago').toEqual(
       expect.arrayContaining(['Pagar con tarjeta', 'Los tres dígitos del reverso', 'Ya pagué en el banco']),
     );
     // Y la derivada de `HISTORIAL` y `UNIDADES` (issue 10), por lo mismo.
-    expect(Object.keys(esperado), 'la lista no trae lo que dicen los pagos y las unidades').toEqual(
+    expect(Object.keys(esperadoDeLaDemostracion), 'la lista no trae lo que dicen los pagos y las unidades').toEqual(
       expect.arrayContaining(['BCP con código', '8.20 m de frontis', 'Base imponible']),
     );
     // Y la derivada de la escalera de la API (issues 13 y 33): si la tabla se vaciara, sus 27
@@ -491,18 +517,34 @@ describe('el locale `es` esta completo y no se aparta', () => {
     );
   });
 
-  it('no falta ninguna clave, y no sobra ninguna', () => {
-    const faltan = Object.keys(esperado).filter((c) => !(c in enDisco));
-    const sobran = Object.keys(enDisco).filter((c) => !(c in esperado));
+  it('el locale que viaja en TODO paquete no trae ninguna marca de los datos de la demostracion (issue 58)', () => {
+    // Ahi estaban las direcciones, las fichas catastrales y el nombre de la tarjeta de ejemplo, y con
+    // `es.json` viajaban en el paquete de produccion. Son las mismas marcas que el arnes busca en lo
+    // construido (`e2e/la-demostracion-no-viaja-al-bundle.spec.ts`); aqui se ven antes, en `yarn verificar`.
+    const marcas = marcasDeLaDemostracion();
+    const conMarca = (claves: readonly string[]) => claves.filter((clave) => marcas.some((marca) => clave.includes(marca)));
+
+    expect(conMarca(Object.keys(esperado)), 'la lista de `es.json` trae datos de la demostracion').toEqual([]);
+    expect(conMarca(Object.keys(enDisco)), '`es.json` trae datos de la demostracion').toEqual([]);
+    // Y la busqueda encuentra lo que busca: en el de la demostracion SI estan.
+    expect(conMarca(Object.keys(esperadoDeLaDemostracion)).length).toBeGreaterThan(0);
+  });
+
+  it.each([
+    ['es.json', 'lo que el portal dice', () => [esperado, enDisco] as const],
+    ['es.demostracion.json', 'lo que dicen los datos de la demostracion', () => [esperadoDeLaDemostracion, enDiscoDeLaDemostracion] as const],
+  ])('%s: no falta ninguna clave, y no sobra ninguna', (archivo, que, cuales) => {
+    const [debe, hay] = cuales();
+    const faltan = Object.keys(debe).filter((c) => !(c in hay));
+    const sobran = Object.keys(hay).filter((c) => !(c in debe));
     expect(
       { faltan: faltan.slice(0, 8), sobran: sobran.slice(0, 8) },
-      'El locale `es` dejo de cuadrar con lo que el portal dice.\n' +
-        '  Se regenera con:  yarn i18n:regenerar',
+      `El locale \`${archivo}\` dejo de cuadrar con ${que}.\n` + '  Se regenera con:  yarn i18n:regenerar',
     ).toEqual({ faltan: [], sobran: [] });
   });
 
   it('y NINGUN valor se aparta de su clave, salvo los plurales', () => {
-    const apartados = Object.entries(enDisco)
+    const apartados = Object.entries({ ...enDisco, ...enDiscoDeLaDemostracion })
       .filter(([clave, valor]) => valor !== (PLURALES[clave] ?? clave))
       .map(([clave, valor]) => `  «${clave}» dice «${valor}»`);
     expect(

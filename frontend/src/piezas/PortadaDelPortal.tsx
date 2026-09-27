@@ -2,7 +2,7 @@ import { Icono } from '@kamayuk/ui';
 import { type ReactNode, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { ORDENANZA } from '../datos/demostracion.ts';
+import { ORDENANZA } from '../datos/constantes.ts';
 import { TRAZOS_DEL_ARTBOARD, type TrazoDelArtboard } from '../pasos/buscar/trazos.ts';
 import { useRecorrido } from '../recorrido/ProveedorDelRecorrido.tsx';
 import { AvisoConFilo } from './AvisoConFilo.tsx';

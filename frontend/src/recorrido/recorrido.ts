@@ -2,15 +2,16 @@ import type { Importe } from '@kamayuk/formato';
 
 import { type ConSaldo, type Cuenta, conAmnistiaDe, cuentaDe, type Resumen, resumenDe, totalDe } from '../datos/cuentas.ts';
 import { quienDebeDe } from '../datos/deLaSituacion.ts';
-import { COMPROBANTE, CONTRIBUYENTE, DEUDAS, USUARIO } from '../datos/demostracion.ts';
 import type {
   ComprobanteDeDemostracion,
   ConceptoDeDeuda,
   Deuda,
   DeudaDelServidor,
+  LaDemostracion,
   MedioDePago,
   QuienDebe,
   SituacionDelServidor,
+  TipoDeDocumento,
 } from '../datos/tipos.ts';
 
 /**
@@ -58,8 +59,8 @@ import type {
  *   · `DecisionesDelRecorrido`: lo que decide la persona —en que paso esta, que marco (por id), que
  *     pago y con que medio—. Es lo UNICO que guarda el reductor montado (`ProveedorDelRecorrido`).
  *   · `DatosLeidos`: los conceptos y a nombre de quien estan. En demostracion son los del artboard
- *     (`DATOS_DE_LA_DEMOSTRACION`); con plataforma, `datosDeLaSituacion` de lo que la cache tenga
- *     en ese momento. **No se guardan**: el proveedor los pone al lado de las decisiones en cada
+ *     (`datosDeLaDemostracion`, que desde el issue 58 los toma de la FUENTE y no de un `import`);
+ *     con plataforma, `datosDeLaSituacion` de lo que la cache tenga en ese momento. **No se guardan**: el proveedor los pone al lado de las decisiones en cada
  *     dibujo, y en cada accion que los necesita.
  *
  * `EstadoDelRecorrido` es la suma de las dos, y es lo que leen los selectores y las pantallas. Por
@@ -112,8 +113,9 @@ export const TODOS_LOS_PASOS: readonly Paso[] = [
   ...new Set<Paso>([...PASOS_DE_LA_DEMOSTRACION, ...PASOS_CON_PLATAFORMA, 'historial']),
 ];
 
-/** Por que se busca la deuda (artboard, linea 1084). Es dato y se traduce al dibujarse. */
-export type TipoDeDocumento = 'Código de contribuyente' | 'DNI' | 'RUC';
+// Vive en `tipos.ts` desde el issue 58 —los ejemplos de cada tipo son dato de la demostracion— y se
+// sigue exportando de aqui, que es donde lo buscan las pantallas.
+export type { TipoDeDocumento };
 
 /** Lo que el comprobante dice para siempre, sellado en `confirmarPago`. */
 export interface PagoSellado extends Cuenta {
@@ -131,7 +133,12 @@ export interface PagoSellado extends Cuenta {
   readonly medio: MedioDePago['id'];
   /** A donde se envio el comprobante; `null` es «su correo» (artboard, linea 1027). */
   readonly destino: string | null;
-  readonly comprobante: ComprobanteDeDemostracion;
+  /**
+   * Los numeros del sello: los de la demostracion. **`null` con plataforma** (issue 58): no hubo
+   * cobro y no hay comprobante emitido que numerar —la pantalla ya no los dibujaba (issue 28)—, y los
+   * del artboard no viajan en ese paquete.
+   */
+  readonly comprobante: ComprobanteDeDemostracion | null;
 }
 
 /**
@@ -148,6 +155,14 @@ export interface DatosLeidos {
   readonly deudas: readonly ConceptoDeDeuda[];
   /** De quien es esa deuda. `null` con plataforma mientras la consulta no ha contestado con deuda. */
   readonly contribuyente: QuienDebe | null;
+  /**
+   * **Los datos del artboard, tal como los aporta la fuente de demostracion** (issue 58); `null` con
+   * plataforma. De aqui salen el sello del comprobante y el correo de la cuenta del artboard, y lo
+   * leen las pantallas que solo existen en demostracion (la usuaria de la barra, los medios, los
+   * ejemplos de los campos). Hasta el issue 58 cada una lo importaba de `demostracion.ts`, y con esos
+   * `import` los datos viajaban en el paquete de produccion.
+   */
+  readonly demostracion: LaDemostracion | null;
 }
 
 /** **Lo que DECIDE la persona**: lo unico que guarda el reductor montado (issue 50). */
@@ -200,18 +215,50 @@ export interface DecisionesDelRecorrido {
 /** Lo que leen los selectores y las pantallas: lo decidido y lo leido, juntos. */
 export interface EstadoDelRecorrido extends DecisionesDelRecorrido, DatosLeidos {}
 
-/** Los datos del artboard: los cuatro conceptos y la persona de la demostracion. */
-export const DATOS_DE_LA_DEMOSTRACION: DatosLeidos = {
-  deudas: DEUDAS,
-  contribuyente: {
-    nombre: CONTRIBUYENTE.nombre,
-    codigo: CONTRIBUYENTE.codigo,
-    documento: `${CONTRIBUYENTE.tipoDeDocumento} ${CONTRIBUYENTE.numeroDeDocumento}`,
-  },
-};
+/**
+ * **Los datos de la demostracion, para una pantalla que solo existe en demostracion** (issue 58).
+ *
+ * «Buscar mi deuda», «Mis datos», el paso 2 del artboard, los medios de pago, la usuaria de la barra:
+ * todo eso se dibuja solo sin plataforma, y ahi la fuente siempre trae la demostracion. Si una de esas
+ * pantallas llega a dibujarse sin ella, es un recorrido roto —una pantalla de un modo en el otro—, y
+ * se dice con su nombre en vez de dibujar huecos: un campo sin ejemplo o una barra sin nombre pasarian
+ * por buenos.
+ */
+export function laDemostracion(estado: DatosLeidos): LaDemostracion {
+  if (estado.demostracion === null) {
+    throw new Error(
+      'Una pantalla de la demostracion se dibujo sin sus datos: la fuente no trae `demostracion` ' +
+        '(con plataforma no la trae, y esta pantalla no deberia ser alcanzable).',
+    );
+  }
+  return estado.demostracion;
+}
 
 /** Nada leido todavia: con plataforma, mientras la consulta no contesta con deuda. */
-export const SIN_DATOS: DatosLeidos = { deudas: [], contribuyente: null };
+export const SIN_DATOS: DatosLeidos = { deudas: [], contribuyente: null, demostracion: null };
+
+/**
+ * **Lo que el recorrido lee de la demostracion**: sus cuatro conceptos y la persona a cuyo nombre
+ * estan, desde lo que aporta la fuente (issue 58). Sin demostracion —una fuente que no la trae—,
+ * `SIN_DATOS`: nada que marcar ni que pagar.
+ *
+ * Hasta el issue 58 esto era una constante escrita sobre `DEUDAS` y `CONTRIBUYENTE`, importados de
+ * `demostracion.ts`: el reductor era uno de los archivos que metian los datos en el paquete de
+ * produccion.
+ */
+export function datosDeLaDemostracion(demostracion: LaDemostracion | null): DatosLeidos {
+  if (demostracion === null) return SIN_DATOS;
+  const { contribuyente } = demostracion;
+  return {
+    deudas: demostracion.deudas,
+    contribuyente: {
+      nombre: contribuyente.nombre,
+      codigo: contribuyente.codigo,
+      documento: `${contribuyente.tipoDeDocumento} ${contribuyente.numeroDeDocumento}`,
+    },
+    demostracion,
+  };
+}
 
 /**
  * **Lo que el recorrido lee de una respuesta del servidor** (issue 50): sus conceptos y a nombre de
@@ -224,7 +271,7 @@ export const SIN_DATOS: DatosLeidos = { deudas: [], contribuyente: null };
  */
 export function datosDeLaSituacion(situacion: SituacionDelServidor | undefined): DatosLeidos {
   if (situacion?.estado !== 'con-deuda') return SIN_DATOS;
-  return { deudas: situacion.deudas, contribuyente: quienDebeDe(situacion) };
+  return { deudas: situacion.deudas, contribuyente: quienDebeDe(situacion), demostracion: null };
 }
 
 /**
@@ -233,19 +280,22 @@ export function datosDeLaSituacion(situacion: SituacionDelServidor | undefined):
  * proxima vez lo vuelve a poner quien lo lee, de donde este en ese momento.
  */
 export function decisionesDe(estado: DecisionesDelRecorrido & Partial<DatosLeidos>): DecisionesDelRecorrido {
-  const { deudas: _deudas, contribuyente: _contribuyente, ...decisiones } = estado;
+  const { deudas: _deudas, contribuyente: _contribuyente, demostracion: _demostracion, ...decisiones } = estado;
   return decisiones;
 }
 
-/** El estado con que se abre el portal EN DEMOSTRACION. Artboard, lineas 927-940. */
-export const ESTADO_INICIAL: EstadoDelRecorrido = {
+/**
+ * **Las decisiones con que se abre el portal**, sin nada leido: las del artboard (lineas 927-940)
+ * menos sus cuatro marcas, que son de sus cuatro conceptos y las escribe `estadoInicial` cuando la
+ * fuente trae esos conceptos (issue 58).
+ */
+export const DECISIONES_INICIALES: DecisionesDelRecorrido = {
   paso: 'buscar',
   conPlataforma: false,
   amnistia: true,
-  ...DATOS_DE_LA_DEMOSTRACION,
   tipoDeDocumento: 'Código de contribuyente',
   numero: '',
-  marcadas: { pred26: true, arb26: true, pred24: true, veh24: true },
+  marcadas: {},
   pagadas: {},
   ultimo: null,
   abierta: null,
@@ -265,23 +315,34 @@ export interface ComoEmpieza {
   readonly autenticado: boolean;
   /** Lo que dice la fuente: `FuenteDelPortal.amnistia` (issue 49). */
   readonly amnistia: boolean;
+  /** Lo que aporta la fuente: `FuenteDelPortal.demostracion` (issue 58). `null` con plataforma. */
+  readonly demostracion: LaDemostracion | null;
 }
 
 /**
  * **El estado con que se abre el portal, segun de donde lea** (issue 28).
  *
  * Con plataforma no hay deuda que ensenar hasta que la consulta conteste: la lista arranca **vacia**
- * (`SIN_DATOS`) y sin ninguna marca escrita —lo que llegue, llega marcado por omision—. Las cuatro
- * marcas de `ESTADO_INICIAL` son las de los cuatro conceptos del artboard, y arrastrarlas a un
- * recorrido cuyos conceptos son otros dejaria escritas unas decisiones sobre cosas que no existen.
+ * (`SIN_DATOS`) y sin ninguna marca escrita —lo que llegue, llega marcado por omision—.
+ *
+ * En demostracion, los conceptos y la persona son los que aporta la fuente (issue 58), y cada
+ * concepto arranca con su marca ESCRITA: son las cuatro del artboard (linea 929), que las escribe
+ * todas. Se derivan de los conceptos en vez de copiarse por id para que las marcas no puedan hablar
+ * de conceptos que no estan.
  *
  * Quien lo llama es `ProveedorDelRecorrido`, una sola vez: la bandera es de construccion y el token
  * lo fija el canje ANTES de montar (`src/arranque.ts`).
  */
-export function estadoInicial({ conPlataforma, autenticado, amnistia }: ComoEmpieza): EstadoDelRecorrido {
-  const base: EstadoDelRecorrido = conPlataforma
-    ? { ...ESTADO_INICIAL, ...SIN_DATOS, conPlataforma: true, autenticado, amnistia, marcadas: {} }
-    : { ...ESTADO_INICIAL, autenticado, amnistia };
+export function estadoInicial({ conPlataforma, autenticado, amnistia, demostracion }: ComoEmpieza): EstadoDelRecorrido {
+  const leido = conPlataforma ? SIN_DATOS : datosDeLaDemostracion(demostracion);
+  const base: EstadoDelRecorrido = {
+    ...DECISIONES_INICIALES,
+    ...leido,
+    conPlataforma,
+    autenticado,
+    amnistia,
+    marcadas: conPlataforma ? {} : Object.fromEntries(leido.deudas.map((deuda) => [deuda.id, true])),
+  };
   return { ...base, paso: primerPaso(base) };
 }
 
@@ -341,7 +402,7 @@ export function vivas(estado: EstadoDelRecorrido): readonly ConceptoDeDeuda[] {
  * La deuda viva **del artboard**, con su forma entera (cuotas, vencimiento, estado y desglose).
  *
  * La pide solo la pantalla de demostracion del paso 2, que se dibuja unicamente cuando no hay
- * plataforma: alli `estado.deudas` ES `DEUDAS`, y el filtro no puede perder ninguno. Con plataforma
+ * plataforma: alli `estado.deudas` son los del artboard, y el filtro no puede perder ninguno. Con plataforma
  * devuelve una lista vacia, que es la verdad: los conceptos del servidor no tienen esa forma.
  */
 export function vivasDelArtboard(estado: EstadoDelRecorrido): readonly Deuda[] {
@@ -485,7 +546,10 @@ export function inicio(estado: EstadoDelRecorrido): Paso {
  * del artboard escribiria el buzon de otra persona debajo del pago de esta.
  */
 export function destinoDelComprobante(estado: EstadoDelRecorrido): string | null {
-  if (estado.autenticado && !estado.conPlataforma) return USUARIO.correo;
+  // El de la cuenta del artboard, que llega con la demostracion (issue 58).
+  if (estado.autenticado && !estado.conPlataforma && estado.demostracion !== null) {
+    return estado.demostracion.usuario.correo;
+  }
   const correo = estado.correo.trim();
   return correo === '' ? null : correo;
 }
@@ -598,7 +662,8 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
           ...cuentaDe(pagado),
           medio: estado.medio,
           destino: destinoDelComprobante(estado),
-          comprobante: COMPROBANTE,
+          // Con plataforma no hay sello que poner (issue 58): ver `PagoSellado.comprobante`.
+          comprobante: estado.demostracion?.comprobante ?? null,
         },
       };
     }
@@ -625,7 +690,7 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
         valores: {},
         correo: '',
         numero: '',
-        tipoDeDocumento: ESTADO_INICIAL.tipoDeDocumento,
+        tipoDeDocumento: DECISIONES_INICIALES.tipoDeDocumento,
         marcadas: {},
         abierta: null,
       };

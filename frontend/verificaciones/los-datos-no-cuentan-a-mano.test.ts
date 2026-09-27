@@ -193,7 +193,9 @@ describe('hueco medido: `gastos` y `conAmnistia` no son dinero para la libreria'
  */
 const SE_SABE_QUE_IMPORTA: Readonly<Record<string, string>> = {
   'cuentas.ts': '@kamayuk/formato',
-  'demostracion.ts': '@kamayuk/formato',
+  // Desde el issue 58 lo que importa es el dia de corte, que vive aparte con la entidad y la ordenanza.
+  'demostracion.ts': './constantes.ts',
+  'constantes.ts': '@kamayuk/formato',
   'tipos.ts': '@kamayuk/formato',
   'contrato.ts': 'zod',
   'respuestaQueNoEntiendo.ts': 'zod',

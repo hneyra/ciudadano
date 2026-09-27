@@ -18,3 +18,7 @@ dist-de-la-imagen/
 # versionan, son de una corrida y en CI viajan como artefacto del trabajo.
 playwright-report/
 test-results/
+
+# La lista de marcas de los datos del artboard que genera `node imagen/marcas-de-la-demostracion.mjs`
+# (issue 58). En la imagen la escribe la etapa de construccion; aqui, quien la pida a mano.
+frontend/marcas-de-la-demostracion.txt

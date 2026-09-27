@@ -3,7 +3,7 @@
 import { formatearFechaEnPalabras } from '@kamayuk/formato';
 import { describe, expect, it } from 'vitest';
 
-import { FECHA_DE_CORTE } from '../../datos/demostracion.ts';
+import { FECHA_DE_CORTE } from '../../datos/constantes.ts';
 import { MESES, fechaEnPalabras } from './fechaEnPalabras.ts';
 
 /**

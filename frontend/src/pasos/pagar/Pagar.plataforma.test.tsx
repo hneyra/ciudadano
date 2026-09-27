@@ -9,7 +9,8 @@ import { crearFuenteDeLaPlataforma } from '../../datos/fuenteDeLaPlataforma.ts';
 import i18n, { IDIOMA_MARCADO } from '../../i18n/i18n.ts';
 import { FRASES_QUE_AFIRMAN, laDice, nombreDe } from '../../pruebas/frasesQueAfirman.ts';
 import { limpiarElPortal, marcado, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
-import { DATOS_DE_LA_DEMOSTRACION } from '../../recorrido/recorrido.ts';
+import { LA_DEMOSTRACION } from '../../datos/fuenteDeDemostracion.ts';
+import { datosDeLaDemostracion } from '../../recorrido/recorrido.ts';
 
 /**
  * **AC4 — pagar y el comprobante con plataforma quedan simulados, y se dice** (issue 28).
@@ -213,7 +214,7 @@ describe('AC4 — el paso 5, «Comprobante»', () => {
         recienPagado: true,
         ultimo: {
           conceptos: DEUDAS.filter((deuda) => deuda.id === 'pred26'),
-          contribuyente: DATOS_DE_LA_DEMOSTRACION.contribuyente,
+          contribuyente: datosDeLaDemostracion(LA_DEMOSTRACION).contribuyente,
           insoluto: '293.72',
           reajuste: '0.00',
           interes: '0.00',

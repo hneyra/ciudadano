@@ -1,6 +1,7 @@
 import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
+import type { FuenteDelPortal } from '../datos/fuente.ts';
 import es from './locales/es.json' with { type: 'json' };
 
 /**
@@ -21,6 +22,15 @@ import es from './locales/es.json' with { type: 'json' };
  * `i18next-cli status`, que corre dentro de `yarn verificar`, y
  * `verificaciones/el-locale-esta-completo.test.ts`, que exige que el locale traiga cada clave con
  * su propio texto como valor.
+ *
+ * <h2>El locale viene en DOS partes, y la segunda solo viaja con la demostracion (issue 58)</h2>
+ *
+ * `es.json` es lo que el portal dice, y viaja siempre. `es.demostracion.json` es lo que dicen los
+ * DATOS de la demostracion —los medios de pago, los pagos anteriores, las unidades con sus direcciones
+ * y sus fichas catastrales—, que las pantallas pasan por `t()` con una variable. Hasta el issue 58
+ * iban juntos, y con ellos las direcciones del artboard viajaban en el paquete de produccion aunque
+ * ninguna pantalla las dijera. Ahora la segunda parte la importa solo la fuente de demostracion
+ * (`LaDemostracion.textos`) y la suma al idioma `sumarLosTextosDeLaFuente`, al montar.
  *
  * <h2>Los dos idiomas que hay, y el segundo no es un idioma</h2>
  *
@@ -74,5 +84,21 @@ await i18next
     interpolation: { escapeValue: false },
     postProcess: ['marcar'],
   });
+
+
+/**
+ * **Suma al idioma lo que dicen los datos de la fuente**, si los trae (issue 58): con la de
+ * demostracion, `es.demostracion.json`; con la de la plataforma, nada.
+ *
+ * Se llama una vez, al montar —`montaje.tsx`, y en las pruebas `montarElPortal`—, con la fuente que
+ * ya eligio `laFuente()`. Mientras el unico idioma sea el castellano, cada entrada dice lo mismo que
+ * su clave y la pantalla se veria igual sin esto; lo que esto garantiza es que un segundo idioma, que
+ * traeria su propio `…demostracion.json`, se aplique tambien a los datos. Sin la llamada, el locale de
+ * la demostracion seria un archivo que nadie lee.
+ */
+export function sumarLosTextosDeLaFuente(fuente: FuenteDelPortal): void {
+  if (fuente.demostracion === null) return;
+  i18next.addResourceBundle(IDIOMA_POR_OMISION, 'translation', fuente.demostracion.textos, true, false);
+}
 
 export default i18next;

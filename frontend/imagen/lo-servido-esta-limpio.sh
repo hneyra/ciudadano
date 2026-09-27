@@ -2,12 +2,15 @@
 #
 # Lo que nginx va a servir no lleva el artboard, ni las capturas, ni mapas, ni nada de `src/` (issue 37).
 #
-# Uso: sh imagen/lo-servido-esta-limpio.sh <lo servido> <el frontend>
+# Uso: sh imagen/lo-servido-esta-limpio.sh <lo servido> <el frontend> [<las marcas>]
 #
 #   · <lo servido>   el directorio que se publica: en la imagen, `/usr/share/nginx/html` ENTERO, no
 #                    solo `portal/` —lo que se copie al lado tambien se sirve—.
 #   · <el frontend>  un arbol con `src/` y `diseno/` contra el que comparar: en la imagen, la etapa de
 #                    construccion montada; en local, `frontend/`.
+#   · <las marcas>   (issue 58) la lista de marcas de los datos del artboard, una por linea, que escribe
+#                    `node imagen/marcas-de-la-demostracion.mjs`. En la imagen, la genera la etapa de
+#                    construccion y llega por el mismo montaje. Si se da, tiene que existir y no estar vacia.
 #
 # Sale con 0 si esta limpio, con 1 nombrando cada cosa que encontro, y con 2 si no puede comparar.
 #
@@ -36,9 +39,12 @@
 #      marca que ya no esta en el artboard busca algo que no existe, y es una guarda que no puede
 #      fallar (paso en `rentas` con «SULLON VILCHEZ»)—.
 #
-# Lo que NO busca: los datos del artboard que `src/datos/demostracion.ts` porta. Hoy SI viajan en el
-# paquete de produccion —el recorrido arranca con ellos, ver `la-demostracion-no-viaja-al-bundle.test.ts`—
-# y sacarlos es otra entrega. Esto vigila los ARCHIVOS de diseno, no los datos que se copiaron de ellos.
+#   5. **Los datos del artboard** (issue 58): el nombre, los documentos, el correo, los comprobantes, las
+#      direcciones, las fichas, la placa, el numero de Yape que `src/datos/demostracion.ts` porta. Desde
+#      el issue 58 no viajan en el paquete de produccion, y esto lo comprueba en lo que se sirve. Las
+#      marcas no se escriben aqui: salen por campo de `demostracion.ts` (`verificaciones/marcas-de-la-demostracion.ts`)
+#      y las pone en un archivo la etapa de construccion, que tiene Node; esta etapa, nginx, solo las
+#      busca. Como con las de arriba, cada una tiene que SEGUIR en su origen.
 #
 # POSIX y busybox: corre en `nginx:*-alpine` y en la maquina de quien verifica.
 set -eu
@@ -135,8 +141,25 @@ marca 'diseno/Ciudadano.dc.html' 'DCLogic'
 # La nota que el backend devolvio el 2026-09-16: es prosa del servidor, no la escribe el portal.
 marca 'diseno/medidas/situacion-2026-09-16.json' 'no se puede dar un total de todo'
 
+# ── 5. Los datos del artboard, por sus marcas ───────────────────────────────────────────────
+marcas=${3:-}
+if [ -n "$marcas" ]; then
+  if [ ! -s "$marcas" ]; then
+    echo "lo-servido-esta-limpio.sh: la lista de marcas «$marcas» no existe o esta vacia; buscaria nada y no puede fallar" >&2
+    exit 2
+  fi
+  while IFS= read -r texto; do
+    [ -n "$texto" ] || continue
+    marca 'src/datos/demostracion.ts' "$texto"
+  done < "$marcas"
+fi
+
 if [ -n "$informe" ]; then
   printf 'LO SERVIDO NO ESTA LIMPIO. En «%s»:\n%s' "$servido" "$informe" >&2
   exit 1
 fi
-echo "lo servido esta limpio: sin mapas, sin codigo fuente, sin copias de src/ ni de diseno/ (salvo el escudo) y sin el artboard ni la captura dentro"
+if [ -n "$marcas" ]; then
+  echo "lo servido esta limpio: sin mapas, sin codigo fuente, sin copias de src/ ni de diseno/ (salvo el escudo), sin el artboard ni la captura dentro, y sin los datos de la demostracion"
+else
+  echo "lo servido esta limpio: sin mapas, sin codigo fuente, sin copias de src/ ni de diseno/ (salvo el escudo) y sin el artboard ni la captura dentro"
+fi

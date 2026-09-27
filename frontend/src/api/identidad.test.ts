@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { RAIZ } from '../../verificaciones/artboards.ts';
-import { ESTADO_INICIAL } from '../recorrido/recorrido.ts';
+import { DECISIONES_INICIALES } from '../recorrido/recorrido.ts';
 import { RUTA_DEL_PASO } from '../recorrido/rutas.ts';
 import { DESTINO_POR_OMISION, configuracionDeLaPuerta, identidad } from './identidad.ts';
 
@@ -74,7 +74,7 @@ describe('la puerta se configura con las senias de ESTE portal', () => {
     // enrutador y los datos de demostracion a un modulo que se carga ANTES de montar nada—, y esta
     // prueba es lo que impide que se quede vieja: si el recorrido empezara por otro paso, o si la
     // ruta de ese paso cambiara, sale roja aqui.
-    expect(DESTINO_POR_OMISION).toBe(`#${RUTA_DEL_PASO[ESTADO_INICIAL.paso]}`);
+    expect(DESTINO_POR_OMISION).toBe(`#${RUTA_DEL_PASO[DECISIONES_INICIALES.paso]}`);
     expect(configuracionDeLaPuerta().destinoPorOmision).toBe(DESTINO_POR_OMISION);
   });
 

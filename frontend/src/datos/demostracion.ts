@@ -1,9 +1,9 @@
-import type { Fecha } from '@kamayuk/formato';
-
+import { FECHA_DE_CORTE } from './constantes.ts';
 import type {
   ComprobanteDeDemostracion,
   Contribuyente,
   Deuda,
+  EjemplosDeDocumento,
   MedioDePago,
   PagoDelHistorial,
   Unidad,
@@ -25,19 +25,20 @@ import type {
  * **Sin React y sin cuentas.** Aqui no se suma nada: los totales salen de `cuentas.ts`. Un total
  * escrito a mano en los datos cuadraria hoy y seguiria «cuadrando» el dia que se cambiara un
  * sumando.
+ *
+ * <h2>Solo lo importa la fuente de demostracion (issue 58)</h2>
+ *
+ * Aqui estan el nombre, los documentos, el correo, los comprobantes y los predios de unas personas.
+ * Hasta el issue 58 los importaban ocho archivos de produccion, y por ellos viajaban en el paquete
+ * que se instala en una municipalidad. Ahora solo los importa `fuenteDeDemostracion.ts` —al que se
+ * llega por el `import()` que Rollup pliega al construir— y las pantallas los reciben de la fuente
+ * (`LaDemostracion`, en `tipos.ts`). Lo que del artboard NO es de nadie —la entidad, la ordenanza de
+ * la amnistia, el dia de corte— vive en `constantes.ts` y si viaja.
+ *
+ * Lo vigilan `verificaciones/la-demostracion-no-viaja-al-bundle.test.ts` (quien importa esto) y, sobre
+ * el paquete construido, `e2e/la-demostracion-no-viaja-al-bundle.spec.ts`, con las marcas que saca de
+ * aqui `verificaciones/marcas-de-la-demostracion.ts`.
  */
-
-/** La entidad que cobra. Artboard, linea 1042 (`entidad`). */
-export const ENTIDAD = 'Municipalidad Distrital de Catacaos';
-
-/** La norma de la amnistia que condona el interes. Artboard, lineas 177 y 1311. */
-export const ORDENANZA = 'Ordenanza 012-2026-MPS';
-
-/**
- * El dia al que esta calculada toda la deuda de la demostracion: «13 de setiembre de 2026»
- * (artboard, linea 1043) y la fecha del comprobante (1037). Es la `fechaCalculo` de cada `<Importe>`.
- */
-export const FECHA_DE_CORTE: Fecha = '2026-09-13';
 
 /**
  * Los numeros que sella el comprobante. Artboard, linea 1037.
@@ -71,6 +72,20 @@ export const USUARIO: Usuario = {
   numeroDeDocumento: '44218937',
   codigo: '00000025673',
   correo: 'maria.castillo@example.com',
+};
+
+/**
+ * Los ejemplos de los campos de documento: el codigo y el DNI del contribuyente, y un RUC. Artboard,
+ * lineas 1087 («Buscar mi deuda») y 340 («Con mi cuenta»). Hasta el issue 58 los escribian las dos
+ * pantallas, y con ellas viajaban a produccion.
+ */
+export const EJEMPLOS: EjemplosDeDocumento = {
+  busqueda: {
+    'Código de contribuyente': '00000025673',
+    DNI: '03593174',
+    RUC: '20525118447',
+  },
+  cuenta: '03593174',
 };
 
 /** La deuda del contribuyente, con el desglose de cada concepto. Artboard, lineas 740-806. */
