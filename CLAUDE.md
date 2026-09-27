@@ -141,6 +141,21 @@ colgantes. Lo dicen, nombrando el `git clone`, `eslint.prohibiciones.mjs` (prime
 `yarn verificar`), `resolucion.ts` (`yarn dev` y `yarn build`) y
 `verificaciones/enlace-con-kamayuk-lib.test.ts`.
 
+**En local ese clon vive en `main`; en la CI, en un SHA fijo** (issue 55). `KAMAYUK_LIB_SHA`, en la
+raíz de este repositorio, guarda el commit de `kamayuk-lib` contra el que la CI verifica y mide el
+arnés: sin `ref`, una corrida en verde no dice contra qué commit de la librería salió verde, y un
+cambio allá puede romper esta CI sin tocar este repositorio. Los DOS trabajos de
+`.github/workflows/frontend.yml` leen ese archivo en un paso propio y lo pasan como `ref:` al
+checkout de la librería. **Ese paso VALIDA antes de escribir la salida** (revisión de la ronda 1
+del PR #65): `cat` sobre un archivo ausente o vacío no hace fallar la asignación —`sha="$(cat
+…)"` sale con `rc=0` igual, con `sha` vacío, porque bash no propaga el fallo de un `$(...)` a
+menos que algo lo mire aparte—, y un `ref:` vacío clona la punta de `main` **sin decirlo**: el
+silencio exacto que el issue quería quitar. La expresión regular exige cuarenta caracteres
+hexadecimales; sin ellos, el paso falla ahí, con `exit 1` y el valor recibido en el mensaje, antes
+de clonar nada. **Para subir de versión**: escribir el SHA nuevo en `KAMAYUK_LIB_SHA` (una sola
+línea, sin más) y abrir PR; `verificaciones/andamiaje.test.ts` sale rojo si algún trabajo vuelve a
+clonar sin `ref` o sin esa validación, o si el archivo deja de ser un SHA de 40 caracteres.
+
 ## Stack
 
 **El motor es Node 24** (issue 39), y se dice en **cinco** sitios que tienen que decir lo mismo:
@@ -176,6 +191,37 @@ Las tres cosas que el enlace exige, aprendidas por las malas en `rentas`: `prese
 en `tsconfig.base.json` (rentas#88), `resolve.dedupe` derivado de las peerDependencies (sin él, dos
 copias de React) y `@source` en `src/estilos.css` (rentas#107; sin él, Tailwind omite `node_modules`
 y la mitad de las clases de la librería no generan regla).
+
+**`@types/node` es `^24`, el mismo mayor que `engines.node`** (issue 55): con Node 24 en el motor y
+los tipos en `^22`, `tsc` compila igual —nada del código usa todavía una API que solo exista en
+24— pero es la misma promesa rota que `el-motor-es-uno-solo.test.ts` vigila en los otros cinco
+sitios, solo que en este no hay guarda dedicada: se alinea al subir la versión y se cuenta aquí.
+
+**Una corrida en verde no puede mentir ni dejar de repetirse** (issue 55): `no-floating-promises` y
+`no-misused-promises` de `typescript-eslint` (con tipos, vía `parserOptions.projectService` en
+`eslint.config.js`) señalan una promesa que nadie espera ni descarta —la aserción que iba dentro
+corre después de que Vitest ya dio la prueba por buena—; `@vitest/eslint-plugin` aporta
+`vitest/no-focused-tests` y `vitest/no-disabled-tests` sobre `**/*.test.{ts,tsx}`, y
+`eslint-plugin-playwright` su equivalente (`playwright/no-focused-test`,
+`playwright/no-skipped-test`) sobre `e2e/*.spec.ts`: un `it.only`/`test.only` olvidado deja `yarn
+lint` en rojo antes de construir nada. Y `playwright.config.ts` lleva `forbidOnly:
+!!process.env.CI`, que además para la CORRIDA del arnés en CI si algo se le escapó a ESLint.
+
+`parserOptions.projectService` con tipos no puede parsear un archivo que no existe en el disco, y
+dos guardas anteriores a este issue (`reglas-de-eslint.test.ts`, `los-datos-no-cuentan-a-mano.test.ts`)
+lintan sus muestras con `eslint.lintText` en rutas sintéticas —«como si vivieran» en el árbol real—
+para que la prohibición se evalúe en el sitio donde tiene que aplicar de verdad.
+`parserOptions.projectService.allowDefaultProject` las exceptúa, y esas rutas viven en
+`rutasDeMuestra.mjs`, con el nombre reservado `__no_existe_de_verdad__` (`DIRECTORIO_DE_MUESTRAS`,
+`ARCHIVO_RESERVADO_EN_DATOS`): nadie escribe así un archivo de producción, así que un archivo real
+futuro no puede caer en el mismo `allowDefaultProject` y perder su chequeo de tipos **en silencio**
+(revisión de la ronda 1 del PR #65). Ese archivo vive APARTE de `eslint.config.js` y no dentro:
+`eslint.config.js` referencia objetos de complementos sin tipos completos (`eslint-plugin-jsx-a11y`),
+y las pruebas que importaban esas constantes DESDE el config arrastraban ese archivo al grafo que
+`tsc` compila con `checkJs: true` —`yarn typecheck` salía en rojo—; `rutasDeMuestra.mjs` no importa
+nada, así que no arrastra a nadie. `verificaciones/las-rutas-de-muestra-no-existen.test.ts` comprueba
+que esas dos rutas NO existen en el disco, importando las mismas constantes que `eslint.config.js`
+usa en `allowDefaultProject`.
 
 ## Reglas que no se negocian
 
@@ -435,3 +481,14 @@ ejecuta, y se anota el rojo exacto que sale.
 | `LaConsulta.unaVerdad.test.tsx` y `consultas.test.ts`, AC4 (#50) | el código de `main`; `crearClienteDeConsultas` devolviendo `new QueryClient()`; `refetchOnWindowFocus: 'always'`; `staleTime: 0` con el foco en `false`; `main.tsx` con su propio `new QueryClient()`; sin `gcTime` | en `main` y con el cliente por omisión, «expected 2 to be 1» (el foco volvió a pedir); con `'always'`, lo mismo; con `staleTime: 0`, «expected 2 to be 1» en la segunda mitad —volver a montar el paso 2 la pedía— y «expected { staleTime: +0, …(4) } to deeply equal { staleTime: Infinity, …(4) }»; con `main.tsx` por su cuenta, «Un `new QueryClient` fuera de `datos/consultas.ts` es otra politica: expected [ 'datos/consultas.ts', 'main.tsx' ] to deeply equal [ 'datos/consultas.ts' ]»; sin `gcTime`, «temporizadores programados al limpiar el portal: expected [ 300000 ] to deeply equal []» (`portal.test.tsx`: el recorrido observa la llave en todo el portal, y al desmontar quedaba el plazo de cinco minutos vivo tras el entorno) |
 | `recorrido.plataforma.test.ts`, lo que se guarda (#50) | `decisionesDe` devolviendo el estado entero | «el reductor montado no guarda lo leido: `decisionesDe` lo tira — expected true to be false» |
 | `montarElPortal({ estado })` solo acepta decisiones (#50, revisión del PR #54) | `deudas: []` sembrado en el `estado` de las pruebas de `Historial.test.tsx` | `yarn typecheck`: «error TS2353: Object literal may only specify known properties, and 'deudas' does not exist in type 'Partial<DecisionesDelRecorrido>'» (×5). Con `Partial<EstadoDelRecorrido>` compilaba, y el proveedor lo tiraba en silencio |
+| `vitest/no-focused-tests` (#55) | `it.only(…)` en `src/recorrido/recorrido.test.ts` | `yarn lint`: «45:6  error  Focused tests are not allowed  vitest/no-focused-tests» — un `it.only` deja la suite entera corriendo un solo caso, en verde |
+| `vitest/no-disabled-tests` (#55) | `it.skip(…)` en el mismo archivo | `yarn lint`: «45:6  error  Disabled test - if you want to skip a test temporarily, use .todo() instead  vitest/no-disabled-tests» |
+| `playwright/no-focused-test` (#55) | `test.only(…)` en `e2e/recorrido-anonimo.spec.ts` | `yarn lint`: «33:6  error  Unexpected focused test  playwright/no-focused-test» — sin construir el bundle, antes de que `forbidOnly` tenga oportunidad de correr |
+| `forbidOnly` de `playwright.config.ts` (#55) | el mismo `test.only`, con `CI=true` | `CI=true npx playwright test --list`: «Error: item focused with '.only' is not allowed due to the 'forbidOnly' option in '../playwright.config.ts': "recorrido-anonimo.spec.ts sin cuenta: …"» — la corrida entera para, no solo ese camino |
+| `@typescript-eslint/no-floating-promises` (#55) | `void navegar(…)` de `src/enrutador.tsx` vuelto a `navegar(…)` (sin `void`) | `yarn lint`: «30:22  error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises». `useNavigate()` de `react-router` devuelve `void \| Promise<void>`: sin el `void` explícito, cada redirección del enrutador era una promesa flotante |
+| `@typescript-eslint/no-misused-promises` (#55) | un manejador `async` pasado directo a `onClick` (`onClick={alHacerClic}` con `alHacerClic` `async`) | `yarn lint`: «5:26  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises» |
+| `andamiaje.test.ts`, el SHA fijado de `kamayuk-lib` (#55) | la línea `ref: ${{ steps.sha-de-kamayuk-lib.outputs.sha }}` quitada del checkout del trabajo `verificar` en `.github/workflows/frontend.yml` | «expected '  verificar:\n    …' not to match /^\s*ref:\s*\$\{\{\s*steps\.sha-de-kamayuk-lib…/» — 1 de las 2 filas de `it.each` (una por trabajo) sale roja, la del trabajo tocado; la del trabajo `arnes`, que seguía con su `ref:`, sigue verde |
+| El paso que lee `KAMAYUK_LIB_SHA` VALIDA antes de escribir la salida (#55, revisión de la ronda 1 del PR #65) | El paso VIEJO (`echo "sha=$(cat ciudadano/KAMAYUK_LIB_SHA)" >> "$GITHUB_OUTPUT"`), corrido a mano con el archivo AUSENTE y con uno VACÍO | `cat: …No such file or directory` en el log, pero **`rc=0`** y `$GITHUB_OUTPUT` con `sha=` (vacío): `actions/checkout` con `ref: ''` clona la punta de `main` **sin decirlo**, el silencio exacto que el issue quería quitar. El centinela de `andamiaje.test.ts` (que solo mira que `KAMAYUK_LIB_SHA` exista en el repositorio) seguía verde: no se nota hasta que la librería ya está clonada |
+| El paso NUEVO, con la misma rotura (#55, ronda 1) | El paso validado (`sha="$(cat …)"` + `if ! [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then exit 1; fi`), corrido a mano con el archivo AUSENTE, VACÍO y MAL FORMADO (`esto-no-es-un-sha`) | Los tres casos: `rc=1` y «KAMAYUK_LIB_SHA no es un SHA de 40 caracteres hexadecimales: «»» (los dos primeros) o «…: «esto-no-es-un-sha»» (el tercero); `$GITHUB_OUTPUT` queda vacío — el paso para ANTES de clonar nada. Con el SHA de verdad, `rc=0` y `sha=2e078e4c65041037d10c4ed8e74c6f1ef087cfec` |
+| `andamiaje.test.ts`, la validación del SHA (#55, ronda 1) | El paso del trabajo `verificar` vuelto al `echo` VIEJO sin validar (el `arnes` se deja con la validación) | 2 de 34 pruebas en rojo, las dos del trabajo `verificar`: «el trabajo \`verificar\` VALIDA ese SHA…» no encuentra `if ! [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then` en el bloque, y la de «lee \`KAMAYUK_LIB_SHA\`…» tampoco encuentra `sha="$(cat ciudadano/KAMAYUK_LIB_SHA)"` (la línea vieja usa `echo "sha=$(cat …)"` directo, sin la asignación intermedia); las 2 del trabajo `arnes` siguen verdes |
+| `las-rutas-de-muestra-no-existen.test.ts` (#55, revisión de la ronda 1 del PR #65) | Un archivo real creado a mano en `src/__no_existe_de_verdad__/algo.ts` y otro en `src/datos/__no_existe_de_verdad__.ts` (las rutas que `eslint.config.js` exceptúa en `allowDefaultProject`, vía `rutasDeMuestra.mjs`) | Las 2 pruebas de existencia en rojo: «expected true to be false» en las dos, con el mensaje completo nombrando la ruta que «empezó a existir de verdad» y advirtiendo que un archivo real con ese nombre perdería el chequeo de tipos en silencio. Antes de esta guarda, `src/pantallas/*`, `src/datos/recibos.ts` y `src/datos/calentamiento.ts` eran nombres corrientes que un archivo real futuro podía ocupar sin que nada lo dijera; el nombre reservado `__no_existe_de_verdad__` hace la colisión casi imposible, y esta prueba es lo que la hace IMPOSIBLE sin aviso |

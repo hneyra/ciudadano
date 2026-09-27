@@ -20,6 +20,20 @@ name: Frontend
 # LO QUE EL FILTRO `paths` NO PUEDE VER, y hay que saberlo: un cambio en `kamayuk-lib` no dispara
 # ninguna corrida aqui. La CI se pondra roja en el siguiente PR que toque `frontend/**` por algo que
 # no cambio en este repositorio, y el `git log` de aqui no lo explicara.
+#
+# LA LIBRERIA SE CLONA EN UN SHA FIJO (issue 55), no en `main`: sin `ref`, una corrida en verde no
+# dice contra que commit de `kamayuk-lib` salio verde, y un cambio alla puede romper esta CI sin
+# tocar este repositorio. El SHA vive en `KAMAYUK_LIB_SHA`, en la raiz — el paso «El SHA fijado de
+# kamayuk-lib» lo lee de ahi (del checkout de ESTE repositorio, hecho un paso antes) y lo pasa como
+# `ref:` al checkout de la libreria. Subir de version es escribir el SHA nuevo en ese archivo; lo
+# vigila `verificaciones/andamiaje.test.ts`, que sale rojo si el workflow vuelve a clonar sin `ref`.
+#
+# ESE PASO VALIDA antes de escribir la salida (revision del PR #65, ronda 1): `cat` sobre un
+# archivo ausente o vacio no hace fallar la ASIGNACION —`sha="$(cat …)"` sale con `rc=0` igual, con
+# `sha` vacio, porque bash no propaga el fallo de un `$(...)` a menos que algo lo mire aparte—, y
+# un `ref:` vacio en el checkout de abajo clona la PUNTA de `main` SIN DECIRLO: el silencio exacto
+# que este issue queria quitar. La expresion regular exige cuarenta caracteres hexadecimales; sin
+# ellos, el paso falla AQUI, antes de clonar nada, con el valor recibido en el mensaje.
 
 on:
   push:
@@ -47,6 +61,20 @@ jobs:
         with:
           path: ciudadano
 
+      # El SHA fijado (issue 55): un archivo de UNA linea, leido del checkout de arriba, VALIDADO
+      # (ronda 1 del PR #65: sin esto un archivo ausente o vacio pasaba con `rc=0` y `ref:` vacio,
+      # que es clonar la punta de `main` sin decirlo) y puesto como salida del paso para que el
+      # checkout de abajo lo use en `ref:`.
+      - name: El SHA fijado de kamayuk-lib
+        id: sha-de-kamayuk-lib
+        run: |
+          sha="$(cat ciudadano/KAMAYUK_LIB_SHA)"
+          if ! [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "KAMAYUK_LIB_SHA no es un SHA de 40 caracteres hexadecimales: «$sha»" >&2
+            exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
       # El clon hermano del que cuelgan los tres `link:` de `frontend/package.json`.
       #
       # El repliegue `|| github.token` es el que llevan los workflows de los clones que ya clonan
@@ -56,6 +84,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: hneyra/kamayuk-lib
+          ref: ${{ steps.sha-de-kamayuk-lib.outputs.sha }}
           path: kamayuk-lib
           token: ${{ secrets.GH_CLONE_KEY || github.token }}
 
@@ -116,10 +145,24 @@ jobs:
         with:
           path: ciudadano
 
+      # El mismo SHA que `verificar`, validado igual y por el mismo motivo (issue 55, ronda 1 del
+      # PR #65): sin el, este trabajo mediria el arnes contra OTRA copia de `kamayuk-lib` que la
+      # que verifico lint y tipos —o contra la punta de `main`, en silencio, si el archivo faltara.
+      - name: El SHA fijado de kamayuk-lib
+        id: sha-de-kamayuk-lib
+        run: |
+          sha="$(cat ciudadano/KAMAYUK_LIB_SHA)"
+          if ! [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "KAMAYUK_LIB_SHA no es un SHA de 40 caracteres hexadecimales: «$sha»" >&2
+            exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
       - name: Las librerias comunes
         uses: actions/checkout@v4
         with:
           repository: hneyra/kamayuk-lib
+          ref: ${{ steps.sha-de-kamayuk-lib.outputs.sha }}
           path: kamayuk-lib
           token: ${{ secrets.GH_CLONE_KEY || github.token }}
 

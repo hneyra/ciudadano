@@ -40,6 +40,11 @@ verificaciones y como se demostro que cada una muerde— esta en [`CLAUDE.md`](C
 git clone https://github.com/hneyra/kamayuk-lib ../kamayuk-lib   # desde la raiz de este repositorio
 ```
 
+  En la CI, ese clon no sigue a `main`: `.github/workflows/frontend.yml` lo clona en el SHA que
+  guarda `KAMAYUK_LIB_SHA`, en la raiz de este repositorio. Subir de version es escribir el SHA
+  nuevo ahi; `frontend/verificaciones/andamiaje.test.ts` sale rojo si el workflow vuelve a clonar
+  sin `ref`.
+
 ## Comandos
 
 ```bash

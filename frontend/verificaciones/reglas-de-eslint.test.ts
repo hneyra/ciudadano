@@ -5,6 +5,7 @@ import { ESLint } from 'eslint';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { DONDE_SE_LLAMA_A_FETCH, PROHIBICIONES, REGLAS_EXIGIDAS } from '../eslint.prohibiciones.mjs';
+import { ARCHIVO_RESERVADO_EN_DATOS, DIRECTORIO_DE_MUESTRAS } from '../rutasDeMuestra.mjs';
 
 /**
  * Las reglas de `eslint.config.js` muerden. Portada de `rentas`.
@@ -60,19 +61,24 @@ const eslint = new ESLint({ cwd: RAIZ });
  */
 beforeAll(async () => {
   await eslint.lintText('export const listo = 1;\n', {
-    filePath: join(RAIZ, 'src/pantallas/calentamiento.ts'),
+    filePath: join(RAIZ, DIRECTORIO_DE_MUESTRAS, 'calentamiento.ts'),
   });
 }, 60_000);
 
 /**
  * Ruta sintetica: la muestra se juzga como si viviera en una pantalla de la aplicacion.
  *
+ * `DIRECTORIO_DE_MUESTRAS` (de `rutasDeMuestra.mjs`, y no escrito aqui) es el nombre RESERVADO que
+ * `allowDefaultProject` exceptua: un archivo real jamas se llama asi, asi que un archivo real
+ * futuro no puede caer aqui por accidente y perder su chequeo de tipos en silencio (revision del
+ * PR #65, ronda 1).
+ *
  * **Conserva la extension del archivo de la muestra**, y no es un detalle: una muestra con
  * JSX tiene que juzgarse como `.tsx`. Juzgada como `.ts`, el analizador de TypeScript no
  * admite JSX y el rojo habla de un error de sintaxis en vez de la regla que se venia a
  * comprobar — o peor, la prohibicion no llega a evaluarse y la muestra pasa en verde.
  */
-const enUnaPantalla = (nombre: string) => join(RAIZ, 'src/pantallas', nombre);
+const enUnaPantalla = (nombre: string) => join(RAIZ, DIRECTORIO_DE_MUESTRAS, nombre);
 
 /** El archivo de la muestra de esa clave, o `null` si no hay ninguno. */
 function archivoDeLaMuestra(clave: string): string | null {
@@ -168,7 +174,7 @@ describe('`fetch` esta exceptuado en `src/api/`, y SOLO ahi', () => {
     expect(DONDE_SE_LLAMA_A_FETCH).toEqual(['src/api/']);
   });
 
-  it.each(['src/pantallas/cualquiera.ts', 'src/datos/recibos.ts', 'src/marco/Barra.tsx'])(
+  it.each([`${DIRECTORIO_DE_MUESTRAS}/cualquiera.ts`, ARCHIVO_RESERVADO_EN_DATOS, 'src/marco/Barra.tsx'])(
     'un `fetch` en %s se senala',
     async (ruta) => {
       const mensajes = await mensajesDe(

@@ -188,6 +188,81 @@ describe('el frontend tiene su propia CI', () => {
 });
 
 /**
+ * **`kamayuk-lib` se clona en un SHA fijo, no en la punta de `main`** (issue 55).
+ *
+ * Sin `ref`, una corrida en verde no dice contra que commit de la libreria salio verde, y un
+ * cambio alla puede romper esta CI sin que nada cambie en este repositorio — el mismo problema, en
+ * espejo, que ya tiene el filtro `paths` (arriba). El SHA vive en `KAMAYUK_LIB_SHA`, en la raiz del
+ * repositorio: subir de version es escribir el SHA nuevo ahi, y lo dice `CLAUDE.md`.
+ *
+ * Los DOS trabajos clonan la libreria por su cuenta, asi que los dos tienen que leer el archivo y
+ * pasarlo como `ref:`; de ahi `it.each` sobre los dos bloques, y no solo sobre uno.
+ */
+describe('la libreria se clona en el SHA fijado, no en la punta de `main`', () => {
+  const ruta = join(REPOSITORIO, SITIO_DEL_WORKFLOW);
+  const workflow = (existsSync(ruta) ? leer(ruta) : '')
+    .split('\n')
+    .filter((linea) => !linea.trim().startsWith('#'))
+    .join('\n');
+
+  const rutaSha = join(REPOSITORIO, 'KAMAYUK_LIB_SHA');
+  const sha = existsSync(rutaSha) ? leer(rutaSha).trim() : '';
+
+  it('EL CENTINELA: `KAMAYUK_LIB_SHA` existe, en la raiz del repositorio, y es un SHA de 40 caracteres', () => {
+    expect(
+      sha,
+      'No hay `KAMAYUK_LIB_SHA` en la raiz del repositorio, o no es un SHA de 40 caracteres.',
+    ).toMatch(/^[0-9a-f]{40}$/);
+  });
+
+  const bloques: Record<string, string> = {
+    verificar: workflow.match(/^ {2}verificar:\n((?: {4,}.*\n?|\s*\n)*)/m)?.[1] ?? '',
+    arnes: workflow.match(/^ {2}arnes:\n((?: {4,}.*\n?|\s*\n)*)/m)?.[1] ?? '',
+  };
+
+  it.each(Object.entries(bloques))('el trabajo `%s` existe', (_nombre, trabajo) => {
+    expect(trabajo, 'No hay trabajo con ese nombre en el workflow del frontend.').not.toBe('');
+  });
+
+  it.each(Object.entries(bloques))(
+    'el trabajo `%s` lee `KAMAYUK_LIB_SHA` del checkout de este repositorio',
+    (_nombre, trabajo) => {
+      // La misma orden que escribe el workflow: leer el archivo YA CLONADO (el checkout de este
+      // repositorio va primero) y exponerlo como salida del paso, para que el checkout de la
+      // libreria —que viene despues— lo use en `ref:`.
+      expect(trabajo).toMatch(/^\s*sha="\$\(cat ciudadano\/KAMAYUK_LIB_SHA\)"\s*$/m);
+    },
+  );
+
+  it.each(Object.entries(bloques))(
+    'y el trabajo `%s` VALIDA ese SHA antes de exponerlo, en vez de dejarlo pasar vacio',
+    (_nombre, trabajo) => {
+      // Ronda 1 del PR #65: `cat` sobre un archivo ausente o vacio no hace fallar la asignacion
+      // —`sha="$(cat …)"` sale con `rc=0` igual, con `sha` vacio, porque bash no propaga el fallo
+      // de un `$(...)` a menos que algo lo mire aparte— y el paso de arriba escribia esa cadena
+      // vacia como salida igual: un `ref:` vacio en el checkout de la libreria clona la PUNTA de
+      // `main` sin decirlo, el silencio exacto que este issue queria quitar. Sin esta linea, esa
+      // rotura pasaba el centinela de arriba (que solo mira que el archivo `KAMAYUK_LIB_SHA`
+      // exista en el REPOSITORIO) y solo se notaba mas tarde, con la libreria ya clonada.
+      expect(trabajo).toMatch(/^\s*if\s*!\s*\[\[\s*"\$sha"\s*=~\s*\^\[0-9a-f\]\{40\}\$\s*\]\];\s*then\s*$/m);
+      expect(trabajo).toMatch(/^\s*exit 1\s*$/m);
+      expect(trabajo).toMatch(/^\s*echo "sha=\$sha" >> "\$GITHUB_OUTPUT"\s*$/m);
+    },
+  );
+
+  it.each(Object.entries(bloques))(
+    'y el trabajo `%s` clona `kamayuk-lib` en ESE SHA, con `ref:`',
+    (_nombre, trabajo) => {
+      // Esto es lo que se pone rojo si alguien vuelve a clonar sin `ref` — el defecto que el
+      // issue nombra. Medido quitando esta linea del workflow: «expected '  verificar:\n    …'
+      // not to match /^\s*ref:\s*\$\{\{\s*steps\.sha-de-kamayuk-lib…/» en los DOS trabajos, y con
+      // ella puesta en solo uno, en el otro.
+      expect(trabajo).toMatch(/^\s*ref:\s*\$\{\{\s*steps\.sha-de-kamayuk-lib\.outputs\.sha\s*\}\}\s*$/m);
+    },
+  );
+});
+
+/**
  * **El arnes de Playwright corre en la CI, en su propio trabajo** (issue 11).
  *
  * Un arnes que solo corre en la maquina de quien lo escribe se apaga el dia que alguien no lo corre, y
