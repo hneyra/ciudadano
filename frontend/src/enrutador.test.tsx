@@ -1,7 +1,7 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { limpiarElPortal, montarElPortal, plazosDelPortal } from './pruebas/portal.tsx';
+import { limpiarElPortal, montarElPortal, moverElNavegador, plazosDelPortal } from './pruebas/portal.tsx';
 
 /**
  * **Las rutas hash obedecen al recorrido**: lo que no es alcanzable redirige, con `replace`, al
@@ -86,14 +86,6 @@ describe('entrar por hash', () => {
 });
 
 describe('atras y adelante del navegador', () => {
-  /** Mueve el historial del navegador y deja que el `popstate` llegue y el enrutador responda. */
-  async function moverElHistorial(mover: () => void): Promise<void> {
-    await act(async () => {
-      mover();
-      await new Promise((listo) => setTimeout(listo, 50));
-    });
-  }
-
   /**
    * **Cambio del issue 61.** Hasta entonces este caso decia lo contrario: «adelante ya no lleva al que
    * dejo de ser alcanzable». Era el defecto: lo alcanzable se media por la posicion ACTUAL, asi que
@@ -110,12 +102,12 @@ describe('atras y adelante del navegador', () => {
     expect(within(franja).getByRole('button', { name: 'Mis datos' })).toHaveAttribute('aria-current', 'step');
 
     // Atras: `#/buscar` es el primero, se abre y el recorrido lo sigue.
-    await moverElHistorial(() => window.history.back());
+    await moverElNavegador(() => window.history.back());
     expect(window.location.hash).toBe('#/buscar');
     expect(within(franja).getByRole('button', { name: 'Buscar mi deuda' })).toHaveAttribute('aria-current', 'step');
 
     // Adelante: `#/identificar` se alcanzo, y se vuelve a el.
-    await moverElHistorial(() => window.history.forward());
+    await moverElNavegador(() => window.history.forward());
     expect(window.location.hash).toBe('#/identificar');
     expect(within(franja).getByRole('button', { name: 'Mis datos' })).toHaveAttribute('aria-current', 'step');
   });
@@ -142,8 +134,11 @@ describe('atras y adelante del navegador', () => {
     }
     expect(window.location.hash).toBe('#/pagar');
     fireEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: 'Mis datos' }));
-    // Y ahora si, que llegue todo lo atrasado.
-    await moverElHistorial(() => {});
+    // Y ahora si, que llegue todo lo atrasado. Aqui no se mueve el historial —no habra `popstate`—:
+    // lo atrasado es el dibujo de la transicion del enrutador, que no tiene una senal que esperar.
+    await act(async () => {
+      await new Promise((listo) => setTimeout(listo, 50));
+    });
 
     expect(window.location.hash).toBe('#/identificar');
     expect(within(screen.getByRole('navigation')).getByRole('button', { name: 'Mis datos' })).toHaveAttribute(
@@ -174,11 +169,20 @@ describe('atras y adelante del navegador', () => {
     fireEvent.click(correo.getByRole('button', { name: 'Continuar al pago' }));
     await waitFor(() => expect(window.location.hash).toBe('#/pagar'));
 
+    // Atras y adelante no escriben en el historial (issue 74): ni una entrada nueva ni una reemplazada.
+    // Un `replaceState` sobre la misma URL no se ve en la barra, pero cambia la entrada —su estado, la
+    // llave del enrutador— y es trabajo que nadie pidio.
+    const empujar = vi.spyOn(window.history, 'pushState');
+    const reemplazar = vi.spyOn(window.history, 'replaceState');
     const vistos: string[] = [];
     for (const mover of ['back', 'back', 'back', 'forward', 'forward', 'forward'] as const) {
-      await moverElHistorial(() => window.history[mover]());
+      await moverElNavegador(() => window.history[mover]());
       vistos.push(`${window.location.hash} ${String(actual())}`);
     }
+    const escrito = [...empujar.mock.calls, ...reemplazar.mock.calls].map(([, , url]) => String(url));
+    empujar.mockRestore();
+    reemplazar.mockRestore();
+    expect(escrito).toEqual([]);
     expect(vistos).toEqual([
       '#/identificar Mis datos',
       '#/deudas Elegir qué pago',
