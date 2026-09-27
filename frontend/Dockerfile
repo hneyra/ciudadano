@@ -88,6 +88,12 @@ RUN yarn build
 # despues del build, en `imagen-y-despliegue.test.ts`.
 RUN sh imagen/sin-mapas.sh dist
 
+# LAS MARCAS DE LOS DATOS DEL ARTBOARD, escritas AQUI porque esta etapa tiene Node (issue 58). Salen de
+# `src/datos/demostracion.ts` por `verificaciones/marcas-de-la-demostracion.ts`, las mismas que busca el
+# arnes, y la etapa `interfaz` —nginx, sin Node— las busca en lo que se sirve. Fuera del `dist/`: la
+# lista no se publica, llega alli por el montaje de la comprobacion.
+RUN node imagen/marcas-de-la-demostracion.mjs > marcas-de-la-demostracion.txt
+
 # ---------------------------------------------------------------------------
 FROM nginx:1.31.5-alpine AS interfaz
 
@@ -107,7 +113,7 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # las que se compara, y el propio guion, llegan MONTADOS de la etapa de construccion: existen mientras
 # corre este `RUN` y no se quedan en la imagen.
 RUN --mount=type=bind,from=construccion,source=/obra/ciudadano/frontend,target=/fuente \
-    sh /fuente/imagen/lo-servido-esta-limpio.sh /usr/share/nginx/html /fuente
+    sh /fuente/imagen/lo-servido-esta-limpio.sh /usr/share/nginx/html /fuente /fuente/marcas-de-la-demostracion.txt
 
 # Sin root (rentas#44). La base trae `User` vacio: sin esto la interfaz correria como root. Y poner
 # `USER` a secas no basta:

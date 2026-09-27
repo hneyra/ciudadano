@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { FuenteDelPortal } from '../datos/fuente.ts';
 import { fuenteDeDemostracion } from '../datos/fuenteDeDemostracion.ts';
@@ -14,9 +14,21 @@ import i18n, { IDIOMA_POR_OMISION, sumarLosTextosDeLaFuente } from './i18n.ts';
  * idioma** cuando llega, y solo entonces. Sin la suma seria un archivo que nadie lee, y un segundo
  * idioma dejaria los datos sin traducir.
  *
- * Cada archivo de pruebas tiene su propio modulo de i18next, asi que aqui nadie ha montado el portal
- * antes: lo que se lee al empezar es el locale que viaja siempre, y nada mas.
+ * Cada prueba empieza con el locale que viaja siempre y nada mas, y al acabar se deja como estaba:
+ * `sumarLosTextosDeLaFuente` escribe en el i18next global, y sin esta limpieza la segunda prueba
+ * dependeria de que la tercera no hubiera corrido antes (revision del issue 58).
  */
+
+let comoEstaba: Record<string, unknown> = {};
+
+beforeEach(() => {
+  comoEstaba = { ...(i18n.getResourceBundle(IDIOMA_POR_OMISION, 'translation') as Record<string, unknown>) };
+});
+
+afterEach(() => {
+  i18n.removeResourceBundle(IDIOMA_POR_OMISION, 'translation');
+  i18n.addResourceBundle(IDIOMA_POR_OMISION, 'translation', comoEstaba);
+});
 
 /** Un texto que solo dicen los datos: la direccion del predio principal. */
 const DE_LOS_DATOS = UNIDADES[0]?.titulo ?? '(sin unidades)';
@@ -36,6 +48,8 @@ describe('sumarLosTextosDeLaFuente', () => {
   });
 
   it('con la de demostracion, sus textos pasan a ser del idioma', () => {
+    expect(i18n.getResource(IDIOMA_POR_OMISION, 'translation', DE_LOS_DATOS)).toBeUndefined();
+
     sumarLosTextosDeLaFuente(fuenteDeDemostracion);
 
     expect(i18n.getResource(IDIOMA_POR_OMISION, 'translation', DE_LOS_DATOS)).toBe(DE_LOS_DATOS);

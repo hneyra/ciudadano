@@ -206,6 +206,20 @@ describe('lo que se sirve: sin mapas, y comprobado en la ULTIMA etapa', () => {
     expect(interfaz).toMatch(/lo-servido-esta-limpio\.sh \/usr\/share\/nginx\/html /);
   });
 
+  it('y busca los datos de la demostracion: la lista la escribe la etapa con Node, y se le pasa (issue 58)', () => {
+    // Sin el tercer argumento el guion no busca ninguna marca, y la imagen se construiria en verde con el
+    // nombre de la contribuyente del artboard dentro. La lista, fuera del `dist/`: no se publica.
+    const construccion = etapa('construccion');
+    const escribe = construccion.indexOf('RUN node imagen/marcas-de-la-demostracion.mjs > marcas-de-la-demostracion.txt');
+    expect(escribe, 'la etapa de construccion no escribe la lista de marcas').toBeGreaterThan(-1);
+    expect(escribe, 'la lista se escribe antes de tener lo que se va a construir').toBeGreaterThan(
+      construccion.indexOf('COPY . .'),
+    );
+    expect(etapa('interfaz')).toMatch(
+      /lo-servido-esta-limpio\.sh \/usr\/share\/nginx\/html \/fuente \/fuente\/marcas-de-la-demostracion\.txt\s*$/m,
+    );
+  });
+
   it('el guion llega por un montaje, y NO se queda en la imagen', () => {
     // Un `COPY` del guion lo dejaria dentro de lo que se publica; montado de la etapa de construccion
     // solo existe mientras corre ese `RUN`.

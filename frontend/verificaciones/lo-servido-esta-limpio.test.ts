@@ -10,6 +10,8 @@ import { fileURLToPath } from 'node:url';
 
 import { afterAll, describe, expect, it } from 'vitest';
 
+import { marcasDeLaDemostracion } from './marcas-de-la-demostracion.ts';
+
 /**
  * **El `dist/` de la imagen no lleva el artboard, ni las capturas, ni mapas, ni nada de `src/`** (issue 37).
  *
@@ -153,6 +155,61 @@ describe('cada forma de ensuciar lo servido sale roja, y dice cual', () => {
     const { rc, salida } = ensuciado(ensuciar);
     expect(salida).toContain(esperado);
     expect(rc).toBe(1);
+  });
+});
+
+describe('los datos de la demostracion, por sus marcas (issue 58)', () => {
+  const GENERADOR = join(FRONTEND, 'imagen', 'marcas-de-la-demostracion.mjs');
+
+  /** La lista como la escribe la etapa de construccion: el generador de verdad, con este Node. */
+  function listaDeMarcas(contenido?: string): string {
+    const dir = mkdtempSync(join(tmpdir(), 'ciudadano-marcas-'));
+    temporales.push(dir);
+    const ruta = join(dir, 'marcas.txt');
+    if (contenido === undefined) {
+      const r = spawnSync(process.execPath, [GENERADOR], { encoding: 'utf8', cwd: FRONTEND });
+      expect(r.status, r.stderr).toBe(0);
+      writeFileSync(ruta, r.stdout);
+    } else {
+      writeFileSync(ruta, contenido);
+    }
+    return ruta;
+  }
+
+  function comprobarConMarcas(servido: string, marcas: string) {
+    const r = spawnSync('sh', [GUION, servido, FRONTEND, marcas], { encoding: 'utf8' });
+    return { rc: r.status, salida: `${r.stdout}${r.stderr}` };
+  }
+
+  it('EL CENTINELA: el generador escribe las MISMAS marcas que busca el arnes', () => {
+    const escritas = readFileSync(listaDeMarcas(), 'utf8').split('\n').filter((linea) => linea !== '');
+    expect(escritas).toEqual(marcasDeLaDemostracion());
+    expect(escritas).toContain('Rufina Medina Medina');
+  });
+
+  it('lo limpio, con la lista, sigue limpio y lo dice', () => {
+    const { rc, salida } = comprobarConMarcas(servidoLimpio(), listaDeMarcas());
+    expect(salida).toContain('sin los datos de la demostracion');
+    expect(rc).toBe(0);
+  });
+
+  it('un nombre de la demostracion dentro de un .js sale rojo, y dice cual y donde', () => {
+    const raiz = servidoLimpio();
+    writeFileSync(join(raiz, 'portal', 'assets', 'barra-abc.js'), 'const quien = "Rufina Medina Medina";\n');
+    const { rc, salida } = comprobarConMarcas(raiz, listaDeMarcas());
+    expect(salida).toContain('contenido de src/datos/demostracion.ts («Rufina Medina Medina»): portal/assets/barra-abc.js');
+    expect(rc).toBe(1);
+  });
+
+  it('una lista vacia, o que no existe, no pasa en verde: buscaria nada', () => {
+    expect(comprobarConMarcas(servidoLimpio(), listaDeMarcas('')).rc).toBe(2);
+    expect(comprobarConMarcas(servidoLimpio(), join(tmpdir(), 'no-existe-marcas.txt')).rc).toBe(2);
+  });
+
+  it('una marca que ya no esta en `demostracion.ts` no pasa en verde: no puede fallar', () => {
+    const { rc, salida } = comprobarConMarcas(servidoLimpio(), listaDeMarcas('Nadie Se Llama Asi\n'));
+    expect(salida).toContain('ya no esta en src/datos/demostracion.ts');
+    expect(rc).toBe(2);
   });
 });
 

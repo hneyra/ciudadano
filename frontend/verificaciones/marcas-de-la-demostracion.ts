@@ -70,7 +70,34 @@ export function marcasDeLaDemostracion(): readonly string[] {
       ...(medio.campos ?? []).map((campo) => campo.ejemplo).filter(ejemploSeTraduce),
     ]),
   ];
-  return [...new Set(todas)].filter((marca) => marca.length >= MINIMO);
+  const enteras = todas.filter((marca) => marca.length >= MINIMO);
+  return [...new Set([...enteras, ...trozosDe(enteras, [CONTRIBUYENTE.nombre, USUARIO.nombre])])];
+}
+
+/**
+ * **Los trozos de una marca que tambien delatan**, derivados de ella (revision del issue 58).
+ *
+ * Con la marca entera sola, una copia PARCIAL pasaba en verde: el nombre sin «Suc.», la direccion sin
+ * «Casa habitación · », la ficha catastral o la placa sueltas. Asi que cada marca aporta tambien:
+ *
+ *   · sus partes, cortando por « · » y por « — », que es como el artboard junta tipo y direccion
+ *     («Casa habitación · Calle Santa Rosa 116») o manzana y barrio («Mz. B Lt. 7 — Bellavista»);
+ *   · el nombre de una persona sin su tratamiento delante («Suc. », «Sr. »…): «Rufina Medina Medina»;
+ *   · las fichas catastrales (`NNNNNN-NN-NNN-NNN`) que van dentro de una frase;
+ *   · la placa de un vehiculo, que es lo UNICO que entra por debajo de {@link MINIMO}: «T2G-418» tiene
+ *     siete caracteres y no hay nada en el portal que se le parezca por casualidad.
+ *
+ * Todas con el mismo {@link MINIMO} salvo la placa.
+ */
+function trozosDe(marcas: readonly string[], nombres: readonly string[]): readonly string[] {
+  const partes = marcas.flatMap((marca) => marca.split(/ · | — /).map((parte) => parte.trim()));
+  const sinTratamiento = nombres.map((nombre) => nombre.replace(/^\S+\.\s+/, ''));
+  const fichas = marcas.flatMap((marca) => marca.match(/\b\d{6}-\d{2}-\d{3}-\d{3}\b/g) ?? []);
+  const placas = marcas.flatMap((marca) => [...marca.matchAll(/\bplaca ([A-Z0-9]+-[A-Z0-9]+)\b/g)].map((p) => p[1] ?? ''));
+  return [
+    ...[...partes, ...sinTratamiento, ...fichas].filter((trozo) => trozo.length >= MINIMO),
+    ...placas.filter((placa) => placa !== ''),
+  ];
 }
 
 /** Los archivos de un paquete construido en los que se busca: todos menos los mapas. */

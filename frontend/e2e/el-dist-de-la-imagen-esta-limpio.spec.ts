@@ -1,5 +1,6 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, readdirSync, rmSync } from 'node:fs';
+import { existsSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -33,8 +34,11 @@ const FRONTEND = join(AQUI, '..');
 /** Donde se construye. No se versiona (`.gitignore`), no entra en la imagen (`.dockerignore`) y se borra al acabar. */
 const DE_LA_IMAGEN = join(FRONTEND, 'dist-de-la-imagen');
 
+/** La lista de marcas, escrita como la escribe la etapa de construccion (issue 58). Fuera del dist. */
+const MARCAS = join(tmpdir(), `ciudadano-marcas-${String(process.pid)}.txt`);
+
 const comprobar = () =>
-  spawnSync('sh', [join(FRONTEND, 'imagen', 'lo-servido-esta-limpio.sh'), DE_LA_IMAGEN, FRONTEND], {
+  spawnSync('sh', [join(FRONTEND, 'imagen', 'lo-servido-esta-limpio.sh'), DE_LA_IMAGEN, FRONTEND, MARCAS], {
     encoding: 'utf8',
   });
 
@@ -47,10 +51,16 @@ test.beforeAll(() => {
     stdio: 'pipe',
     env: { ...process.env, VITE_KAMAYUK_SIN_PLATAFORMA: 'false' },
   });
+  // Y la lista de marcas, con el mismo generador que el `Dockerfile` (issue 58).
+  writeFileSync(
+    MARCAS,
+    execFileSync(process.execPath, [join(FRONTEND, 'imagen', 'marcas-de-la-demostracion.mjs')], { cwd: FRONTEND, encoding: 'utf8' }),
+  );
 });
 
 test.afterAll(() => {
   rmSync(DE_LA_IMAGEN, { recursive: true, force: true });
+  rmSync(MARCAS, { force: true });
 });
 
 test('EL CENTINELA: recien construido, con sus mapas, el guion sale ROJO', () => {
@@ -68,6 +78,8 @@ test('y despues de sin-mapas.sh, como en la imagen, sale limpio', () => {
   const despues = comprobar();
   expect(despues.stderr, 'el dist que la imagen publicaria no esta limpio').toBe('');
   expect(despues.stdout).toContain('lo servido esta limpio');
+  // Con los datos de la demostracion buscados, como en la imagen (issue 58).
+  expect(despues.stdout).toContain('sin los datos de la demostracion');
   expect(despues.status).toBe(0);
 });
 
