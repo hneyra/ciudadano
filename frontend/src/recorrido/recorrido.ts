@@ -161,9 +161,27 @@ export function esSimulado(pago: PagoSellado): pago is PagoSimulado {
   return pago.comprobante === null;
 }
 
+/**
+ * **Los pasos cuyo progreso se guarda** (issue 61): los de la franja menos el comprobante, que lo abre
+ * el sello (`ultimo`) y no se guarda dos veces.
+ */
+export type PasoDelProgreso = Exclude<PasoNumerado, 'comprobante'>;
+
+/** `abierto`: se llego a el y se puede volver; `hecho`: ademas se completo. */
+export type EstadoDelPaso = 'abierto' | 'hecho';
+
+/** **El progreso**: que pasos se alcanzaron y cuales se completaron. Uno que no esta, no se alcanzo. */
+export type Alcanzado = Readonly<Partial<Record<PasoDelProgreso, EstadoDelPaso>>>;
+
 /** **Lo que DECIDE la persona**: lo unico que guarda el reductor montado (issue 50). */
 export interface DecisionesDelRecorrido {
   readonly paso: Paso;
+  /**
+   * **El progreso** (issue 61): hasta donde llego la persona por el recorrido, paso a paso. De aqui
+   * salen lo que se puede abrir (`pasoAlcanzable`) y lo que la franja da por hecho (`pasoHecho`). Ver
+   * «El recorrido es una maquina de estados» en la cabecera.
+   */
+  readonly alcanzado: Alcanzado;
   /**
    * **Lo que decide el modo** (issue 59): que pasos hay, por cual se empieza, si el pago es simulado…
    * Se fija al montar y no cambia: ver la cabecera. Las pantallas la leen con `useModo()`.
@@ -257,6 +275,7 @@ export function decisionesDe(estado: DecisionesDelRecorrido & Partial<DatosLeido
  */
 export const DECISIONES_INICIALES: DecisionesDelRecorrido = {
   paso: 'buscar',
+  alcanzado: { buscar: 'abierto' },
   politica: POLITICA_DE_LA_DEMOSTRACION,
   amnistia: true,
   tipoDeDocumento: 'Código de contribuyente',
@@ -313,14 +332,45 @@ export function estadoInicial({ en, autenticado, amnistia }: ComoEmpieza): Estad
     amnistia,
     marcadas: Object.fromEntries(leido.deudas.map((deuda) => [deuda.id, true])),
   };
-  return { ...base, paso: primerPaso(base) };
+  const paso = primerPaso(base);
+  return { ...base, paso, alcanzado: alcanzadoHasta(base, paso) };
 }
 
 export type AccionDelRecorrido =
-  /** Busqueda valida: se guarda que se busco y se pasa a elegir (artboard, 1002-1007). */
+  /**
+   * Busqueda valida: se guarda que se busco y se pasa a elegir (artboard, 1002-1007). Una busqueda
+   * nueva vuelve a empezar la eleccion (`alcanzado`).
+   */
   | { readonly tipo: 'buscar'; readonly tipoDeDocumento: TipoDeDocumento; readonly numero: string }
-  /** Ir a un paso. No comprueba que sea alcanzable: eso lo decide quien lo ofrece (`pasoAlcanzable`). */
+  /**
+   * **La navegacion libre** (issue 61): abrir un paso YA ALCANZADO, desde la franja o porque la URL lo
+   * nombra (atras, adelante, un enlace). Hacia un paso que no es alcanzable no hace nada. Es la unica
+   * accion que lleva un paso en su carga: las demas dicen lo que la persona hizo, y a donde lleva lo
+   * decide el reductor. Solo la despachan la franja y `rutas.ts`
+   * (`verificaciones/ninguna-pantalla-decide-el-paso.test.ts`).
+   */
   | { readonly tipo: 'irA'; readonly paso: Paso }
+  /**
+   * «Pagar todo» / «Pagar lo marcado» del paso 2 (artboard, 1173): a «Mis datos» sin sesion, a pagar
+   * con ella (`destinoAlPagar`). Sin nada marcado no lleva a ninguna parte; el aviso es de la pantalla.
+   */
+  | { readonly tipo: 'confirmarEleccion' }
+  /** «Cambiar lo que voy a pagar» del paso 4: a donde se elige (`dondeSeElige`). */
+  | { readonly tipo: 'volverAElegir' }
+  /** La marca de la barra y «No soy yo» (artboard, `irInicio`, 1175): a `inicio`. */
+  | { readonly tipo: 'irAlInicio' }
+  /**
+   * «Iniciar sesión» de la barra en demostracion, y «Crear mi cuenta» del comprobante: a «Mis datos»,
+   * que es donde se entra. Solo sin sesion y si el recorrido tiene ese paso: con plataforma se entra
+   * por la puerta del emisor, no por una pantalla.
+   */
+  | { readonly tipo: 'identificarse' }
+  /** «Pagar lo pendiente» del historial y «Pagar otra deuda» del comprobante: con sesion, a elegir. */
+  | { readonly tipo: 'pagarLoPendiente' }
+  /** «Mis pagos» del menu y «Ver mis pagos» del comprobante: al historial, que exige sesion. */
+  | { readonly tipo: 'verMisPagos' }
+  /** «Ver el comprobante» del pago reciente del historial: al comprobante, que exige un sello. */
+  | { readonly tipo: 'verElComprobante' }
   | { readonly tipo: 'alternar'; readonly id: string }
   /** «Marcar todo» / «Quitar todo» sobre la deuda viva (artboard, 1152-1157). */
   | { readonly tipo: 'marcarTodo' }
@@ -546,31 +596,60 @@ export function indiceDelPaso(estado: DecisionesDelRecorrido, paso: Paso): numbe
 }
 
 /**
+ * **El progreso de quien llego a `paso` por el camino** (issue 61): cada paso de la franja anterior a
+ * el, hecho; el, abierto. Es con lo que se abre el portal (en su primer paso) y lo que una prueba que
+ * empieza a mitad del recorrido da por recorrido (`src/pruebas/portal.tsx`).
+ *
+ * El comprobante no se guarda: lo abre el sello (`pasoAlcanzable`). Un paso que no es de la franja —el
+ * historial— no dice nada del camino: se da por alcanzado solo el primero.
+ */
+export function alcanzadoHasta(estado: DecisionesDelRecorrido, paso: Paso): Alcanzado {
+  const pasos = pasosNumerados(estado);
+  const donde = pasos.indexOf(paso as PasoNumerado);
+  if (donde < 0) return alcanzadoHasta(estado, primerPaso(estado));
+  const progreso: Partial<Record<PasoDelProgreso, EstadoDelPaso>> = {};
+  pasos.slice(0, donde + 1).forEach((cada, i) => {
+    if (cada !== 'comprobante') progreso[cada] = i < donde ? 'hecho' : 'abierto';
+  });
+  return progreso;
+}
+
+/**
  * Si se puede ir a `paso` desde donde esta el recorrido.
  *
  * · El historial exige sesion.
- * · **El comprobante, siempre que haya un pago sellado** (issue 9). Es la constancia que se conserva:
- *   volver a elegir qué pago y regresar a `#/comprobante` tiene que ensenar el MISMO recibo, y con la
- *   regla de la franja sola, desde `deudas` el comprobante seria un paso futuro y se redirigiria.
- * · **`entrar` solo si esta en la franja —con plataforma— y sin sesion** (issue 28). Es el paso que no se repite: quien ya
- *   entro no vuelve a entrar —para cambiar de cuenta se cierra la sesion, que es otra cosa y esta en
- *   la barra—, y ademas el emisor devuelve el navegador a `#/entrar`, asi que sin esta linea entrar
- *   con la cuenta acabaria en la misma pantalla de la que se salio.
  * · **Un paso que no esta en la franja de este recorrido, nunca**: `buscar` e `identificar` con
  *   plataforma, `entrar` sin ella. Es lo que hace que escribir `#/buscar` con plataforma no
  *   ensene un formulario que el backend ya no atiende (ADR-0020).
- * · Un paso numerado, solo si es el actual o uno anterior: lo mismo que la franja del artboard
- *   (`alcanzable = i <= iPaso`, linea 1068). Desde el historial ninguno lo es por esta via: alli se
- *   vuelve al recorrido con las acciones de su pantalla, no escribiendo la ruta.
+ * · **El comprobante, siempre que haya un pago sellado** (issue 9), y sin sello nunca (issue 61). Es la
+ *   constancia que se conserva: volver a elegir qué pago y regresar a `#/comprobante` tiene que
+ *   ensenar el MISMO recibo. Sin sello no hay recibo que ensenar, y hasta el issue 61 un comprobante
+ *   sin sello era alcanzable por su posicion y dejaba la pantalla en blanco.
+ * · **`entrar` solo sin sesion** (issue 28). Es el paso que no se repite: quien ya
+ *   entro no vuelve a entrar —para cambiar de cuenta se cierra la sesion, que es otra cosa y esta en
+ *   la barra—, y ademas el emisor devuelve el navegador a `#/entrar`, asi que sin esta linea entrar
+ *   con la cuenta acabaria en la misma pantalla de la que se salio.
+ * · **Los demas, si se alcanzaron** (`alcanzado`, issue 61), y el primero siempre —es a donde se
+ *   redirige lo que no es alcanzable—. Hasta el issue 61 era la regla de la franja del artboard
+ *   (`alcanzable = i <= iPaso`, linea 1068): lo alcanzable dependia de la posicion ACTUAL, asi que
+ *   volver atras dejaba fuera lo que se acababa de recorrer y el boton Adelante del navegador no
+ *   llevaba a ninguna parte; y desde el historial no se alcanzaba ninguno.
  */
 export function pasoAlcanzable(estado: EstadoDelRecorrido, paso: Paso): boolean {
   if (paso === 'historial') return estado.autenticado;
-  if (paso === 'entrar') return indiceDelPaso(estado, 'entrar') >= 0 && !estado.autenticado;
-  if (paso === 'comprobante' && estado.ultimo !== null) return true;
-  const donde = indiceDelPaso(estado, paso);
-  if (donde < 0) return false;
-  const actual = indiceDelPaso(estado, estado.paso);
-  return actual >= 0 && donde <= actual;
+  if (indiceDelPaso(estado, paso) < 0) return false;
+  if (paso === 'comprobante') return estado.ultimo !== null;
+  if (paso === 'entrar') return !estado.autenticado;
+  return paso === primerPaso(estado) || estado.alcanzado[paso] !== undefined;
+}
+
+/**
+ * **Si la franja da `paso` por hecho** (issue 61): se completo y no es el actual. Sale del progreso y
+ * no de la posicion: tras «Iniciar sesión» sin haber buscado, «Mis datos» es el paso 3 y ni «Buscar
+ * mi deuda» ni «Elegir qué pago» estan hechos. El comprobante no se «hace»: es el final.
+ */
+export function pasoHecho(estado: DecisionesDelRecorrido, paso: Paso): boolean {
+  return paso !== estado.paso && paso !== 'comprobante' && paso !== 'historial' && estado.alcanzado[paso] === 'hecho';
 }
 
 /** A donde se redirige un paso no alcanzable: el ultimo que si lo es. */
@@ -580,13 +659,78 @@ export function ultimoAlcanzable(estado: EstadoDelRecorrido): Paso {
 
 // ── El reductor ────────────────────────────────────────────────────────────────────────────────
 
+/**
+ * **Una transicion del recorrido**: deja `desde` hecho y lleva a `a`, que queda abierto si no lo
+ * estaba —lo hecho sigue hecho—. Solo los pasos de la franja de ESTE recorrido llevan progreso: con
+ * plataforma no hay «Mis datos» que completar, y el historial y el comprobante no se guardan.
+ */
+function avanzar(estado: EstadoDelRecorrido, desde: PasoDelProgreso | null, a: Paso): EstadoDelRecorrido {
+  let alcanzado = estado.alcanzado;
+  if (desde !== null && indiceDelPaso(estado, desde) >= 0 && alcanzado[desde] !== 'hecho') {
+    alcanzado = { ...alcanzado, [desde]: 'hecho' };
+  }
+  if (a !== 'comprobante' && a !== 'historial' && indiceDelPaso(estado, a) >= 0 && alcanzado[a] === undefined) {
+    alcanzado = { ...alcanzado, [a]: 'abierto' };
+  }
+  return { ...estado, paso: a, alcanzado };
+}
+
+/**
+ * **El progreso tras una busqueda**: buscar hecho y elegir abierto, y nada de lo que venia despues
+ * —otra busqueda es otra eleccion, y pagar lo de antes sin volver a elegir seria pagar a ciegas—. Con
+ * sesion se conserva «Mis datos»: la sesion es la identificacion, y no depende de lo que se busco.
+ */
+function progresoDeUnaBusqueda(estado: EstadoDelRecorrido): Alcanzado {
+  const misDatos = estado.alcanzado.identificar;
+  return {
+    buscar: 'hecho',
+    deudas: 'abierto',
+    ...(estado.autenticado && misDatos !== undefined ? { identificar: misDatos } : {}),
+  };
+}
+
 export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido): EstadoDelRecorrido {
   switch (accion.tipo) {
     case 'buscar':
-      return { ...estado, tipoDeDocumento: accion.tipoDeDocumento, numero: accion.numero, paso: 'deudas' };
+      if (indiceDelPaso(estado, 'buscar') < 0) return estado;
+      return {
+        ...estado,
+        tipoDeDocumento: accion.tipoDeDocumento,
+        numero: accion.numero,
+        paso: 'deudas',
+        alcanzado: progresoDeUnaBusqueda(estado),
+      };
 
     case 'irA':
-      return estado.paso === accion.paso ? estado : { ...estado, paso: accion.paso };
+      // La navegacion libre: solo a un paso ya alcanzado (issue 61). Hasta entonces el reductor
+      // aceptaba cualquiera, y quien despachaba decidia.
+      if (estado.paso === accion.paso || !pasoAlcanzable(estado, accion.paso)) return estado;
+      return { ...estado, paso: accion.paso };
+
+    case 'confirmarEleccion':
+      if (seleccion(estado).length === 0) return estado;
+      return avanzar(estado, 'deudas', destinoAlPagar(estado));
+
+    case 'volverAElegir':
+      return avanzar(estado, null, dondeSeElige(estado));
+
+    case 'irAlInicio': {
+      const a = inicio(estado);
+      return a === estado.paso ? estado : { ...estado, paso: a };
+    }
+
+    case 'identificarse':
+      if (estado.autenticado || indiceDelPaso(estado, 'identificar') < 0) return estado;
+      return avanzar(estado, null, 'identificar');
+
+    case 'pagarLoPendiente':
+      return estado.autenticado ? avanzar(estado, null, 'deudas') : estado;
+
+    case 'verMisPagos':
+      return estado.autenticado && estado.paso !== 'historial' ? { ...estado, paso: 'historial' } : estado;
+
+    case 'verElComprobante':
+      return estado.ultimo !== null && estado.paso !== 'comprobante' ? { ...estado, paso: 'comprobante' } : estado;
 
     case 'alternar':
       return {
@@ -607,15 +751,14 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
 
     case 'continuarConCorreo':
       return {
-        ...estado,
+        ...avanzar(estado, 'identificar', 'pagar'),
         correo: accion.correo,
         avisarVencimiento: accion.avisarVencimiento,
-        paso: 'pagar',
       };
 
     case 'entrar':
       // `destinoAlEntrar` sobre `estado`, que aun no tiene sesion: ver su comentario.
-      return { ...estado, autenticado: true, paso: destinoAlEntrar(estado) };
+      return { ...avanzar(estado, 'identificar', destinoAlEntrar(estado)), autenticado: true };
 
     case 'elegirMedio':
       return { ...estado, medio: accion.medio };
@@ -629,17 +772,26 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
       // Sin nada que pagar no se sella nada. El aviso «No hay nada que pagar.» es de la pantalla.
       if (pagado.length === 0) return estado;
       const sellado = { conceptos: pagado, contribuyente: estado.contribuyente, ...cuentaDe(pagado) };
+      // El paso 4 queda hecho; el comprobante lo abre el sello, que se pone aqui abajo.
+      const alcanzado = avanzar(estado, 'pagar', 'comprobante').alcanzado;
       if (estado.politica.cobro.simulado) {
         // **Un pago simulado NO da la deuda por pagada** (issue 28, revision): no hubo cobro, y
         // quitar el concepto de la deuda viva seria el mismo embuste que la frase «la deuda pagada
         // ya se descontó de su cuenta» — dicho con la lista en vez de con palabras. El aviso de los
         // pasos 4 y 5 promete que «su deuda no cambia»; esto es lo que lo hace verdad. Y se sella sin
         // medio, sin destino y sin numeros (`PagoSimulado`, issue 59).
-        return { ...estado, paso: 'comprobante', recienPagado: true, ultimo: { ...sellado, comprobante: null } };
+        return {
+          ...estado,
+          paso: 'comprobante',
+          alcanzado,
+          recienPagado: true,
+          ultimo: { ...sellado, comprobante: null },
+        };
       }
       return {
         ...estado,
         paso: 'comprobante',
+        alcanzado,
         recienPagado: true,
         pagadas: {
           ...estado.pagadas,
@@ -671,6 +823,8 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
         ...estado,
         autenticado: false,
         paso: primerPaso({ ...estado, autenticado: false }),
+        // Y el progreso: sin nadie que haya elegido, nada esta hecho (issue 61).
+        alcanzado: alcanzadoHasta({ ...estado, autenticado: false }, primerPaso({ ...estado, autenticado: false })),
         ultimo: null,
         recienPagado: false,
         enfocarUnidades: false,
@@ -683,10 +837,11 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
       };
 
     case 'consultarOtra':
-      return { ...estado, paso: primerPaso(estado), numero: '' };
+      // Otra consulta empieza la eleccion de cero; el comprobante sellado sigue a mano (lo abre el sello).
+      return { ...estado, paso: primerPaso(estado), numero: '', alcanzado: alcanzadoHasta(estado, primerPaso(estado)) };
 
     case 'verPrediosYVehiculos':
-      return { ...estado, paso: 'historial', enfocarUnidades: true };
+      return estado.autenticado ? { ...estado, paso: 'historial', enfocarUnidades: true } : estado;
 
     case 'unidadesEnfocadas':
       return estado.enfocarUnidades ? { ...estado, enfocarUnidades: false } : estado;

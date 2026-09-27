@@ -60,6 +60,8 @@ describe('el estado inicial', () => {
   it('es el de las lineas 927-940 del artboard', () => {
     expect(ESTADO_INICIAL).toStrictEqual({
       paso: 'buscar',
+      // No es del artboard: el progreso (issue 61). Se abre en el primer paso, sin nada hecho.
+      alcanzado: { buscar: 'abierto' },
       // No son del artboard: los pone el issue 28, y en demostracion valen lo de siempre —los datos
       // del artboard, y ninguna plataforma detras—. Desde el issue 59, la POLITICA de la demostracion
       // en vez del booleano `conPlataforma: false`: es lo que el estado lleva del modo.
@@ -176,7 +178,7 @@ describe('confirmarPago', () => {
   });
 
   it('sin nada seleccionado no sella nada ni cambia de paso', () => {
-    const vacio = tras([{ tipo: 'marcarTodo' }, { tipo: 'irA', paso: 'pagar' }]);
+    const vacio = tras([{ tipo: 'marcarTodo' }, { tipo: 'confirmarEleccion' }]);
     expect(seleccion(vacio)).toEqual([]);
     expect(recorrido(vacio, { tipo: 'confirmarPago' })).toBe(vacio);
   });
@@ -184,7 +186,7 @@ describe('confirmarPago', () => {
   it('sin busqueda no sella nada, aunque `marcadas` traiga lo marcado por omision (issue 8)', () => {
     // «Iniciar sesión» → «Mis datos» → «Solo con mi correo» llega a pagar sin haber buscado.
     const sinBuscar = tras([
-      { tipo: 'irA', paso: 'identificar' },
+      { tipo: 'identificarse' },
       { tipo: 'continuarConCorreo', correo: 'ana@example.com', avisarVencimiento: true },
     ]);
     expect(sinBuscar.paso).toBe('pagar');
@@ -197,13 +199,13 @@ describe('confirmarPago', () => {
   it('CON SESION y sin buscar, `hayQuePagar` mira la seleccion viva y `confirmarPago` sella (nota del revisor, #10)', () => {
     // «Iniciar sesión» → entrar sin buscar → el historial → «Pagar lo pendiente» → dejar solo el predial 2026.
     const conSesion = tras([
-      { tipo: 'irA', paso: 'identificar' },
+      { tipo: 'identificarse' },
       { tipo: 'entrar' },
-      { tipo: 'irA', paso: 'deudas' },
+      { tipo: 'pagarLoPendiente' },
       { tipo: 'alternar', id: 'arb26' },
       { tipo: 'alternar', id: 'pred24' },
       { tipo: 'alternar', id: 'veh24' },
-      { tipo: 'irA', paso: 'pagar' },
+      { tipo: 'confirmarEleccion' },
     ]);
     expect([conSesion.numero, conSesion.autenticado]).toEqual(['', true]);
     expect(hayQuePagar(conSesion)).toBe(true);
@@ -326,7 +328,7 @@ describe('a donde lleva cada cosa', () => {
   });
 
   it('`entrar` con una busqueda y algo seleccionado lleva a pagar, con sesion', () => {
-    const conDeuda = tras([{ tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' }, { tipo: 'irA', paso: 'identificar' }]);
+    const conDeuda = tras([{ tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' }, { tipo: 'confirmarEleccion' }]);
     expect(hayQuePagar(conDeuda)).toBe(true);
     expect(destinoAlEntrar(conDeuda)).toBe('pagar');
     const dentro = recorrido(conDeuda, { tipo: 'entrar' });
@@ -335,7 +337,7 @@ describe('a donde lleva cada cosa', () => {
 
   it('`entrar` sin nada que pagar lleva al historial, y no a un «Pagar» vacio (nota del revisor, #7)', () => {
     // Sin buscar: «Iniciar sesión» desde la barra, con lo marcado por omision pero sin busqueda.
-    const sinBuscar = recorrido(ESTADO_INICIAL, { tipo: 'irA', paso: 'identificar' });
+    const sinBuscar = recorrido(ESTADO_INICIAL, { tipo: 'identificarse' });
     expect(hayQuePagar(sinBuscar)).toBe(false);
     expect(destinoAlEntrar(sinBuscar)).toBe('historial');
     expect(recorrido(sinBuscar, { tipo: 'entrar' })).toMatchObject({ autenticado: true, paso: 'historial' });
@@ -344,7 +346,7 @@ describe('a donde lleva cada cosa', () => {
     const nadaMarcado = tras([
       { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' },
       { tipo: 'marcarTodo' },
-      { tipo: 'irA', paso: 'identificar' },
+      { tipo: 'identificarse' },
     ]);
     expect(hayQuePagar(nadaMarcado)).toBe(false);
     expect(recorrido(nadaMarcado, { tipo: 'entrar' }).paso).toBe('historial');
@@ -354,7 +356,8 @@ describe('a donde lleva cada cosa', () => {
       { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' },
       { tipo: 'continuarConCorreo', correo: 'ana@example.com', avisarVencimiento: true },
       { tipo: 'confirmarPago' },
-      { tipo: 'irA', paso: 'identificar' },
+      // «Crear mi cuenta» del comprobante, sin sesion.
+      { tipo: 'identificarse' },
     ]);
     expect(seleccion(todoPagado)).toEqual([]);
     expect(recorrido(todoPagado, { tipo: 'entrar' }).paso).toBe('historial');
@@ -366,7 +369,7 @@ describe('a donde lleva cada cosa', () => {
   });
 
   it('`cerrarSesion` deja `autenticado=false` y `paso=\'buscar\'`', () => {
-    const conSesion = tras([{ tipo: 'entrar' }, { tipo: 'irA', paso: 'historial' }]);
+    const conSesion = tras([{ tipo: 'entrar' }]);
     expect(conSesion.autenticado).toBe(true);
     const cerrada = recorrido(conSesion, { tipo: 'cerrarSesion' });
     expect(cerrada.autenticado).toBe(false);
@@ -419,7 +422,7 @@ describe('a donde lleva cada cosa', () => {
   });
 
   it('«Mis predios y vehículos» lleva al historial pidiendo enfocar las unidades, una vez (issue 10)', () => {
-    const conSesion = tras([{ tipo: 'entrar' }, { tipo: 'irA', paso: 'pagar' }]);
+    const conSesion = tras([{ tipo: 'entrar' }, { tipo: 'pagarLoPendiente' }]);
     const aLasUnidades = recorrido(conSesion, { tipo: 'verPrediosYVehiculos' });
     expect([aLasUnidades.paso, aLasUnidades.enfocarUnidades]).toEqual(['historial', true]);
 
@@ -439,11 +442,26 @@ describe('a donde lleva cada cosa', () => {
 });
 
 describe('`pasoAlcanzable`', () => {
-  it('solo permite los pasos numerados hasta el actual, inclusive', () => {
-    for (const [i, actual] of PASOS_DE_LA_DEMOSTRACION.entries()) {
-      const estado = recorrido(ESTADO_INICIAL, { tipo: 'irA', paso: actual });
+  /**
+   * **Cambio del issue 61.** Hasta entonces se llegaba a cada paso con `irA` —que no preguntaba nada—
+   * y lo alcanzable era «hasta el actual» por POSICION. Ahora se llega por el camino, con las acciones
+   * con nombre, y lo alcanzable sale de lo recorrido (`alcanzado`); por el camino el resultado es el
+   * mismo. Lo que cambia —volver atras no deja fuera lo recorrido— lo mide `recorrido.progreso.test.ts`.
+   */
+  it('recorrido por el camino, abre cada paso y los anteriores', () => {
+    const porElCamino = [
+      ESTADO_INICIAL,
+      ...[
+        { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' },
+        { tipo: 'confirmarEleccion' },
+        { tipo: 'continuarConCorreo', correo: 'ana@example.com', avisarVencimiento: true },
+        { tipo: 'confirmarPago' },
+      ].map((_, i, acciones) => tras(acciones.slice(0, i + 1) as AccionDelRecorrido[])),
+    ];
+    for (const [i, estado] of porElCamino.entries()) {
+      expect(estado.paso).toBe(PASOS_DE_LA_DEMOSTRACION[i]);
       const alcanzables = PASOS_DE_LA_DEMOSTRACION.filter((paso) => pasoAlcanzable(estado, paso));
-      expect(alcanzables, `desde «${actual}»`).toEqual(PASOS_DE_LA_DEMOSTRACION.slice(0, i + 1));
+      expect(alcanzables, `desde «${estado.paso}»`).toEqual(PASOS_DE_LA_DEMOSTRACION.slice(0, i + 1));
     }
   });
 
@@ -473,10 +491,21 @@ describe('`pasoAlcanzable`', () => {
     expect(pasoAlcanzable(sinSello, 'comprobante')).toBe(false);
   });
 
-  it('el historial exige sesion, y desde el ninguna ruta numerada es alcanzable', () => {
-    const enElHistorial = tras([{ tipo: 'entrar' }, { tipo: 'irA', paso: 'historial' }]);
+  /**
+   * **Cambio del issue 61.** Hasta entonces: «desde el historial ninguna ruta numerada es alcanzable».
+   * Era la regla de la posicion —el historial no esta en la franja, asi que no habia «anteriores»— y
+   * dejaba muerto el boton Atras: desde «Mis pagos», volver a «Mis datos», de donde se venia, se
+   * redirigia al historial. Ahora se alcanza lo recorrido antes de ir: el primero siempre, y «Mis
+   * datos», que es donde se entro. Lo que no se recorrio —elegir, pagar— sigue sin serlo.
+   */
+  it('el historial exige sesion, y desde el se alcanza lo recorrido antes de ir, y nada mas', () => {
+    const enElHistorial = tras([{ tipo: 'identificarse' }, { tipo: 'entrar' }]);
+    expect(enElHistorial.paso).toBe('historial');
     expect(pasoAlcanzable(enElHistorial, 'historial')).toBe(true);
-    expect(PASOS_DE_LA_DEMOSTRACION.filter((paso) => pasoAlcanzable(enElHistorial, paso))).toEqual([]);
+    expect(PASOS_DE_LA_DEMOSTRACION.filter((paso) => pasoAlcanzable(enElHistorial, paso))).toEqual([
+      'buscar',
+      'identificar',
+    ]);
     expect(ultimoAlcanzable(enElHistorial)).toBe('historial');
   });
 });

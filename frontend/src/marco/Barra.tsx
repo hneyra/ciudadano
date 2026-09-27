@@ -16,7 +16,7 @@ import { claimsDelCiudadano, haySesion } from '../api/claims.ts';
 import { entrar, salir } from '../arranque.ts';
 import { useModo } from '../modo/useModo.ts';
 import { useRecorrido } from '../recorrido/ProveedorDelRecorrido.tsx';
-import { type EstadoDelRecorrido, inicio, laDemostracion } from '../recorrido/recorrido.ts';
+import { type EstadoDelRecorrido, laDemostracion } from '../recorrido/recorrido.ts';
 
 /**
  * **La barra del portal**: la marca y la sesion (`diseno/Ciudadano.dc.html`, lineas 59-101 y 1046-1061).
@@ -165,7 +165,7 @@ export function Barra() {
    */
   const iniciarSesion = () => {
     if (!delEmisor) {
-      despachar({ tipo: 'irA', paso: 'identificar' });
+      despachar({ tipo: 'identificarse' });
       return;
     }
     void entrar().then((falla) => {
@@ -192,7 +192,7 @@ export function Barra() {
     <header data-noprint="1" className="relative z-[79] flex flex-wrap items-stretch bg-azul text-sobre-azul">
       <button
         type="button"
-        onClick={() => despachar({ tipo: 'irA', paso: inicio(estado) })}
+        onClick={() => despachar({ tipo: 'irAlInicio' })}
         className={cn(
           'flex min-w-0 flex-auto cursor-pointer items-center gap-3 border-0 bg-transparent px-[18px] py-[10px] text-left text-sobre-azul',
           CONTORNO_DE_FOCO_EN_LA_BARRA,
@@ -256,14 +256,14 @@ export function Barra() {
                 <p className="mt-[2px] mb-0 text-[12.5px] text-tinta-3">{quien.correo}</p>
               )}
             </div>
-            <OpcionDelMenu className="px-4 py-3 text-[14.5px]" onSelect={() => despachar({ tipo: 'irA', paso: 'historial' })}>
+            <OpcionDelMenu className="px-4 py-3 text-[14.5px]" onSelect={() => despachar({ tipo: 'verMisPagos' })}>
               {t('Mis pagos')}
             </OpcionDelMenu>
             <OpcionDelMenu
               className="px-4 py-3 text-[14.5px]"
               onSelect={() => {
                 elFocoVaALasUnidades.current = true;
-                despachar({ tipo: 'irA', paso: 'historial' });
+                despachar({ tipo: 'verMisPagos' });
               }}
             >
               {t('Mis predios y vehículos')}

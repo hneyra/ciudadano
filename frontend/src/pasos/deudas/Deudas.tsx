@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useModo } from '../../modo/useModo.ts';
 import { botonConContorno } from '../../piezas/variantes.tsx';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
-import { inicio, laDemostracion, vivasDelArtboard } from '../../recorrido/recorrido.ts';
+import { laDemostracion, vivasDelArtboard } from '../../recorrido/recorrido.ts';
 import { ConceptoDelArtboard } from './ConceptoDelArtboard.tsx';
 import { ElTotal } from './ElTotal.tsx';
 import { LaConsulta } from './LaConsulta.tsx';
@@ -88,7 +88,7 @@ function DeudasDeLaDemostracion() {
         <Boton
           type="button"
           className="min-h-[40px] flex-[0_0_auto] px-4 py-0 text-[14px]"
-          onClick={() => despachar({ tipo: 'irA', paso: inicio(estado) })}
+          onClick={() => despachar({ tipo: 'irAlInicio' })}
         >
           {t('No soy yo')}
         </Boton>

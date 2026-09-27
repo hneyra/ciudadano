@@ -65,7 +65,6 @@ describe('la barra de pago', () => {
       amnistia: 'Con la amnistía paga S/ 3,149.92: se descuentan S/ 413.32 de interés',
       vacio: false,
       rotulo: 'Pagar todo',
-      destino: 'identificar',
     });
   });
 
@@ -75,7 +74,6 @@ describe('la barra de pago', () => {
       detalle: 'No ha marcado ningún concepto',
       vacio: true,
       rotulo: 'Pagar lo marcado',
-      destino: null,
     });
     expect(estaTodoMarcado(nada)).toBe(false);
   });
@@ -87,7 +85,7 @@ describe('la barra de pago', () => {
 
   it('con plataforma, marcado por omision y SIN amnistia aunque haya interes (issue 49), y a pagar', () => {
     const barra = laBarraDePago(CON_DEUDA, t);
-    expect(barra).toMatchObject({ detalle: 'Va a pagar los 2 conceptos', total: '3685.20', vacio: false, destino: 'pagar' });
+    expect(barra).toMatchObject({ detalle: 'Va a pagar los 2 conceptos', total: '3685.20', vacio: false });
     expect(barra.amnistia).toBeNull();
     expect(estaTodoMarcado(CON_DEUDA)).toBe(true);
   });

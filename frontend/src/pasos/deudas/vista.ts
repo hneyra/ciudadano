@@ -8,7 +8,6 @@ import type { Contribuyente, Deuda, DeudaDelServidor, SituacionDelServidor } fro
 import {
   type EstadoDelRecorrido,
   cuenta,
-  destinoAlPagar,
   resumen,
   seleccion,
   vivas,
@@ -82,8 +81,6 @@ export interface LaBarraDePago {
   readonly vacio: boolean;
   /** «Pagar todo» o «Pagar lo marcado». */
   readonly rotulo: string;
-  /** A donde lleva pagar; `null` sin nada marcado, y entonces se avisa en vez de ir. */
-  readonly destino: 'identificar' | 'pagar' | null;
 }
 
 /**
@@ -123,7 +120,6 @@ export function laBarraDePago(estado: EstadoDelRecorrido, t: TFunction): LaBarra
         : null,
     vacio,
     rotulo: todo ? t('Pagar todo') : t('Pagar lo marcado'),
-    destino: vacio ? null : destinoAlPagar(estado),
   };
 }
 

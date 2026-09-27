@@ -87,8 +87,11 @@ export interface ElResumen {
   readonly total: Importe;
   /** A donde se envia el comprobante, o que no se envia ninguno. */
   readonly aviso: string;
-  /** El boton de abajo: cambiar lo elegido, o ir a elegirlo si no hay nada. */
-  readonly volver: { readonly rotulo: string; readonly a: 'buscar' | 'deudas' };
+  /**
+   * El rotulo del boton de abajo: cambiar lo elegido, o ir a elegirlo si no hay nada. A donde lleva lo
+   * decide el reductor (`volverAElegir`, issue 61); el rotulo nombra ese mismo sitio (`dondeSeElige`).
+   */
+  readonly volver: string;
 }
 
 /**
@@ -140,6 +143,6 @@ export function elResumen(estado: EstadoDelRecorrido, t: TFunction): ElResumen {
     aviso: estado.politica.cobro.simulado
       ? t('Aquí no se envía ningún comprobante: el portal todavía no cobra en línea.')
       : t('El comprobante se enviará a {{destino}}.', { destino }),
-    volver: { rotulo, a: elegir },
+    volver: rotulo,
   };
 }

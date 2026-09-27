@@ -62,6 +62,20 @@ describe('entrar por hash', () => {
     );
   });
 
+  /**
+   * **La pantalla en blanco** (issue 61). El recorrido en el comprobante SIN pago sellado: el paso es
+   * el de la URL, asi que hasta el issue 61 nadie redirigia —el efecto de la ruta solo actuaba cuando
+   * cambiaba la URL, y `pasoAlcanzable` daba el comprobante por alcanzable por su posicion—, y
+   * `Comprobante` sin sello no dibuja nada: `main` vacio. Con las acciones de hoy no se llega aqui
+   * (solo `confirmarPago` pasa al comprobante, y siempre sella); es el estado que lo reproduce.
+   */
+  it('un paso que no es alcanzable aunque sea el del recorrido redirige, y no deja la pantalla en blanco', async () => {
+    montarElPortal({ hash: '#/comprobante', estado: { paso: 'comprobante' } });
+
+    await waitFor(() => expect(window.location.hash).toBe('#/buscar'));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Consulte y pague sus tributos' })).toBeInTheDocument();
+  });
+
   it('con sesion, el historial se abre y la franja no esta', async () => {
     montarElPortal({ hash: '#/historial', estado: { paso: 'buscar', autenticado: true } });
 
@@ -80,7 +94,14 @@ describe('atras y adelante del navegador', () => {
     });
   }
 
-  it('atras vuelve a un paso ya hecho, y adelante ya no lleva al que dejo de ser alcanzable', async () => {
+  /**
+   * **Cambio del issue 61.** Hasta entonces este caso decia lo contrario: «adelante ya no lleva al que
+   * dejo de ser alcanzable». Era el defecto: lo alcanzable se media por la posicion ACTUAL, asi que
+   * volver atras a `#/buscar` dejaba `#/identificar` fuera, el enrutador lo reemplazaba y el boton
+   * Adelante del navegador quedaba muerto. «Mis datos» se abrio con «Iniciar sesión»: es un paso
+   * alcanzado, y adelante vuelve a el. Lo que NO se da por hecho es lo que nadie hizo (la franja).
+   */
+  it('atras vuelve a un paso ya hecho, y adelante vuelve al que se alcanzo', async () => {
     montarElPortal({ hash: '#/buscar' });
 
     fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
@@ -88,14 +109,51 @@ describe('atras y adelante del navegador', () => {
     const franja = screen.getByRole('navigation');
     expect(within(franja).getByRole('button', { name: 'Mis datos' })).toHaveAttribute('aria-current', 'step');
 
-    // Atras: `#/buscar` es anterior, se abre y el recorrido lo sigue.
+    // Atras: `#/buscar` es el primero, se abre y el recorrido lo sigue.
     await moverElHistorial(() => window.history.back());
     expect(window.location.hash).toBe('#/buscar');
     expect(within(franja).getByRole('button', { name: 'Buscar mi deuda' })).toHaveAttribute('aria-current', 'step');
 
-    // Adelante: `#/identificar` ya no es alcanzable desde buscar, y se vuelve a buscar.
+    // Adelante: `#/identificar` se alcanzo, y se vuelve a el.
     await moverElHistorial(() => window.history.forward());
-    expect(window.location.hash).toBe('#/buscar');
-    expect(screen.queryByRole('heading', { name: '¿A dónde le enviamos el comprobante?' })).toBeNull();
+    expect(window.location.hash).toBe('#/identificar');
+    expect(within(franja).getByRole('button', { name: 'Mis datos' })).toHaveAttribute('aria-current', 'step');
+  });
+
+  it('recorrido hasta pagar, atras y adelante pasan por cada paso alcanzado, y el recorrido los sigue', async () => {
+    montarElPortal({ hash: '#/buscar' });
+    const principal = () => screen.getByRole('main');
+    const franja = () => screen.getByRole('navigation');
+    const actual = () =>
+      within(franja())
+        .getAllByRole('button')
+        .find((b) => b.getAttribute('aria-current') === 'step')
+        ?.getAttribute('aria-label');
+
+    fireEvent.change(within(principal()).getByRole('textbox', { name: 'Código de contribuyente' }), {
+      target: { value: '00000025673' },
+    });
+    fireEvent.click(within(principal()).getByRole('button', { name: 'Buscar mi deuda' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/deudas'));
+    fireEvent.click(await within(principal()).findByRole('button', { name: 'Pagar todo' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/identificar'));
+    const correo = within(await within(principal()).findByRole('region', { name: 'Solo con mi correo' }));
+    fireEvent.change(correo.getByRole('textbox', { name: 'Correo electrónico' }), { target: { value: 'maria@example.com' } });
+    fireEvent.click(correo.getByRole('button', { name: 'Continuar al pago' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/pagar'));
+
+    const vistos: string[] = [];
+    for (const mover of ['back', 'back', 'back', 'forward', 'forward', 'forward'] as const) {
+      await moverElHistorial(() => window.history[mover]());
+      vistos.push(`${window.location.hash} ${String(actual())}`);
+    }
+    expect(vistos).toEqual([
+      '#/identificar Mis datos',
+      '#/deudas Elegir qué pago',
+      '#/buscar Buscar mi deuda',
+      '#/deudas Elegir qué pago',
+      '#/identificar Mis datos',
+      '#/pagar Pagar',
+    ]);
   });
 });

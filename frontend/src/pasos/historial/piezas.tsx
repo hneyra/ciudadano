@@ -86,7 +86,7 @@ export function PieParaPagar() {
       <Boton
         type="button"
         variante="primario"
-        onClick={() => despachar({ tipo: 'irA', paso: 'deudas' })}
+        onClick={() => despachar({ tipo: 'pagarLoPendiente' })}
         className="min-h-[46px] px-6 py-0 text-[15.5px]"
       >
         {t('Pagar lo pendiente')}

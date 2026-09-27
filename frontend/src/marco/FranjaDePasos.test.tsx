@@ -14,6 +14,16 @@ afterEach(limpiarElPortal);
 
 const franja = () => screen.getByRole('navigation');
 
+/**
+ * Los pasos que la franja pinta como HECHOS: su disco lleva el verde de lo hecho (`bg-ok-fondo`). Es
+ * lo que ve quien mira la franja; el nombre accesible del paso no cambia.
+ */
+const pasosHechos = (): string[] =>
+  within(franja())
+    .getAllByRole('button')
+    .filter((boton) => boton.querySelector('[aria-hidden="true"]')?.classList.contains('bg-ok-fondo') === true)
+    .map((boton) => boton.getAttribute('aria-label') ?? '');
+
 // Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
 plazosDelPortal();
 
@@ -55,6 +65,31 @@ describe('la franja de pasos', () => {
     expect(await screen.findByText('Complete primero los pasos anteriores.')).toBeInTheDocument();
     expect(window.location.hash).toBe('#/deudas');
     expect(within(franja()).getByRole('button', { name: 'Elegir qué pago' })).toHaveAttribute('aria-current', 'step');
+  });
+
+  /**
+   * **Issue 61, primer criterio.** «Iniciar sesión» desde `#/buscar` abre «Mis datos» sin que nadie
+   * haya buscado ni elegido nada. Hasta el issue 61 la franja marcaba como hechos los pasos anteriores
+   * por su POSICION (`i < actual`): «Buscar mi deuda» y «Elegir qué pago» salian con el disco verde,
+   * y «Elegir qué pago» se podia abrir. Ahora lo hecho sale del progreso (`alcanzado`).
+   */
+  it('tras «Iniciar sesión» sin haber elegido nada, no marca como hechos los pasos que nadie hizo', async () => {
+    montarElPortal({ hash: '#/buscar' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/identificar'));
+
+    expect(pasosHechos()).toEqual([]);
+    fireEvent.click(within(franja()).getByRole('button', { name: 'Elegir qué pago' }));
+    expect(await screen.findByText('Complete primero los pasos anteriores.')).toBeInTheDocument();
+    expect(window.location.hash).toBe('#/identificar');
+  });
+
+  it('y recorrido por el camino, marca hechos justo los que se dejaron atras', async () => {
+    montarElPortal({ hash: '#/pagar', estado: { paso: 'pagar' } });
+    await waitFor(() => expect(window.location.hash).toBe('#/pagar'));
+
+    expect(pasosHechos()).toEqual(['Buscar mi deuda', 'Elegir qué pago', 'Mis datos']);
   });
 
   it('no aparece en el historial', async () => {

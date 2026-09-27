@@ -2,7 +2,7 @@ import { avisar, cn } from '@kamayuk/ui';
 import { useTranslation } from 'react-i18next';
 
 import { useRecorrido } from '../recorrido/ProveedorDelRecorrido.tsx';
-import { type PasoNumerado, indiceDelPaso, pasoAlcanzable, pasosNumerados } from '../recorrido/recorrido.ts';
+import { type PasoNumerado, indiceDelPaso, pasoAlcanzable, pasoHecho, pasosNumerados } from '../recorrido/recorrido.ts';
 
 /**
  * **La franja de pasos** (`diseno/Ciudadano.dc.html`, lineas 103-116, 1018-1022 y 1064-1078).
@@ -50,7 +50,7 @@ export function FranjaDePasos() {
       <div className="mx-auto flex max-w-[1020px] flex-wrap items-stretch px-[18px]">
         {pasosNumerados(estado).map((paso, i) => {
           const esActual = i === actual;
-          const hecho = i < actual;
+          const hecho = pasoHecho(estado, paso);
           const alcanzable = pasoAlcanzable(estado, paso);
           return (
             <button

@@ -83,7 +83,7 @@ describe('el resumen', () => {
     ]);
     expect(resumen.total).toBe('3149.92');
     expect(resumen.aviso).toBe('El comprobante se enviará a su correo.');
-    expect(resumen.volver).toEqual({ rotulo: 'Cambiar lo que voy a pagar', a: 'deudas' });
+    expect(resumen.volver).toBe('Cambiar lo que voy a pagar');
   });
 
   it('con plataforma: la fila del reajuste, el interes cobrado, sin cuotas y sin correo', () => {
@@ -104,7 +104,7 @@ describe('el resumen', () => {
   it('sin nada que pagar: ni filas, y a buscar la deuda', () => {
     const resumen = elResumen(AL_ABRIR, t);
     expect([resumen.conceptos, resumen.filas]).toEqual([[], []]);
-    expect(resumen.volver).toEqual({ rotulo: 'Buscar mi deuda', a: 'buscar' });
+    expect(resumen.volver).toBe('Buscar mi deuda');
   });
 });
 

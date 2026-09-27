@@ -14,7 +14,7 @@ import { type Enrutador, crearEnrutador } from '../enrutador.tsx';
 import i18n, { ABRE, CIERRA, IDIOMA_POR_OMISION, sumarLosTextosDeLaFuente } from '../i18n/i18n.ts';
 import { precargarLasPantallas } from '../pasos/pantallas.tsx';
 import { comoEmpiezaCon } from '../recorrido/ProveedorDelRecorrido.tsx';
-import { type DecisionesDePartida, estadoInicial } from '../recorrido/recorrido.ts';
+import { type DecisionesDePartida, alcanzadoHasta, estadoInicial } from '../recorrido/recorrido.ts';
 
 /**
  * **Montar el portal entero en una prueba**, entrando por un hash como entraria el navegador.
@@ -236,6 +236,11 @@ export function montarElPortal({ hash = '#/buscar', estado = {}, fuente = fuente
   // con la fuente de la plataforma, una prueba que no dijera nada arrancaria en el recorrido de la
   // demostracion y estaria midiendo el otro portal.
   const base = estadoInicial(comoEmpiezaCon(fuente));
+  // Una prueba que empieza a mitad del recorrido (`paso: 'pagar'`) sin decir su progreso lo da por
+  // RECORRIDO hasta ahi, por el camino (issue 61): es lo que queria decir antes, cuando lo alcanzable
+  // era «hasta el actual». Una prueba que necesite otro progreso lo escribe en `estado.alcanzado`.
+  const partida = { ...base, ...estado };
+  const alcanzado = estado.alcanzado ?? alcanzadoHasta(partida, partida.paso);
   // Como `montaje.tsx` (issue 58).
   sumarLosTextosDeLaFuente(fuente);
   const enrutador = crearEnrutador();
@@ -246,7 +251,7 @@ export function montarElPortal({ hash = '#/buscar', estado = {}, fuente = fuente
   const utilidades = render(
     <QueryClientProvider client={consultas}>
       <FuenteActiva value={fuente}>
-        <Aplicacion enrutador={enrutador} inicial={{ ...base, ...estado }} />
+        <Aplicacion enrutador={enrutador} inicial={{ ...partida, alcanzado }} />
       </FuenteActiva>
     </QueryClientProvider>,
   );
