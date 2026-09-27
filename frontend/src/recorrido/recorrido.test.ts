@@ -56,10 +56,21 @@ const tras = (acciones: readonly AccionDelRecorrido[], desde: EstadoDelRecorrido
 
 const ids = (lista: readonly { id: string }[]) => lista.map((d) => d.id);
 
+/**
+ * De elegir a pagar sin cuenta: confirmar la eleccion y dar el correo. Desde la revision del PR #72
+ * cada transicion se acepta solo desde su paso, asi que pagar exige haber pasado por aqui.
+ */
+const A_PAGAR: readonly AccionDelRecorrido[] = [
+  { tipo: 'confirmarEleccion' },
+  { tipo: 'continuarConCorreo', correo: 'ana@example.com', avisarVencimiento: false },
+];
+
 describe('el estado inicial', () => {
   it('es el de las lineas 927-940 del artboard', () => {
     expect(ESTADO_INICIAL).toStrictEqual({
       paso: 'buscar',
+      // No es del artboard: el progreso (issue 61). Se abre en el primer paso, sin nada hecho.
+      alcanzado: { buscar: 'abierto' },
       // No son del artboard: los pone el issue 28, y en demostracion valen lo de siempre —los datos
       // del artboard, y ninguna plataforma detras—. Desde el issue 59, la POLITICA de la demostracion
       // en vez del booleano `conPlataforma: false`: es lo que el estado lleva del modo.
@@ -126,6 +137,7 @@ describe('confirmarPago', () => {
   const pagado = tras([
     { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' },
     { tipo: 'alternar', id: 'arb26' },
+    { tipo: 'confirmarEleccion' },
     { tipo: 'continuarConCorreo', correo: 'ana@example.com', avisarVencimiento: false },
     { tipo: 'elegirMedio', medio: 'yape' },
     { tipo: 'confirmarPago' },
@@ -139,7 +151,7 @@ describe('confirmarPago', () => {
   it('y lo ya pagado no se vuelve a pagar aunque siga marcado', () => {
     // Tras el primer pago `pred26` sigue marcada en `marcadas`; marcar el arbitrio y pagar de nuevo
     // tiene que sellar SOLO el arbitrio.
-    const segundo = tras([{ tipo: 'alternar', id: 'arb26' }, { tipo: 'confirmarPago' }], pagado);
+    const segundo = tras([{ tipo: 'alternar', id: 'arb26' }, { tipo: 'irA', paso: 'pagar' }, { tipo: 'confirmarPago' }], pagado);
     expect(segundo.marcadas.pred26).toBe(true);
     expect(ids(segundo.ultimo?.conceptos ?? [])).toEqual(['arb26']);
     expect(segundo.ultimo?.conAmnistia).toBe('291.60');
@@ -170,13 +182,18 @@ describe('confirmarPago', () => {
   });
 
   it('con sesion, el destino es el correo de la cuenta', () => {
-    const conSesion = tras([{ tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '1' }, { tipo: 'entrar' }, { tipo: 'confirmarPago' }]);
+    const conSesion = tras([
+      { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '1' },
+      { tipo: 'confirmarEleccion' },
+      { tipo: 'entrar' },
+      { tipo: 'confirmarPago' },
+    ]);
     expect((conSesion.ultimo as PagoRegistrado | null)?.destino).toBe(USUARIO.correo);
     expect(conSesion.ultimo?.conAmnistia).toBe('3149.92');
   });
 
   it('sin nada seleccionado no sella nada ni cambia de paso', () => {
-    const vacio = tras([{ tipo: 'marcarTodo' }, { tipo: 'irA', paso: 'pagar' }]);
+    const vacio = tras([{ tipo: 'marcarTodo' }, { tipo: 'confirmarEleccion' }]);
     expect(seleccion(vacio)).toEqual([]);
     expect(recorrido(vacio, { tipo: 'confirmarPago' })).toBe(vacio);
   });
@@ -184,7 +201,7 @@ describe('confirmarPago', () => {
   it('sin busqueda no sella nada, aunque `marcadas` traiga lo marcado por omision (issue 8)', () => {
     // «Iniciar sesión» → «Mis datos» → «Solo con mi correo» llega a pagar sin haber buscado.
     const sinBuscar = tras([
-      { tipo: 'irA', paso: 'identificar' },
+      { tipo: 'identificarse' },
       { tipo: 'continuarConCorreo', correo: 'ana@example.com', avisarVencimiento: true },
     ]);
     expect(sinBuscar.paso).toBe('pagar');
@@ -197,13 +214,13 @@ describe('confirmarPago', () => {
   it('CON SESION y sin buscar, `hayQuePagar` mira la seleccion viva y `confirmarPago` sella (nota del revisor, #10)', () => {
     // «Iniciar sesión» → entrar sin buscar → el historial → «Pagar lo pendiente» → dejar solo el predial 2026.
     const conSesion = tras([
-      { tipo: 'irA', paso: 'identificar' },
+      { tipo: 'identificarse' },
       { tipo: 'entrar' },
-      { tipo: 'irA', paso: 'deudas' },
+      { tipo: 'pagarLoPendiente' },
       { tipo: 'alternar', id: 'arb26' },
       { tipo: 'alternar', id: 'pred24' },
       { tipo: 'alternar', id: 'veh24' },
-      { tipo: 'irA', paso: 'pagar' },
+      { tipo: 'confirmarEleccion' },
     ]);
     expect([conSesion.numero, conSesion.autenticado]).toEqual(['', true]);
     expect(hayQuePagar(conSesion)).toBe(true);
@@ -236,7 +253,7 @@ describe('confirmarPago', () => {
 
 describe('el sello no se mueve', () => {
   it('cambiar `marcadas` despues de pagar NO cambia `ultimo`', () => {
-    const pagado = tras([{ tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '1' }, { tipo: 'confirmarPago' }]);
+    const pagado = tras([{ tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '1' }, ...A_PAGAR, { tipo: 'confirmarPago' }]);
     const sello = pagado.ultimo;
     expect(ids(sello?.conceptos ?? [])).toEqual(['pred26', 'arb26', 'pred24', 'veh24']);
 
@@ -261,7 +278,7 @@ describe('el sello no se mueve', () => {
       total: '3563.24',
       conAmnistia: '3149.92',
       medio: 'tarjeta',
-      destino: null,
+      destino: 'ana@example.com',
       comprobante: COMPROBANTE,
     });
   });
@@ -273,6 +290,7 @@ describe('`vivas` es la base de todo lo demas', () => {
     { tipo: 'alternar', id: 'arb26' },
     { tipo: 'alternar', id: 'pred24' },
     { tipo: 'alternar', id: 'veh24' },
+    ...A_PAGAR,
     { tipo: 'confirmarPago' },
   ]);
 
@@ -306,7 +324,7 @@ describe('`vivas` es la base de todo lo demas', () => {
 
   it('y los pendientes del historial son lo vivo', () => {
     expect(pendientes(conUnPago)).toEqual(vivas(conUnPago));
-    const todoPagado = tras([{ tipo: 'marcarTodo' }, { tipo: 'confirmarPago' }], conUnPago);
+    const todoPagado = tras([{ tipo: 'marcarTodo' }, { tipo: 'irA', paso: 'pagar' }, { tipo: 'confirmarPago' }], conUnPago);
     expect(pendientes(todoPagado)).toEqual([]);
     expect(resumen(todoPagado).conceptos).toBe(0);
   });
@@ -314,7 +332,7 @@ describe('`vivas` es la base de todo lo demas', () => {
   it('`cuentaPendiente`: 310.04 + 2067.04 + 892.44 = 3269.52 con el predial 2026 pagado; 0.00 sin deuda viva (issue 10)', () => {
     expect(cuentaPendiente(conUnPago).total).toBe('3269.52');
     expect(cuentaPendiente(ESTADO_INICIAL).total).toBe('3563.24');
-    const todoPagado = tras([{ tipo: 'marcarTodo' }, { tipo: 'confirmarPago' }], conUnPago);
+    const todoPagado = tras([{ tipo: 'marcarTodo' }, { tipo: 'irA', paso: 'pagar' }, { tipo: 'confirmarPago' }], conUnPago);
     expect(cuentaPendiente(todoPagado).total).toBe('0.00');
   });
 });
@@ -322,11 +340,11 @@ describe('`vivas` es la base de todo lo demas', () => {
 describe('a donde lleva cada cosa', () => {
   it('`destinoAlPagar` da `identificar` sin sesion y `pagar` con sesion', () => {
     expect(destinoAlPagar(ESTADO_INICIAL)).toBe('identificar');
-    expect(destinoAlPagar(recorrido(ESTADO_INICIAL, { tipo: 'entrar' }))).toBe('pagar');
+    expect(destinoAlPagar({ ...ESTADO_INICIAL, autenticado: true })).toBe('pagar');
   });
 
   it('`entrar` con una busqueda y algo seleccionado lleva a pagar, con sesion', () => {
-    const conDeuda = tras([{ tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' }, { tipo: 'irA', paso: 'identificar' }]);
+    const conDeuda = tras([{ tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' }, { tipo: 'confirmarEleccion' }]);
     expect(hayQuePagar(conDeuda)).toBe(true);
     expect(destinoAlEntrar(conDeuda)).toBe('pagar');
     const dentro = recorrido(conDeuda, { tipo: 'entrar' });
@@ -335,7 +353,7 @@ describe('a donde lleva cada cosa', () => {
 
   it('`entrar` sin nada que pagar lleva al historial, y no a un «Pagar» vacio (nota del revisor, #7)', () => {
     // Sin buscar: «Iniciar sesión» desde la barra, con lo marcado por omision pero sin busqueda.
-    const sinBuscar = recorrido(ESTADO_INICIAL, { tipo: 'irA', paso: 'identificar' });
+    const sinBuscar = recorrido(ESTADO_INICIAL, { tipo: 'identificarse' });
     expect(hayQuePagar(sinBuscar)).toBe(false);
     expect(destinoAlEntrar(sinBuscar)).toBe('historial');
     expect(recorrido(sinBuscar, { tipo: 'entrar' })).toMatchObject({ autenticado: true, paso: 'historial' });
@@ -344,7 +362,7 @@ describe('a donde lleva cada cosa', () => {
     const nadaMarcado = tras([
       { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' },
       { tipo: 'marcarTodo' },
-      { tipo: 'irA', paso: 'identificar' },
+      { tipo: 'identificarse' },
     ]);
     expect(hayQuePagar(nadaMarcado)).toBe(false);
     expect(recorrido(nadaMarcado, { tipo: 'entrar' }).paso).toBe('historial');
@@ -352,9 +370,10 @@ describe('a donde lleva cada cosa', () => {
     // …o todo lo marcado ya pagado, aunque siga marcado.
     const todoPagado = tras([
       { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' },
-      { tipo: 'continuarConCorreo', correo: 'ana@example.com', avisarVencimiento: true },
+      ...A_PAGAR,
       { tipo: 'confirmarPago' },
-      { tipo: 'irA', paso: 'identificar' },
+      // «Crear mi cuenta» del comprobante, sin sesion.
+      { tipo: 'identificarse' },
     ]);
     expect(seleccion(todoPagado)).toEqual([]);
     expect(recorrido(todoPagado, { tipo: 'entrar' }).paso).toBe('historial');
@@ -362,11 +381,11 @@ describe('a donde lleva cada cosa', () => {
 
   it('`inicio` da el historial con sesion y buscar sin ella', () => {
     expect(inicio(ESTADO_INICIAL)).toBe('buscar');
-    expect(inicio(recorrido(ESTADO_INICIAL, { tipo: 'entrar' }))).toBe('historial');
+    expect(inicio({ ...ESTADO_INICIAL, autenticado: true })).toBe('historial');
   });
 
   it('`cerrarSesion` deja `autenticado=false` y `paso=\'buscar\'`', () => {
-    const conSesion = tras([{ tipo: 'entrar' }, { tipo: 'irA', paso: 'historial' }]);
+    const conSesion = tras([{ tipo: 'identificarse' }, { tipo: 'entrar' }]);
     expect(conSesion.autenticado).toBe(true);
     const cerrada = recorrido(conSesion, { tipo: 'cerrarSesion' });
     expect(cerrada.autenticado).toBe(false);
@@ -376,6 +395,7 @@ describe('a donde lleva cada cosa', () => {
   it('`cerrarSesion` olvida el comprobante de la visita: sin `ultimo` ni `recienPagado`, y no alcanzable (issue 9)', () => {
     const pagadoConSesion = tras([
       { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '1' },
+      { tipo: 'confirmarEleccion' },
       { tipo: 'entrar' },
       { tipo: 'confirmarPago' },
     ]);
@@ -398,10 +418,13 @@ describe('a donde lleva cada cosa', () => {
     const tecleado = tras([
       { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' },
       { tipo: 'alternar', id: 'veh24' },
+      { tipo: 'confirmarEleccion' },
       { tipo: 'continuarConCorreo', correo: 'maria@example.com', avisarVencimiento: true },
       { tipo: 'fijarValor', clave: 'tNum', valor: '4111 1111 1111 1111' },
       { tipo: 'fijarValor', clave: 'tCvv', valor: '123' },
       { tipo: 'abrirDetalle', id: 'pred24' },
+      // De vuelta a «Mis datos» por la franja, y entrar con la cuenta.
+      { tipo: 'irA', paso: 'identificar' },
       { tipo: 'entrar' },
     ]);
     expect(tecleado.abierta).toBe('pred24');
@@ -419,7 +442,7 @@ describe('a donde lleva cada cosa', () => {
   });
 
   it('«Mis predios y vehículos» lleva al historial pidiendo enfocar las unidades, una vez (issue 10)', () => {
-    const conSesion = tras([{ tipo: 'entrar' }, { tipo: 'irA', paso: 'pagar' }]);
+    const conSesion = tras([{ tipo: 'identificarse' }, { tipo: 'entrar' }, { tipo: 'pagarLoPendiente' }]);
     const aLasUnidades = recorrido(conSesion, { tipo: 'verPrediosYVehiculos' });
     expect([aLasUnidades.paso, aLasUnidades.enfocarUnidades]).toEqual(['historial', true]);
 
@@ -439,11 +462,26 @@ describe('a donde lleva cada cosa', () => {
 });
 
 describe('`pasoAlcanzable`', () => {
-  it('solo permite los pasos numerados hasta el actual, inclusive', () => {
-    for (const [i, actual] of PASOS_DE_LA_DEMOSTRACION.entries()) {
-      const estado = recorrido(ESTADO_INICIAL, { tipo: 'irA', paso: actual });
+  /**
+   * **Cambio del issue 61.** Hasta entonces se llegaba a cada paso con `irA` —que no preguntaba nada—
+   * y lo alcanzable era «hasta el actual» por POSICION. Ahora se llega por el camino, con las acciones
+   * con nombre, y lo alcanzable sale de lo recorrido (`alcanzado`); por el camino el resultado es el
+   * mismo. Lo que cambia —volver atras no deja fuera lo recorrido— lo mide `recorrido.progreso.test.ts`.
+   */
+  it('recorrido por el camino, abre cada paso y los anteriores', () => {
+    const porElCamino = [
+      ESTADO_INICIAL,
+      ...[
+        { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' },
+        { tipo: 'confirmarEleccion' },
+        { tipo: 'continuarConCorreo', correo: 'ana@example.com', avisarVencimiento: true },
+        { tipo: 'confirmarPago' },
+      ].map((_, i, acciones) => tras(acciones.slice(0, i + 1) as AccionDelRecorrido[])),
+    ];
+    for (const [i, estado] of porElCamino.entries()) {
+      expect(estado.paso).toBe(PASOS_DE_LA_DEMOSTRACION[i]);
       const alcanzables = PASOS_DE_LA_DEMOSTRACION.filter((paso) => pasoAlcanzable(estado, paso));
-      expect(alcanzables, `desde «${actual}»`).toEqual(PASOS_DE_LA_DEMOSTRACION.slice(0, i + 1));
+      expect(alcanzables, `desde «${estado.paso}»`).toEqual(PASOS_DE_LA_DEMOSTRACION.slice(0, i + 1));
     }
   });
 
@@ -462,21 +500,34 @@ describe('`pasoAlcanzable`', () => {
       { tipo: 'alternar', id: 'arb26' },
       { tipo: 'alternar', id: 'pred24' },
       { tipo: 'alternar', id: 'veh24' },
+      ...A_PAGAR,
       { tipo: 'confirmarPago' },
       { tipo: 'irA', paso: 'deudas' },
     ]);
     expect(pasoAlcanzable(sellado, 'comprobante')).toBe(true);
-    expect(pasoAlcanzable(sellado, 'identificar')).toBe(false);
+    // «Mis datos» se recorrio para pagar (revision del PR #72: el pago ya no se confirma desde elegir).
+    expect(pasoAlcanzable(sellado, 'identificar')).toBe(true);
     expect(pasoAlcanzable(recorrido(sellado, { tipo: 'consultarOtra' }), 'comprobante')).toBe(true);
 
     const sinSello = tras([{ tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '1' }]);
     expect(pasoAlcanzable(sinSello, 'comprobante')).toBe(false);
   });
 
-  it('el historial exige sesion, y desde el ninguna ruta numerada es alcanzable', () => {
-    const enElHistorial = tras([{ tipo: 'entrar' }, { tipo: 'irA', paso: 'historial' }]);
+  /**
+   * **Cambio del issue 61.** Hasta entonces: «desde el historial ninguna ruta numerada es alcanzable».
+   * Era la regla de la posicion —el historial no esta en la franja, asi que no habia «anteriores»— y
+   * dejaba muerto el boton Atras: desde «Mis pagos», volver a «Mis datos», de donde se venia, se
+   * redirigia al historial. Ahora se alcanza lo recorrido antes de ir: el primero siempre, y «Mis
+   * datos», que es donde se entro. Lo que no se recorrio —elegir, pagar— sigue sin serlo.
+   */
+  it('el historial exige sesion, y desde el se alcanza lo recorrido antes de ir, y nada mas', () => {
+    const enElHistorial = tras([{ tipo: 'identificarse' }, { tipo: 'entrar' }]);
+    expect(enElHistorial.paso).toBe('historial');
     expect(pasoAlcanzable(enElHistorial, 'historial')).toBe(true);
-    expect(PASOS_DE_LA_DEMOSTRACION.filter((paso) => pasoAlcanzable(enElHistorial, paso))).toEqual([]);
+    expect(PASOS_DE_LA_DEMOSTRACION.filter((paso) => pasoAlcanzable(enElHistorial, paso))).toEqual([
+      'buscar',
+      'identificar',
+    ]);
     expect(ultimoAlcanzable(enElHistorial)).toBe('historial');
   });
 });
@@ -505,7 +556,7 @@ describe('las acciones sueltas', () => {
   });
 
   it('`continuarConCorreo` guarda el correo y la casilla y lleva a pagar', () => {
-    const conCorreo = recorrido(ESTADO_INICIAL, {
+    const conCorreo = recorrido(recorrido(ESTADO_INICIAL, { tipo: 'identificarse' }), {
       tipo: 'continuarConCorreo',
       correo: 'ana@example.com',
       avisarVencimiento: false,
@@ -528,6 +579,7 @@ describe('los conceptos del pago (issues 9 y 50)', () => {
       { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '1' },
       { tipo: 'alternar', id: 'pred26' },
       { tipo: 'alternar', id: 'pred24' },
+      ...A_PAGAR,
       { tipo: 'confirmarPago' },
     ]);
     const sello = pagado.ultimo;

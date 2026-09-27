@@ -21,6 +21,7 @@ beforeAll(async () => {
 /** Buscado, con correo, y pagados los cuatro con tarjeta: el pago registrado de la demostracion. */
 const REGISTRADO = [
   { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' },
+  { tipo: 'confirmarEleccion' },
   { tipo: 'continuarConCorreo', correo: 'maria@example.com', avisarVencimiento: false },
   { tipo: 'confirmarPago' },
 ] as const satisfies readonly Parameters<typeof recorrido>[1][];
@@ -54,6 +55,7 @@ const SIMULADO: EstadoDelRecorrido = recorrido(
     ...estadoInicial({ en: CON_PLATAFORMA, autenticado: true, amnistia: false }),
     deudas: [PREDIAL],
     contribuyente: { nombre: 'Rufina Medina Medina', codigo: null, documento: 'DNI 03593174' },
+    paso: 'pagar',
   },
   { tipo: 'confirmarPago' },
 );

@@ -100,10 +100,10 @@ export function Resumen() {
         <Boton
           type="button"
           variante="fantasma"
-          onClick={() => despachar({ tipo: 'irA', paso: resumen.volver.a })}
+          onClick={() => despachar({ tipo: 'volverAElegir' })}
           className="mt-[10px] min-h-0 p-0 text-[13.5px] underline hover:bg-transparent print:hidden"
         >
-          {resumen.volver.rotulo}
+          {resumen.volver}
         </Boton>
       </div>
     </section>

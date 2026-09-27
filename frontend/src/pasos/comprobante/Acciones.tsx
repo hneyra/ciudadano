@@ -54,7 +54,7 @@ export function Acciones({ pago }: { readonly pago: PagoSellado }) {
           <Boton
             type="button"
             variante="primario"
-            onClick={() => despachar({ tipo: 'irA', paso: 'historial' })}
+            onClick={() => despachar({ tipo: 'verMisPagos' })}
             className={cn(BOTON_DE_ACCION, 'px-[22px]')}
           >
             {t('Ver mis pagos')}
@@ -62,7 +62,7 @@ export function Acciones({ pago }: { readonly pago: PagoSellado }) {
           {vivas(estado).length > 0 ? (
             <Boton
               type="button"
-              onClick={() => despachar({ tipo: 'irA', paso: 'deudas' })}
+              onClick={() => despachar({ tipo: 'pagarLoPendiente' })}
               className={cn(BOTON_DE_ACCION, 'px-[22px]')}
             >
               {t('Pagar otra deuda')}
@@ -108,7 +108,7 @@ export function Invitacion({ pago }: { readonly pago: PagoSellado }) {
       </p>
       <Boton
         type="button"
-        onClick={() => despachar({ tipo: 'irA', paso: 'identificar' })}
+        onClick={() => despachar({ tipo: 'identificarse' })}
         className={cn(botonConContorno({ tono: 'azul' }), 'min-h-[42px] px-[18px] py-0 text-[14.5px]')}
       >
         {t('Crear mi cuenta')}

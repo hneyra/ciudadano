@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Outlet } from 'react-router-dom';
 
 import { useRecorrido } from '../recorrido/ProveedorDelRecorrido.tsx';
-import { useLaRutaSigueAlPaso } from '../recorrido/rutas.ts';
+import { useLaUrlYElPaso } from '../recorrido/rutas.ts';
 import { Barra } from './Barra.tsx';
 import { FranjaDePasos } from './FranjaDePasos.tsx';
 import { useImpresionEnClaro } from './impresionEnClaro.ts';
@@ -29,7 +29,7 @@ export function Marco() {
   const { t } = useTranslation();
   const { estado } = useRecorrido();
   const { modo } = useTema();
-  useLaRutaSigueAlPaso();
+  useLaUrlYElPaso();
   useImpresionEnClaro();
 
   return (

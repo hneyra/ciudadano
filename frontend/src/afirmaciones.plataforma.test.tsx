@@ -8,16 +8,20 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { identidad } from './api/identidad.ts';
 import type { SituacionDelContrato } from './datos/contrato.ts';
+import { deLaSituacion } from './datos/deLaSituacion.ts';
 import { crearFuenteDeLaPlataforma } from './datos/fuenteDeLaPlataforma.ts';
 import { CON_PLATAFORMA } from './modo/modo.ts';
 import { FRASES_QUE_AFIRMAN, laDice, nombreDe } from './pruebas/frasesQueAfirman.ts';
 import { limpiarElPortal, montarElPortal, plazosDelPortal, remendarJsdomParaElMenu } from './pruebas/portal.tsx';
 import {
+  type AccionDelRecorrido,
   type Paso,
   TODOS_LOS_PASOS,
+  datosDeLaSituacion,
   estadoInicial,
   pasoAlcanzable,
   pasosNumerados,
+  recorrido,
 } from './recorrido/recorrido.ts';
 
 /**
@@ -171,11 +175,21 @@ const VISITADOS = new Set<Paso>();
  * alcanzan con sesion (`historial`) son alcanzables—. Un paso que el dia de manana se anada a
  * `PASOS_CON_PLATAFORMA`, o una pantalla nueva alcanzable con sesion, entra aqui sola, y la ultima
  * prueba de este archivo sale roja hasta que `recorrer` la visite.
+ *
+ * **El ultimo paso se ANDA, no se escribe** (issue 61): lo alcanzable sale del progreso
+ * (`alcanzado`) y del sello, asi que un estado puesto a mano en el comprobante no alcanza nada. Se
+ * llega con el reductor y las acciones con nombre, con la deuda de `CON_DEUDA` delante, igual que la
+ * recorre `recorrer`.
  */
 function alcanzablesConPlataforma(): readonly Paso[] {
   const sinSesion = estadoInicial({ en: CON_PLATAFORMA, autenticado: false, amnistia: false });
-  const conSesion = estadoInicial({ en: CON_PLATAFORMA, autenticado: true, amnistia: false });
-  const alFinal = { ...conSesion, paso: pasosNumerados(conSesion).at(-1) ?? conSesion.paso };
+  const conSesion = {
+    ...estadoInicial({ en: CON_PLATAFORMA, autenticado: true, amnistia: false }),
+    ...datosDeLaSituacion(deLaSituacion(CON_DEUDA)),
+  };
+  const hastaElFinal: readonly AccionDelRecorrido[] = [{ tipo: 'confirmarEleccion' }, { tipo: 'confirmarPago' }];
+  const alFinal = hastaElFinal.reduce(recorrido, conSesion);
+  expect(alFinal.paso, 'el reductor no llego al ultimo paso del recorrido').toBe(pasosNumerados(conSesion).at(-1));
   return TODOS_LOS_PASOS.filter(
     (paso) => pasoAlcanzable(sinSesion, paso) || pasoAlcanzable(alFinal, paso),
   );

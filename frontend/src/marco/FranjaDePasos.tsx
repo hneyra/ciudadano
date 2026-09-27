@@ -2,7 +2,7 @@ import { avisar, cn } from '@kamayuk/ui';
 import { useTranslation } from 'react-i18next';
 
 import { useRecorrido } from '../recorrido/ProveedorDelRecorrido.tsx';
-import { type PasoNumerado, indiceDelPaso, pasoAlcanzable, pasosNumerados } from '../recorrido/recorrido.ts';
+import { type PasoNumerado, indiceDelPaso, pasoAlcanzable, pasoHecho, pasosNumerados } from '../recorrido/recorrido.ts';
 
 /**
  * **La franja de pasos** (`diseno/Ciudadano.dc.html`, lineas 103-116, 1018-1022 y 1064-1078).
@@ -30,6 +30,18 @@ import { type PasoNumerado, indiceDelPaso, pasoAlcanzable, pasosNumerados } from
  * Y hay un paso HECHO que no se puede volver a abrir, que en demostracion no existia: «Entrar», una
  * vez se entro. Por eso el aviso se elige: el de siempre habla de completar los pasos anteriores, y
  * ahi no falta ninguno.
+ *
+ * <h2>Lo hecho y lo que se abre salen del progreso, no de la posicion (issue 61)</h2>
+ *
+ * El artboard pinta hecho todo lo anterior al actual (`i < iPaso`, linea 1068), y hasta el issue 61
+ * esta franja tambien: tras «Iniciar sesión» sin haber buscado, «Mis datos» es el paso 3 y «Buscar
+ * mi deuda» y «Elegir qué pago» salian en verde sin que nadie los hiciera. Ahora el verde es
+ * `pasoHecho` y lo que se abre `pasoAlcanzable`, los dos del progreso del recorrido (`alcanzado`):
+ * lo que se alcanzo se puede volver a abrir hacia atras Y hacia adelante, y lo que no se hizo no se
+ * da por hecho. Por el camino —buscar, elegir, dar el correo…— el dibujo es el del artboard.
+ *
+ * Abrir un paso es `irA`, la navegacion libre: la franja es uno de los dos sitios que la despachan
+ * (el otro es la URL, `rutas.ts`), y el reductor la rechaza hacia un paso no alcanzable.
  */
 export function FranjaDePasos() {
   const { t } = useTranslation();
@@ -50,7 +62,7 @@ export function FranjaDePasos() {
       <div className="mx-auto flex max-w-[1020px] flex-wrap items-stretch px-[18px]">
         {pasosNumerados(estado).map((paso, i) => {
           const esActual = i === actual;
-          const hecho = i < actual;
+          const hecho = pasoHecho(estado, paso);
           const alcanzable = pasoAlcanzable(estado, paso);
           return (
             <button

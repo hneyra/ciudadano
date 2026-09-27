@@ -66,7 +66,7 @@ export function PagoReciente({ pago }: { readonly pago: PagoSellado }) {
       </span>
       <Boton
         type="button"
-        onClick={() => despachar({ tipo: 'irA', paso: 'comprobante' })}
+        onClick={() => despachar({ tipo: 'verElComprobante' })}
         className={cn(
           'min-h-[40px] flex-[0_0_auto] px-4 py-0 text-[14px] font-bold',
           simulado ? null : botonConContorno({ tono: 'ok' }),

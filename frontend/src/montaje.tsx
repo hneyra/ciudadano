@@ -8,7 +8,7 @@ import { arrancar } from './arranque.ts';
 import { crearClienteDeConsultas } from './datos/consultas.ts';
 import { FuenteActiva, type FuenteDelPortal } from './datos/fuente.ts';
 import { laFuente } from './datos/laFuente.ts';
-import { crearEnrutador } from './enrutador.tsx';
+import { type Enrutador, crearEnrutador } from './enrutador.tsx';
 import i18n, { sumarLosTextosDeLaFuente } from './i18n/i18n.ts';
 import { politicaDe } from './modo/modo.ts';
 
@@ -29,8 +29,18 @@ import { politicaDe } from './modo/modo.ts';
  */
 const consultas = crearClienteDeConsultas();
 
-/** El enrutador, por lo mismo: fuera del render, una sola vez (ver `src/enrutador.tsx`). */
-const enrutador = crearEnrutador();
+/**
+ * El enrutador, por lo mismo: fuera del render, una sola vez (ver `src/enrutador.tsx`). **Pero no al
+ * cargar el modulo** (issue 61, revision del PR #72): `createHashRouter` lee la URL al crearse, y la
+ * vuelta del emisor la limpia DESPUES, en el canje (`history.replaceState`, que no avisa a nadie).
+ * Creado antes, el enrutador arrancaba en la raiz con el navegador ya en `#/entrar`. Se crea al
+ * montar, cuando el canje ya termino, y se guarda para no crear otro.
+ */
+let enrutador: Enrutador | null = null;
+function elEnrutador(): Enrutador {
+  enrutador ??= crearEnrutador();
+  return enrutador;
+}
 
 /**
  * **Monta el portal en `raiz`: de donde lee, y solo entonces quien pregunta y quien dibuja**
@@ -90,7 +100,7 @@ export function montar(raiz: HTMLElement): Promise<void> {
     .then((fuente) => {
       // Lo que dicen los datos de la demostracion llega con ella, no en el locale de siempre (issue 58).
       sumarLosTextosDeLaFuente(fuente);
-      return arrancar(() => dibujar(fuente, <Aplicacion enrutador={enrutador} />), {
+      return arrancar(() => dibujar(fuente, <Aplicacion enrutador={elEnrutador()} />), {
         // De la politica del modo de la fuente, y no del entorno otra vez: con la sesion de la
         // demostracion no se le pregunta nada a ningun emisor (issue 35).
         conEmisor: politicaDe(fuente).sesion.laAbreUnEmisor,

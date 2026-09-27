@@ -24,7 +24,7 @@ const BUSCADO = recorrido(
   { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' },
 );
 /** Pagados los cuatro conceptos, con tarjeta: el pago registrado de la demostracion. */
-const PAGADO = recorrido(BUSCADO, { tipo: 'confirmarPago' });
+const PAGADO = recorrido({ ...BUSCADO, paso: 'pagar' }, { tipo: 'confirmarPago' });
 
 const PREDIAL: DeudaDelServidor = {
   id: 'predial-2024',
@@ -47,7 +47,7 @@ const PREDIAL: DeudaDelServidor = {
 
 /** Con plataforma y el pago simulado: la deuda sigue viva. */
 const SIMULADO: EstadoDelRecorrido = recorrido(
-  { ...estadoInicial({ en: CON_PLATAFORMA, autenticado: true, amnistia: false }), deudas: [PREDIAL] },
+  { ...estadoInicial({ en: CON_PLATAFORMA, autenticado: true, amnistia: false }), deudas: [PREDIAL], paso: 'pagar' },
   { tipo: 'confirmarPago' },
 );
 

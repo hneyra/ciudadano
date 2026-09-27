@@ -164,11 +164,12 @@ export function BarraDePago({ aLaFecha }: { readonly aLaFecha?: Fecha }) {
   const barra = laBarraDePago(estado, t);
 
   const pagar = () => {
-    if (barra.destino === null) {
+    if (barra.vacio) {
       avisar(t('Marque al menos un concepto para poder pagar.'));
       return;
     }
-    despachar({ tipo: 'irA', paso: barra.destino });
+    // A donde lleva —«Mis datos» o pagar— lo decide el reductor (issue 61).
+    despachar({ tipo: 'confirmarEleccion' });
   };
 
   return (

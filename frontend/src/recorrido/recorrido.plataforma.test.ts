@@ -130,15 +130,18 @@ describe('los dos recorridos, y sus pasos', () => {
 
 describe('AC1 — `buscar` no es alcanzable con plataforma', () => {
   it('ni desde el primer paso ni desde ninguno de los otros tres', () => {
-    for (const paso of ['entrar', 'deudas', 'pagar', 'comprobante'] as const) {
-      const estado = recorrido(conDeuda, { tipo: 'irA', paso });
-      expect(pasoAlcanzable(estado, 'buscar'), `desde «${paso}»`).toBe(false);
-      expect(pasoAlcanzable(estado, 'identificar'), `desde «${paso}»`).toBe(false);
+    // Por el camino, con las acciones con nombre (issue 61): `irA` ya no lleva a un paso no alcanzado.
+    const pagado = recorrido(recorrido(conDeuda, { tipo: 'confirmarEleccion' }), { tipo: 'confirmarPago' });
+    const porElCamino = [sinSesion, conDeuda, recorrido(conDeuda, { tipo: 'confirmarEleccion' }), pagado];
+    expect(porElCamino.map((estado) => estado.paso)).toEqual(['entrar', 'deudas', 'pagar', 'comprobante']);
+    for (const estado of porElCamino) {
+      expect(pasoAlcanzable(estado, 'buscar'), `desde «${estado.paso}»`).toBe(false);
+      expect(pasoAlcanzable(estado, 'identificar'), `desde «${estado.paso}»`).toBe(false);
     }
   });
 
   it('y escribir `#/buscar` redirige al primer paso del recorrido con plataforma', () => {
-    // Es lo que hace `PantallaDelPaso` con lo no alcanzable: `ultimoAlcanzable` del estado.
+    // Es lo que hace `useLaUrlYElPaso` (`rutas.ts`) con lo no alcanzable: `ultimoAlcanzable` del estado.
     expect(ultimoAlcanzable({ ...sinSesion, paso: 'buscar' })).toBe('entrar');
     expect(ultimoAlcanzable({ ...conSesion, paso: 'identificar' })).toBe('deudas');
   });
@@ -152,7 +155,7 @@ describe('AC1 — `buscar` no es alcanzable con plataforma', () => {
   });
 
   it('y el recorrido con plataforma avanza como el otro: cada paso abre los anteriores', () => {
-    const enPagar = recorrido(conDeuda, { tipo: 'irA', paso: 'pagar' });
+    const enPagar = recorrido(conDeuda, { tipo: 'confirmarEleccion' });
     expect(PASOS_CON_PLATAFORMA.filter((paso) => pasoAlcanzable(enPagar, paso))).toEqual([
       'deudas',
       'pagar',
@@ -179,7 +182,7 @@ describe('AC1 — a donde llevan las acciones con plataforma', () => {
     // El realm del ciudadano pone `tipo_documento` y `numero_documento`, y ni correo ni codigo.
     expect(destinoDelComprobante(conSesion)).toBeNull();
     // En demostracion, el del artboard, como siempre.
-    expect(destinoDelComprobante(recorrido(ESTADO_INICIAL, { tipo: 'entrar' }))).toBe('maria.castillo@example.com');
+    expect(destinoDelComprobante({ ...ESTADO_INICIAL, autenticado: true })).toBe('maria.castillo@example.com');
   });
 });
 
@@ -250,7 +253,7 @@ describe('lo leido: los conceptos del servidor son los del recorrido (issues 28 
   });
 
   it('y pagar sella lo del servidor: al comprobante, con sus conceptos, sus importes y su contribuyente', () => {
-    const pagado = recorrido(recorrido(conDeuda, { tipo: 'irA', paso: 'pagar' }), { tipo: 'confirmarPago' });
+    const pagado = recorrido(recorrido(conDeuda, { tipo: 'confirmarEleccion' }), { tipo: 'confirmarPago' });
 
     expect(pagado.paso).toBe('comprobante');
     expect(pagado.ultimo?.conceptos).toEqual(DOS);
@@ -259,7 +262,7 @@ describe('lo leido: los conceptos del servidor son los del recorrido (issues 28 
   });
 
   it('issue 50 — el sello no cuelga de la lista: otra respuesta despues no le quita ni le cambia filas', () => {
-    const pagado = recorrido(conDeuda, { tipo: 'confirmarPago' });
+    const pagado = recorrido(recorrido(conDeuda, { tipo: 'confirmarEleccion' }), { tipo: 'confirmarPago' });
     const otraRespuesta = conLeido(pagado, [delServidor('predial-2023', '40.00')]);
 
     expect(otraRespuesta.ultimo).toBe(pagado.ultimo);
@@ -271,7 +274,7 @@ describe('lo leido: los conceptos del servidor son los del recorrido (issues 28 
     // El aviso de los pasos 4 y 5 promete que «su deuda no cambia». Con `pagadas` tocado, la deuda
     // desaparecia de la lista y del historial: el mismo embuste que la frase «la deuda pagada ya se
     // descontó de su cuenta», dicho con la lista en vez de con palabras.
-    const pagado = recorrido(recorrido(conDeuda, { tipo: 'irA', paso: 'pagar' }), { tipo: 'confirmarPago' });
+    const pagado = recorrido(recorrido(conDeuda, { tipo: 'confirmarEleccion' }), { tipo: 'confirmarPago' });
 
     expect(pagado.pagadas).toEqual({});
     expect(vivasDelServidor(pagado).map((deuda) => deuda.id)).toEqual(['predial-2024', 'predial-2025']);
@@ -281,6 +284,7 @@ describe('lo leido: los conceptos del servidor son los del recorrido (issues 28 
   it('EL OTRO SENTIDO: en demostracion pagar SI descuenta la deuda, como el artboard', () => {
     const pagado = tras([
       { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' },
+      { tipo: 'confirmarEleccion' },
       { tipo: 'continuarConCorreo', correo: 'maria@example.com', avisarVencimiento: false },
       { tipo: 'confirmarPago' },
     ]);
@@ -313,7 +317,7 @@ describe('issue 49 — la amnistia sale de la FUENTE, y con plataforma no hay ni
     expect(aCobrar(leida, cuentaPorPagar(leida))).toBe('1842.60');
     expect(aCobrarDe(leida, conInteres)).toBe('1842.60');
 
-    const sellado = recorrido(leida, { tipo: 'confirmarPago' });
+    const sellado = recorrido(recorrido(leida, { tipo: 'confirmarEleccion' }), { tipo: 'confirmarPago' });
     expect(sellado.ultimo).not.toBeNull();
     expect(aCobrar(sellado, sellado.ultimo!)).toBe('1842.60');
   });
