@@ -154,9 +154,16 @@ function fuenteQue(contesta: () => Promise<unknown>) {
 
 const principal = () => screen.getByRole('main');
 
-/** La pantalla ya no espera nada: ninguna seccion `aria-busy` (la consulta y los pagos contestaron). */
+/**
+ * La pantalla ya no espera nada: ninguna seccion `aria-busy` (los pagos contestaron) y ningun
+ * «Consultando su deuda…» (la consulta contesto). Desde el issue 62 la espera de la consulta es un
+ * `status` sin `aria-busy` —que retendria su anuncio—, asi que se mira por lo que dice.
+ */
 async function quieta(): Promise<void> {
-  await waitFor(() => expect(principal().querySelector('[aria-busy="true"]')).toBeNull());
+  await waitFor(() => {
+    expect(principal().querySelector('[aria-busy="true"]')).toBeNull();
+    expect(principal().textContent).not.toContain('Consultando su deuda…');
+  });
 }
 
 /** Lo que dice TODO el documento: marco, franja, pie y avisos incluidos. */

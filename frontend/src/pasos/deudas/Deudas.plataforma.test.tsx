@@ -164,6 +164,25 @@ describe('mientras la consulta viaja', () => {
     expect(await enMain().findByRole('heading', { level: 1, name: 'Consultando su deuda…' })).toBeInTheDocument();
     expect(importesEnPantalla()).toEqual([]);
   });
+
+  /**
+   * **La espera se anuncia** (issue 62). Hasta el issue 62 era una `section aria-busy` sin region
+   * viva: quien usa lector de pantalla pulsaba «Entrar», volvia del emisor y no oia nada mientras se
+   * consultaba. Ahora es un `status` (region viva, cortes): lo que dice se lee sin mover el foco.
+   *
+   * Y **sin `aria-busy` ni en ella ni por encima**: con `aria-busy="true"` una tecnologia de apoyo
+   * puede retener lo que cambia dentro hasta que pase a `false` (ARIA 1.2, `aria-busy`), y esta
+   * seccion no pasa a `false`: desaparece cuando llega la respuesta. El anuncio no llegaria nunca.
+   */
+  it('lo dice un `status`: se anuncia sin mover el foco, y nada lo marca ocupado', async () => {
+    conSesion(() => new Promise(() => {}));
+
+    const titulo = await enMain().findByRole('heading', { level: 1, name: 'Consultando su deuda…' });
+    const estado = enMain().getByRole('status');
+    expect(estado).toContainElement(titulo);
+    expect(estado).toHaveTextContent('Consultando su deuda…Estamos preguntando a las municipalidades. Tarda unos segundos.');
+    expect(estado.closest('[aria-busy="true"]')).toBeNull();
+  });
 });
 
 describe('AC5 — la respuesta MEDIDA de la plataforma local (no se pudo consultar)', () => {
