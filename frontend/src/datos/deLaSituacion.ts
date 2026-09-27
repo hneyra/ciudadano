@@ -145,25 +145,58 @@ function unidadDe(obligacion: ObligacionDelContrato, predios: readonly PredioDel
  * el tributo, el ejercicio y la unidad. Dos obligaciones distintas no pueden compartirlo, y la misma
  * obligacion lo tiene igual en dos lecturas seguidas, que es lo que hace que una marca sobreviva a
  * releer.
+ *
+ * <h3>Dos gemelas, un sufijo (issue 57)</h3>
+ *
+ * Con eso NO alcanza: dos obligaciones del mismo tributo y ejercicio, sin predio ni vehiculo que
+ * las distinga —dos multas de transito del mismo anio, en la misma municipalidad—, componen el
+ * mismo texto. El contrato no trae ningun campo mas que las separe: no hay numero de resolucion, ni
+ * fecha de emision, ni orden. Asi que `vecesVistoElId` cuenta, DENTRO de cada municipalidad y por
+ * orden de aparicion en `obligaciones`, cuantas veces se repite un mismo id base, y a partir de la
+ * segunda le pega un sufijo (`-2`, `-3`, ...).
+ *
+ * Ese sufijo cumple las dos cosas que el id necesita:
+ *
+ *  · **unico dentro de la respuesta**: cada obligacion de un grupo de gemelas sale con un numero
+ *    distinto, porque el contador es el mismo objeto para toda la municipalidad;
+ *  · **estable entre dos respuestas iguales**: el numero depende solo del ORDEN en que el servidor
+ *    entrego las obligaciones, no de nada que se mida o se calcule aparte, asi que la misma
+ *    respuesta, leida dos veces, reparte los mismos sufijos en el mismo orden y una marca sobrevive
+ *    a releer.
+ *
+ * Y es, con todo eso, **una identidad del portal y no del servidor**: el orden de aparicion no es un
+ * dato que la municipalidad haya publicado a proposito para distinguir sus multas, es la posicion en
+ * la lista que hoy contesta. Si el dia de manana el servidor cambiara ese orden entre dos consultas
+ * —cosa que el contrato no promete que no vaya a pasar—, las gemelas podrian intercambiar sus
+ * sufijos entre si; lo que no cambia es que sigan siendo dos ids distintos, y no el mismo id dos
+ * veces. Lo correcto de verdad —un id opaco por obligacion, publicado por el servidor— es trabajo de
+ * `rentas`, no de este portal: ver «Lo que NO cierra» en el PR de este issue.
  */
-function idDeLaObligacion(ubigeo: string, obligacion: ObligacionDelContrato): string {
+function idDeLaObligacion(
+  ubigeo: string,
+  obligacion: ObligacionDelContrato,
+  vecesVistoElId: Map<string, number>,
+): string {
   const unidad =
     obligacion.predioId !== null
       ? `predio-${String(obligacion.predioId)}`
       : obligacion.vehiculoId !== null
         ? `vehiculo-${String(obligacion.vehiculoId)}`
         : 'sin-unidad';
-  return [ubigeo, obligacion.tributo.toLowerCase(), String(obligacion.ejercicio), unidad].join('-');
+  const base = [ubigeo, obligacion.tributo.toLowerCase(), String(obligacion.ejercicio), unidad].join('-');
+  const veces = (vecesVistoElId.get(base) ?? 0) + 1;
+  vecesVistoElId.set(base, veces);
+  return veces === 1 ? base : `${base}-${String(veces)}`;
 }
 
 /** Una obligacion, ya como concepto del portal. */
 function deudaDe(
-  ubigeo: string,
+  id: string,
   predios: readonly PredioDelContrato[],
   obligacion: ObligacionDelContrato,
 ): DeudaDelServidor {
   return {
-    id: idDeLaObligacion(ubigeo, obligacion),
+    id,
     concepto: conceptoDe(obligacion),
     unidad: unidadDe(obligacion, predios),
     insoluto: obligacion.insoluto.importe,
@@ -214,6 +247,9 @@ function predioDe(predio: PredioDelContrato): PredioDelPortal {
 
 /** Una municipalidad entera: sus saldos, sus deudas y sus predios. */
 function municipalidadDe(municipalidad: MunicipalidadDelContrato): MunicipalidadDelPortal {
+  // Un contador por municipalidad, y no uno global: el ubigeo ya distingue una municipalidad de
+  // otra, asi que dos gemelas de municipalidades distintas no tienen por que compartir sufijo.
+  const vecesVistoElId = new Map<string, number>();
   return {
     ubigeo: municipalidad.ubigeo,
     nombre: municipalidad.nombre,
@@ -222,7 +258,7 @@ function municipalidadDe(municipalidad: MunicipalidadDelContrato): Municipalidad
     activo: municipalidad.activo,
     saldos: saldosDe(municipalidad),
     deudas: municipalidad.obligaciones.map((obligacion) =>
-      deudaDe(municipalidad.ubigeo, municipalidad.predios, obligacion),
+      deudaDe(idDeLaObligacion(municipalidad.ubigeo, obligacion, vecesVistoElId), municipalidad.predios, obligacion),
     ),
     predios: municipalidad.predios.map(predioDe),
   };

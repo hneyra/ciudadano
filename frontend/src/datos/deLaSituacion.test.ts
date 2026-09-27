@@ -273,6 +273,57 @@ describe('a mano: una municipalidad con tres obligaciones (predial, arbitrio, ve
   });
 });
 
+describe('issue 57: dos obligaciones gemelas (mismo tributo, ejercicio y sin unidad)', () => {
+  // Dos multas de transito del mismo ejercicio, en la misma municipalidad y sin predio ni vehiculo
+  // que las distinga: el contrato no trae un identificador de la obligacion, asi que tributo,
+  // ejercicio, ubigeo y unidad son iguales en las dos. Es el caso que cita el issue.
+  const MULTA_A = obligacion({ tributo: 'MULTA_TRANSITO', ejercicio: 2025, insoluto: con('120.00'), total: con('120.00') });
+  const MULTA_B = obligacion({ tributo: 'MULTA_TRANSITO', ejercicio: 2025, insoluto: con('80.00'), total: con('80.00') });
+  const CON_GEMELAS = municipalidad({ obligaciones: [MULTA_A, MULTA_B] });
+
+  it('las dos reciben ids distintos: un sufijo por orden de aparicion, no una unidad inventada', () => {
+    const [primera, segunda] = deLaSituacion(respuesta({ municipalidades: [CON_GEMELAS] })).deudas;
+
+    expect(primera?.id).toBe('200104-multa_transito-2025-sin-unidad');
+    // La primera no lleva sufijo: no romper el id de la obligacion que hoy es unica en su grupo.
+    expect(segunda?.id).toBe('200104-multa_transito-2025-sin-unidad-2');
+    expect(segunda?.id).not.toBe(primera?.id);
+  });
+
+  it('el mismo par de respuestas da siempre los mismos ids: sin eso, una marca no sobrevive a releer', () => {
+    const unaVez = deLaSituacion(respuesta({ municipalidades: [CON_GEMELAS] })).deudas.map((d) => d.id);
+    const otraVez = deLaSituacion(respuesta({ municipalidades: [CON_GEMELAS] })).deudas.map((d) => d.id);
+
+    expect(otraVez).toEqual(unaVez);
+    expect(new Set(unaVez).size).toBe(unaVez.length);
+  });
+
+  it('con tres gemelas los tres ids son unicos', () => {
+    const TERCERA = obligacion({ tributo: 'MULTA_TRANSITO', ejercicio: 2025, insoluto: con('40.00'), total: con('40.00') });
+    const conTres = municipalidad({ obligaciones: [MULTA_A, MULTA_B, TERCERA] });
+
+    const ids = deLaSituacion(respuesta({ municipalidades: [conTres] })).deudas.map((d) => d.id);
+
+    expect(new Set(ids).size).toBe(3);
+  });
+
+  it('gemelas de DOS grupos distintos (multas y arbitrios) no se cruzan entre si', () => {
+    const ARBITRIO_A = obligacion({ tributo: 'ARBITRIO', ejercicio: 2025, insoluto: con('50.00'), total: con('50.00') });
+    const ARBITRIO_B = obligacion({ tributo: 'ARBITRIO', ejercicio: 2025, insoluto: con('30.00'), total: con('30.00') });
+    const conDosGrupos = municipalidad({ obligaciones: [MULTA_A, ARBITRIO_A, MULTA_B, ARBITRIO_B] });
+
+    const ids = deLaSituacion(respuesta({ municipalidades: [conDosGrupos] })).deudas.map((d) => d.id);
+
+    expect(ids).toEqual([
+      '200104-multa_transito-2025-sin-unidad',
+      '200104-arbitrio-2025-sin-unidad',
+      '200104-multa_transito-2025-sin-unidad-2',
+      '200104-arbitrio-2025-sin-unidad-2',
+    ]);
+    expect(new Set(ids).size).toBe(4);
+  });
+});
+
 describe('a mano: los importes son texto, con su fecha', () => {
   const situacion = deLaSituacion(respuesta({ totalConsolidado: SALDOS.total, municipalidades: [CON_LAS_TRES] }));
   const predial = situacion.deudas[0];
