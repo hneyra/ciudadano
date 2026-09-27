@@ -59,7 +59,8 @@ export function EnlaceDeDemostracion({ alPulsar, children }: { readonly alPulsar
       variante="fantasma"
       tamano="menudo"
       onClick={alPulsar}
-      className="inline p-0 align-baseline text-[13.5px] hover:bg-transparent hover:underline"
+      // 44 px de alto (issue 62): el artboard no les fija medida (linea 350) y con la del texto median 20.
+      className="inline-flex min-h-[44px] p-0 align-baseline text-[13.5px] hover:bg-transparent hover:underline"
     >
       {children}
     </Boton>

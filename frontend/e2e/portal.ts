@@ -143,6 +143,99 @@ export async function seVeBien(pagina: Page, donde: string): Promise<void> {
   expect(medido.letra, `${donde}: el cuerpo no DECLARA la fuente del tema («${medido.fuenteDelTema}»)`).toBe(
     medido.fuenteDelTema,
   );
+  await lasAreasTactilesLleganA44(pagina, donde);
+}
+
+/**
+ * **Los controles que el artboard dibuja mas bajos de 44 px, y lo que mide cada uno** (issue 62).
+ *
+ * El issue pide 44 px de area tactil «salvo donde el artboard fije otra medida». Estos siete son esos:
+ * el artboard les escribe un `min-height` menor —o, a «Iniciar sesión», los margenes dentro de la
+ * barra—, y se respeta. Cada excepcion lleva la medida que el
+ * artboard fija y **se mide contra ella**: una excepcion no deja pasar un control que encoja por debajo
+ * de lo que el artboard dice. El ancho sigue exigiendo 44 px: todos son mas anchos.
+ */
+export const MAS_BAJOS_POR_EL_ARTBOARD: ReadonlyArray<{
+  readonly nombre: RegExp;
+  readonly alto: number;
+  readonly linea: number;
+}> = [
+  // En la barra de 56 px, con 10 px de margen arriba y abajo (linea 71): 36. A ≤ 880 px ya es 44 × 44.
+  { nombre: /^Iniciar sesión$/, alto: 36, linea: 71 },
+  { nombre: /^No soy yo$/, alto: 40, linea: 192 },
+  { nombre: /^(Marcar|Quitar) todo$/, alto: 38, linea: 225 },
+  { nombre: /^(Ver|Ocultar) el detalle de /, alto: 34, linea: 247 },
+  { nombre: /^Crear mi cuenta$/, alto: 42, linea: 561 },
+  // Con plataforma el mismo boton dice «Ver cómo se vería»: no hay comprobante de verdad.
+  { nombre: /^(Ver el comprobante|Ver cómo se vería)$/, alto: 40, linea: 579 },
+  { nombre: /^Comprobante \d{4}-\d{7}$/, alto: 36, linea: 603 },
+];
+
+/**
+ * **Cada control se toca en 44 × 44 px** (issue 62; WCAG 2.5.5), en la barra, la franja, `main` y el
+ * pie.
+ *
+ * <h2>Se mide lo que toca el dedo, no la caja</h2>
+ *
+ * Con `document.elementFromPoint` en cuatro puntos a 21 px del centro —izquierda, derecha, arriba y
+ * abajo—: cada uno tiene que caer en el control, en algo de dentro o en su `<label>`. Asi cuenta lo que
+ * de verdad recibe el toque —la etiqueta de una casilla, un `::after` que agranda el blanco sin
+ * cambiar el dibujo— y tambien lo que lo tapa: si el vecino se come el borde, el punto cae en el
+ * vecino y sale rojo. Lo que no se ve —oculto, `sr-only`, dentro de `aria-hidden`— no se toca y no se
+ * mide. Cada control se trae al centro de la vista antes de medirlo.
+ */
+export async function lasAreasTactilesLleganA44(pagina: Page, donde: string): Promise<void> {
+  const excepciones = MAS_BAJOS_POR_EL_ARTBOARD.map((e) => ({ fuente: e.nombre.source, alto: e.alto, linea: e.linea }));
+  const cortos = await pagina.evaluate((excepciones) => {
+    const SELECTOR =
+      'button, a[href], input:not([type="hidden"]), select, textarea, [role="checkbox"], [role="radio"], [role="menuitem"]';
+    const vistos = new Set<Element>();
+    const salida: string[] = [];
+    const nombreDe = (el: Element) => (el.getAttribute('aria-label') ?? el.textContent ?? '').replace(/\s+/g, ' ').trim();
+    const describir = (el: Element | null) =>
+      el === null ? '(nada)' : `<${el.tagName.toLowerCase()}> «${nombreDe(el).slice(0, 40)}»`;
+    for (const zona of document.querySelectorAll('header, nav, main, footer')) {
+      for (const control of zona.querySelectorAll<HTMLElement>(SELECTOR)) {
+        if (vistos.has(control)) continue;
+        vistos.add(control);
+        if (control.closest('[aria-hidden="true"], [hidden], [inert]') !== null) continue;
+        const caja0 = control.getBoundingClientRect();
+        if (getComputedStyle(control).visibility === 'hidden' || caja0.width <= 1 || caja0.height <= 1) continue;
+
+        const nombre = nombreDe(control);
+        const excepcion = excepciones.find((e) => new RegExp(e.fuente).test(nombre));
+        const alto = excepcion?.alto ?? 44;
+        control.scrollIntoView({ block: 'center', inline: 'center' });
+        const caja = control.getBoundingClientRect();
+        const x = caja.left + caja.width / 2;
+        const y = caja.top + caja.height / 2;
+        const etiquetas = 'labels' in control && control.labels !== null ? [...(control.labels as NodeListOf<HTMLElement>)] : [];
+        const puntos: ReadonlyArray<readonly [string, number, number]> = [
+          ['izquierda', x - 21, y],
+          ['derecha', x + 21, y],
+          ['arriba', x, y - (alto / 2 - 1)],
+          ['abajo', x, y + (alto / 2 - 1)],
+        ];
+        const fallidos = puntos.flatMap(([lado, px, py]) => {
+          const tocado = document.elementFromPoint(px, py);
+          // Un aviso pasajero (`avisar`, abajo y al centro) tapa el pie unos segundos: no es el control.
+          if (tocado?.closest('[data-sonner-toaster]') != null) return [];
+          const bien = tocado !== null && (control.contains(tocado) || etiquetas.some((etiqueta) => etiqueta.contains(tocado)));
+          return bien ? [] : [`${lado} cae en ${describir(tocado)}`];
+        });
+        if (fallidos.length > 0) {
+          const pide =
+            excepcion === undefined ? '44 × 44' : `44 de ancho y ${String(alto)} de alto, linea ${String(excepcion.linea)} del artboard`;
+          salida.push(
+            `«${nombre}» (${String(Math.round(caja.width))}×${String(Math.round(caja.height))} px, pide ${pide}): ${fallidos.join('; ')}`,
+          );
+        }
+      }
+    }
+    window.scrollTo(0, 0);
+    return salida;
+  }, excepciones);
+  expect(cortos, `${donde}: controles con un area tactil de menos de 44 px`).toEqual([]);
 }
 
 /**

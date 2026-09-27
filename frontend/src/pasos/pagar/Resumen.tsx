@@ -101,7 +101,8 @@ export function Resumen() {
           type="button"
           variante="fantasma"
           onClick={() => despachar({ tipo: 'volverAElegir' })}
-          className="mt-[10px] min-h-0 p-0 text-[13.5px] underline hover:bg-transparent print:hidden"
+          // 44 px de alto (issue 62): el artboard no le fija medida (linea 471) y con la del texto media 20.
+          className="mt-[10px] min-h-[44px] p-0 text-[13.5px] underline hover:bg-transparent print:hidden"
         >
           {resumen.volver}
         </Boton>

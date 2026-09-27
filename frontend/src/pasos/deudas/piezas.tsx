@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Cifra } from '../../piezas/Cifra.tsx';
-import { bandaConFilo, botonApagado } from '../../piezas/variantes.tsx';
+import { BLANCO_DE_44, bandaConFilo, botonApagado } from '../../piezas/variantes.tsx';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
 import { estaMarcada } from '../../recorrido/recorrido.ts';
 import { type QuienEsDicho, estaTodoMarcado, laBarraDePago } from './vista.ts';
@@ -123,7 +123,10 @@ export function FilaDeConcepto({
               checked={marcada}
               onCheckedChange={() => despachar({ tipo: 'alternar', id })}
               aria-label={t('Pagar {{concepto}}', { concepto })}
-              className="size-5 cursor-pointer"
+              // La marca de 20 px se toca en 44 × 44 (issue 62, `BLANCO_DE_44`): entra en el relleno de la
+              // fila y en el hueco sin mover nada. La etiqueta del artboard (linea 231) es de 44 de alto y
+              // se pulsa entera; aqui solo se tocaban los 20 px de la marca.
+              className={cn('size-5 cursor-pointer', BLANCO_DE_44)}
             />
           </span>
           <span className="min-w-0 flex-[1_1_260px]">
