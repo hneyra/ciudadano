@@ -17,12 +17,13 @@ import { PERMITIDOS, despachosDeIrA, esPermitido } from './navegacion-libre.ts';
  * `irA` solo lo despachan la franja y la URL, que es la navegacion libre; las pantallas y la barra
  * despachan acciones con nombre y el reductor decide a donde llevan.
  *
- * El 2026-09-27, sobre `main` (`59837745`), esta guarda contaba **16 despachos** fuera de esos dos
- * sitios, en **9 archivos**: la barra (5: la marca, «Iniciar sesión», «Mis pagos» y «Mis predios y
- * vehículos»), el enrutador (1, el efecto de la ruta, que se mudo a `rutas.ts`), las acciones del
- * comprobante (3), la barra de pago (1), «No soy yo» (1), el resumen del pago (1), el pie del historial
- * (1) y el pago reciente del historial (1); y la franja, la unica de hoy que es navegacion libre.
- * Despues del issue 61, 0 fuera de los permitidos.
+ * El 2026-09-27, sobre `main` (`59837745`), esta guarda contaba **13 despachos** fuera de esos dos
+ * sitios, en **8 archivos**: la barra (4: la marca, «Iniciar sesión», «Mis pagos» y «Mis predios y
+ * vehículos»), las acciones del comprobante (3: «Ver mis pagos», «Pagar otra deuda», «Crear mi
+ * cuenta»), el efecto de la ruta en `src/enrutador.tsx` (1, que se mudo a `rutas.ts`), la barra de pago
+ * (1), «No soy yo» (1), el resumen del pago (1), el pie del historial (1) y el pago reciente del
+ * historial (1). La franja era la unica que ya era navegacion libre, y `rutas.ts` no despachaba
+ * ninguno. Despues del issue 61, 0 fuera de los permitidos.
  *
  * La otra mitad —que `irA` no lleve a un paso no alcanzable aunque alguien lo despache— la mide el
  * reductor: `src/recorrido/recorrido.progreso.test.ts`.

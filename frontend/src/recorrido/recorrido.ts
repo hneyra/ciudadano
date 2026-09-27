@@ -88,6 +88,33 @@ import type { DatosLeidos } from './leido.ts';
  *
  * Hasta el issue 59 lo que entraba era el booleano `conPlataforma`, y cada selector lo resolvia a su
  * manera. Ningun selector sabe ya en que modo esta: un modo nuevo es una politica nueva.
+ *
+ * <h2>El recorrido es una maquina de estados, y se dice (issue 61)</h2>
+ *
+ * Hasta el issue 61 lo era sin decirlo. Las pantallas despachaban `irA` con el destino ya decidido
+ * —trece sitios: la barra de pago escogia entre «Mis datos» y pagar, el resumen entre buscar y
+ * elegir, la marca entre el historial y el primer paso— y el reductor lo aceptaba sin preguntar. Y lo
+ * alcanzable se media por la posicion ACTUAL (`i <= actual`, la regla de la franja del artboard): tras
+ * «Iniciar sesión» sin haber buscado, «Mis datos» es el paso 3 y la franja daba por hechos el 1 y el
+ * 2; y volver atras dejaba fuera lo recien recorrido, asi que el boton Adelante del navegador no
+ * llevaba a ninguna parte. Ahora:
+ *
+ *   · **Cada transicion es una accion con nombre** que dice lo que la persona hizo —`buscar`,
+ *     `confirmarEleccion`, `continuarConCorreo`, `entrar`, `confirmarPago`, `volverAElegir`,
+ *     `irAlInicio`, `identificarse`, `pagarLoPendiente`, `verMisPagos`, `verElComprobante`,
+ *     `consultarOtra`, `cerrarSesion`…—, y **el destino lo decide este reductor**, con la guarda de lo
+ *     que su destino exige (sesion, un sello, algo marcado). Ninguna pantalla lleva un paso en la
+ *     mano (`verificaciones/ninguna-pantalla-decide-el-paso.test.ts`).
+ *   · **`irA` es la navegacion libre**, y solo eso: abrir un paso YA ALCANZADO desde la franja, o
+ *     porque la URL lo nombra. Hacia uno que no lo es, no hace nada.
+ *   · **El progreso vive en `alcanzado`**: que pasos se alcanzaron (`abierto`) y cuales se completaron
+ *     (`hecho`). De ahi salen `pasoAlcanzable` —y con el, a donde deja ir la franja y a donde lleva
+ *     Atras o Adelante— y `pasoHecho`, lo que la franja pinta en verde. Lo actualiza `avanzar`, en
+ *     cada transicion; volver atras no lo toca.
+ *   · **La URL y el paso, de acuerdo en un solo sitio**: `useLaUrlYElPaso` (`rutas.ts`).
+ *
+ * Sin librerias de maquinas de estados (XState): el reductor ya era la maquina; faltaba que las
+ * transiciones fueran suyas.
  */
 
 // Viven en `src/modo/modo.ts` desde el issue 59 —cada recorrido es de un modo— y se siguen exportando
