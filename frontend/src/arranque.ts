@@ -1,13 +1,8 @@
-import type { FallaDeLaPuerta, Vuelta } from '@kamayuk/sesion';
+import type { FallaDeLaPuerta } from '@kamayuk/sesion';
 
+import { type FalloDelEmisor, deLaVuelta, falloInesperado, leerElError, vueltaInesperada } from './api/emisor.ts';
 import { identidad } from './api/identidad.ts';
-import {
-  type CanjeSilencioso,
-  type FalloDelSilencio,
-  type Silencio,
-  falloInesperado,
-  silencio as silencioDelPortal,
-} from './api/silencio.ts';
+import { type CanjeSilencioso, type Silencio, silencio as silencioDelPortal } from './api/silencio.ts';
 
 /**
  * **El arranque del portal: primero quien pregunta, y solo entonces quien dibuja** (issue 13).
@@ -48,34 +43,35 @@ import {
  *
  * <h2>Y cuando la vuelta falla, se dice: nunca una pagina en blanco</h2>
  *
- * Volver con `?error=access_denied`, con un `state` que no cuadra o con un canje que el emisor
- * rechaza deja al portal **sin token y sin motivo a la vista**: la libreria limpia la URL —un
+ * Volver con un `state` que no cuadra, con un canje que el emisor rechaza o con un `?error=` que es
+ * una averia deja al portal **sin token y sin motivo a la vista**: la libreria limpia la URL —un
  * codigo usado no vale dos veces— y lo unico que quedaria seria la pantalla de siempre, como si
  * nadie hubiera intentado entrar. `vueltaFallida()` es lo que `src/aplicacion.tsx` lee para
- * dibujar «la puerta no contesto» con **lo que dijo el emisor**, que es lo que hace falta para
- * arreglarlo.
+ * dibujar «No se pudo abrir su sesion», con claves del portal (`src/api/emisor.ts`, issue 56).
+ *
+ * <h2>Salvo cuando la persona dijo que no (issue 56)</h2>
+ *
+ * `?error=access_denied` es quien cancelo en el formulario: no es una averia, y hasta el issue 56
+ * acababa en la misma pantalla de error, sin mas salida que recargar. Ahora se monta anonimo, con
+ * «Entrar» a la vista, como el `login_required` del canje silencioso: la MISMA funcion
+ * (`leerElError()`) decide los dos.
  */
-
-/** Lo que hay que decir cuando la vuelta del emisor no se pudo canjear. */
-export interface VueltaFallida {
-  /** Por que, en una frase: «El emisor no dejo entrar», «No se completo la entrada»… */
-  readonly motivo: string;
-  /** Lo que el emisor dijo, o lo que la libreria pudo averiguar. Tal cual. */
-  readonly detalle: string;
-}
 
 /**
  * La vuelta fallida de la ultima pasada de `arrancar()`, o `null` si no la hubo.
  *
  * **Variable de modulo y no un argumento de `montar`** porque el montaje es una funcion sin
  * argumentos a proposito —ver la cabecera: lo que importa es que sea LO ULTIMO que pasa— y porque
- * quien tiene que leerla no es `main.tsx` sino la aplicacion. Cada pasada la vuelve a fijar, asi
+ * quien tiene que leerla no es `montaje.tsx` sino la aplicacion. Cada pasada la vuelve a fijar, asi
  * que no hay estado viejo que arrastrar de una a otra.
  */
-let laVuelta: VueltaFallida | null = null;
+let laVuelta: FalloDelEmisor | null = null;
 
-/** Por que no se pudo canjear la vuelta del emisor, si es que se intento y no se pudo. */
-export function vueltaFallida(): VueltaFallida | null {
+/**
+ * Por que no se pudo canjear la vuelta del emisor, si es que se intento y no se pudo. En claves del
+ * portal desde el issue 56: la pantalla las pasa por `t()`.
+ */
+export function vueltaFallida(): FalloDelEmisor | null {
   return laVuelta;
 }
 
@@ -85,11 +81,11 @@ export function vueltaFallida(): VueltaFallida | null {
  * Aparte de `vueltaFallida()` y no mezclada con ella porque la pantalla tiene que decir otra cosa
  * (revision del PR #45): quien recarga no fue a ningun sitio y, con el tope, el marco ni siquiera
  * volvio, asi que «Volvimos del sistema de identidad…» seria afirmar algo que no ocurrio. Y porque
- * sus textos son claves que traduce la pantalla (`TextoDelSilencio`), no palabras de la libreria.
+ * sus textos son claves que traduce la pantalla (`TextoDelEmisor`), no palabras de la libreria.
  */
-let laPregunta: FalloDelSilencio | null = null;
+let laPregunta: FalloDelEmisor | null = null;
 
-export function preguntaFallida(): FalloDelSilencio | null {
+export function preguntaFallida(): FalloDelEmisor | null {
   return laPregunta;
 }
 
@@ -108,7 +104,7 @@ export const UMBRAL_DE_ESPERA = 300;
 /** Lo que `arrancar()` necesita saber del arranque, ademas de como montar. */
 export interface ComoArrancar {
   /**
-   * Si el portal lee de la plataforma (`hayPlataforma(fuente)`, en `main.tsx`). En demostracion no
+   * Si el portal lee de la plataforma (`hayPlataforma(fuente)`, en `montaje.tsx`). En demostracion no
    * hay emisor al que preguntar, y **no se le pregunta**: ni una peticion, ni un marco.
    */
   readonly conPlataforma: boolean;
@@ -125,7 +121,9 @@ export interface ComoArrancar {
  * **Si hay que preguntarle al emisor en silencio.** Solo cuando TODO esto es cierto:
  *
  *   · hay plataforma: en demostracion no hay emisor;
- *   · no se volvia del emisor: si se volvio, o hay token ya o hay una vuelta fallida que explicar;
+ *   · no se volvia del emisor: si se volvio, o hay token ya, o hay una vuelta fallida que explicar,
+ *     o la persona acaba de decir que no (`access_denied`, issue 56) y preguntarle otra vez seria
+ *     no hacerle caso;
  *   · no hay token;
  *   · hay puerta (`crypto.subtle`): sin S256 no se puede pedir un codigo;
  *   · y **no se acaba de salir**: quien cerro sesion y recarga no puede encontrarse dentro otra vez
@@ -133,14 +131,52 @@ export interface ComoArrancar {
  *
  * `conPlataforma` va primero a proposito: en demostracion no se llega a preguntar nada a la puerta.
  */
-function hayQuePreguntar(conPlataforma: boolean, vuelta: Vuelta): boolean {
+function hayQuePreguntar(conPlataforma: boolean, volvio: boolean): boolean {
   return (
     conPlataforma &&
-    vuelta.estado === 'sin-vuelta' &&
+    !volvio &&
     identidad.token() === null &&
     identidad.hayPuerta() &&
     !identidad.vieneDeSalir()
   );
+}
+
+/**
+ * **El `?error=` de la barra, leido ANTES del canje** (issue 56): la libreria limpia la URL al
+ * canjear y, al traducirlo, pierde el codigo —cualquier error que no conoce sale con el mismo
+ * motivo—, asi que despues ya no se puede saber si fue `access_denied`.
+ */
+function elErrorDeLaBarra(): string | null {
+  // Solo el codigo: el `error_description` no se lee, porque no se ensena (revision del PR #66).
+  return new URLSearchParams(window.location.search).get('error');
+}
+
+/**
+ * **Canjea si volvemos del emisor, y deja dicho lo que haya que decir.** Devuelve si se volvia del
+ * emisor, para no preguntarle en silencio a continuacion.
+ *
+ * Tres finales, y ninguno deja la pagina en blanco (issue 56):
+ *
+ *   · **la persona dijo que no** (`access_denied` y los de `NO_QUISO_ENTRAR`): no hay nada que
+ *     explicar, y se monta anonimo;
+ *   · **la vuelta fallo**: `laVuelta` con claves del portal —`leerElError()` si fue un `?error=`,
+ *     `deLaVuelta()` si fue el canje—;
+ *   · **el canje REVIENTA** en vez de contestar: `vueltaInesperada()`, como el `catch` del canje
+ *     silencioso (revision del PR #45). Y la barra se limpia aqui, porque la libreria puede no haber
+ *     llegado a hacerlo: con el `?code=` puesto, recargar volveria a reventar igual.
+ */
+async function canjear(): Promise<boolean> {
+  const enLaBarra = elErrorDeLaBarra();
+  try {
+    const vuelta = await identidad.canjearSiVuelve();
+    if (vuelta.estado !== 'fallo') return vuelta.estado === 'canjeado';
+    const leido = enLaBarra === null ? deLaVuelta(vuelta) : leerElError(enLaBarra);
+    if (leido.estado === 'fallo') laVuelta = leido;
+  } catch (error) {
+    laVuelta = vueltaInesperada(error);
+    window.history.replaceState(null, '', window.location.pathname + window.location.hash);
+  }
+  return true;
 }
 
 /**
@@ -168,12 +204,9 @@ export async function arrancar(
   laVuelta = null;
   laPregunta = null;
 
-  const vuelta = await identidad.canjearSiVuelve();
-  if (vuelta.estado === 'fallo') {
-    laVuelta = { motivo: vuelta.motivo, detalle: vuelta.detalle };
-  }
+  const volvio = await canjear();
 
-  if (hayQuePreguntar(conPlataforma, vuelta)) {
+  if (hayQuePreguntar(conPlataforma, volvio)) {
     const espera = setTimeout(esperando, UMBRAL_DE_ESPERA);
     let respuesta: Silencio;
     try {

@@ -1,6 +1,7 @@
 import { crearIdentidad, type ConfiguracionDeIdentidad, type Identidad } from '@kamayuk/sesion';
 
 import { configuracion } from './configuracion.ts';
+import { TEXTOS_DE_LA_VUELTA } from './emisor.ts';
 
 /**
  * **La puerta de identidad del portal: la de `@kamayuk/sesion`, con lo que nombra a ESTE portal**
@@ -90,5 +91,11 @@ export function configuracionDeLaPuerta(): ConfiguracionDeIdentidad {
   };
 }
 
-/** La puerta de este portal. Ver la cabecera: se construye al evaluar el modulo, y una sola vez. */
-export const identidad: Identidad = crearIdentidad(configuracionDeLaPuerta());
+/**
+ * La puerta de este portal. Ver la cabecera: se construye al evaluar el modulo, y una sola vez.
+ *
+ * Con `TEXTOS_DE_LA_VUELTA` (issue 56): lo que la libreria cuenta de una vuelta fallida sale en
+ * claves del portal y no en su castellano de funcionario. Quien las traduce es `deLaVuelta()`, en
+ * `emisor.ts`, y quien las pasa por `t()`, la pantalla.
+ */
+export const identidad: Identidad = crearIdentidad(configuracionDeLaPuerta(), TEXTOS_DE_LA_VUELTA);

@@ -15,7 +15,8 @@ import {
 } from '../pruebas/emisorFalso.ts';
 import { RAIZ } from '../../verificaciones/artboards.ts';
 import { configuracionDeLaPuerta } from './identidad.ts';
-import { ESPERA_DEL_EMISOR, PAGINA_DE_VUELTA, TEXTOS_DEL_SILENCIO, crearSilencio } from './silencio.ts';
+import { TEXTOS_DEL_EMISOR } from './emisor.ts';
+import { ESPERA_DEL_EMISOR, PAGINA_DE_VUELTA, crearSilencio } from './silencio.ts';
 
 /**
  * **El canje silencioso: preguntarle al emisor, sin que nadie lo vea, si ya habia entrado** (issue 35).
@@ -176,7 +177,8 @@ describe('AC1 — con la sesion del emisor viva, se entra sin pulsar nada', () =
 });
 
 describe('AC2 — sin sesion en el emisor, anonimo y sin ir a ningun sitio', () => {
-  it.each(['login_required', 'interaction_required', 'consent_required', 'account_selection_required'])(
+  // `access_denied` desde el issue 56: la misma traduccion que la vuelta normal, donde es «cancele».
+  it.each(['login_required', 'interaction_required', 'consent_required', 'account_selection_required', 'access_denied'])(
     '«%s» es «no hay sesion»: anonimo, sin canje y sin token',
     async (error) => {
       emisor = emisorFalso(sinSesion(error));
@@ -227,8 +229,8 @@ describe('AC4 — el emisor que no contesta es un fallo con su motivo, no una es
 
     await expect(intento).resolves.toEqual({
       estado: 'fallo',
-      motivo: { clave: TEXTOS_DEL_SILENCIO.noContesto },
-      detalle: { clave: TEXTOS_DEL_SILENCIO.noContestoDetalle, valores: { segundos: '8' } },
+      motivo: { clave: TEXTOS_DEL_EMISOR.noContesto },
+      detalle: { clave: TEXTOS_DEL_EMISOR.noContestoDetalle, valores: { segundos: '8' } },
     });
     expect(marcosEnLaPagina()).toBe(0);
   });
@@ -260,7 +262,7 @@ describe('AC4 — el emisor que no contesta es un fallo con su motivo, no una es
     await vi.advanceTimersByTimeAsync(100);
 
     expect(resuelto, 'el canje siguio esperando despues del tope del intento').toBe(true);
-    await expect(intento).resolves.toMatchObject({ estado: 'fallo', motivo: { clave: TEXTOS_DEL_SILENCIO.noContesto } });
+    await expect(intento).resolves.toMatchObject({ estado: 'fallo', motivo: { clave: TEXTOS_DEL_EMISOR.noContesto } });
   });
 
   it('si el plazo vence ANTES de abrir el marco (un reto lento), se falla igual: no se cuelga (ronda 2 del PR #45)', async () => {
@@ -282,7 +284,7 @@ describe('AC4 — el emisor que no contesta es un fallo con su motivo, no una es
 
     expect(resultado, 'el intento se colgo con el plazo ya vencido').toMatchObject({
       estado: 'fallo',
-      motivo: { clave: TEXTOS_DEL_SILENCIO.noContesto },
+      motivo: { clave: TEXTOS_DEL_EMISOR.noContesto },
     });
     // Y ni siquiera se abrio el marco: ya no habia a quien esperar.
     expect(emisor.pedidas).toEqual([]);
@@ -331,16 +333,14 @@ describe('AC4 — el emisor que no contesta es un fallo con su motivo, no una es
     expect(marcosEnLaPagina()).toBe(0);
   });
 
-  it('un error que no es «no hay sesion» es un fallo, con lo que dijo el emisor', async () => {
+  it('un error que no es «no hay sesion» es un fallo, dicho con textos del portal', async () => {
     emisor = emisorFalso((pedida) => `?error=unauthorized_client&error_description=Cliente+desconocido&state=${pedida.searchParams.get('state') ?? ''}`);
 
     await expect(nuevo().intentar()).resolves.toEqual({
       estado: 'fallo',
       motivo: { clave: 'El sistema de identidad no reconoce a este portal' },
-      detalle: {
-        clave: 'Contestó «{{error}}»: {{descripcion}}',
-        valores: { error: 'unauthorized_client', descripcion: 'Cliente desconocido' },
-      },
+      // Ni el codigo ni la descripcion del emisor (revision del PR #66): solo textos del portal.
+      detalle: { clave: 'El sistema de identidad no tiene registrado este portal, o no con esta dirección.' },
     });
   });
 
@@ -350,8 +350,8 @@ describe('AC4 — el emisor que no contesta es un fallo con su motivo, no una es
 
     await expect(nuevo().intentar()).resolves.toEqual({
       estado: 'fallo',
-      motivo: { clave: TEXTOS_DEL_SILENCIO.noContesto },
-      detalle: { clave: TEXTOS_DEL_SILENCIO.canjeNoLlego },
+      motivo: { clave: TEXTOS_DEL_EMISOR.noContesto },
+      detalle: { clave: TEXTOS_DEL_EMISOR.canjeNoLlego },
     });
     expect(puerta.token()).toBeNull();
   });
@@ -363,7 +363,7 @@ describe('AC4 — el emisor que no contesta es un fallo con su motivo, no una es
     await expect(nuevo().intentar()).resolves.toMatchObject({
       estado: 'fallo',
       motivo: { clave: 'El sistema de identidad rechazó el canje' },
-      detalle: { clave: TEXTOS_DEL_SILENCIO.rechazoDetalle, valores: { estado: '400' } },
+      detalle: { clave: TEXTOS_DEL_EMISOR.rechazoDetalle, valores: { estado: '400' } },
     });
     expect(puerta.token()).toBeNull();
   });
@@ -432,7 +432,7 @@ describe('lo que no es la contestacion NUESTRA se ignora', () => {
     await hastaQueHayaMarco();
     await vi.advanceTimersByTimeAsync(ESPERA_DEL_EMISOR);
 
-    await expect(intento).resolves.toMatchObject({ estado: 'fallo', motivo: { clave: TEXTOS_DEL_SILENCIO.noContesto } });
+    await expect(intento).resolves.toMatchObject({ estado: 'fallo', motivo: { clave: TEXTOS_DEL_EMISOR.noContesto } });
   });
 });
 
@@ -475,6 +475,6 @@ describe('lo que el canje silencioso dice en pantalla', () => {
     // Revision del PR #45: los primeros motivos copiaban el castellano sin tildes de la libreria
     // («El emisor no contesto»), y esos llegan a la pantalla de un contribuyente.
     const sinTilde = /\b(contesto|pregunto|habia|devolvio|rechazo|completo|dejo|peticion|codigo|volvio|ningun)\b/;
-    expect(Object.values(TEXTOS_DEL_SILENCIO).filter((t) => sinTilde.test(t))).toEqual([]);
+    expect(Object.values(TEXTOS_DEL_EMISOR).filter((t) => sinTilde.test(t))).toEqual([]);
   });
 });

@@ -113,7 +113,7 @@ interface BackendFalso {
  * El backend falso entero. Se instala en la pagina ANTES de la primera navegacion, y sobrevive a
  * las que vengan: el rebote del emisor es una navegacion mas.
  */
-async function backendFalso(pagina: Page): Promise<BackendFalso> {
+async function backendFalso(pagina: Page, { cancela = false }: { readonly cancela?: boolean } = {}): Promise<BackendFalso> {
   let consultas = 0;
   let silenciosas = 0;
   let conFormulario = 0;
@@ -138,12 +138,15 @@ async function backendFalso(pagina: Page): Promise<BackendFalso> {
     if (enSilencio) silenciosas += 1;
     else {
       conFormulario += 1;
-      sesionDelEmisor = true;
+      // Quien cancela en el formulario (issue 56) no deja sesion en el emisor.
+      sesionDelEmisor = !cancela;
     }
     const vuelta =
-      enSilencio && !sesionDelEmisor
-        ? `error=login_required&state=${estado}`
-        : `code=un-codigo-de-mentira&state=${estado}`;
+      !enSilencio && cancela
+        ? `error=access_denied&error_description=User+cancelled+login&state=${estado}`
+        : enSilencio && !sesionDelEmisor
+          ? `error=login_required&state=${estado}`
+          : `code=un-codigo-de-mentira&state=${estado}`;
     void ruta.fulfill({ status: 302, headers: { location: `${retorno}?${vuelta}` } });
   });
 
@@ -315,6 +318,25 @@ test.describe('el recorrido con plataforma', () => {
     // Y el marco ya no esta: se quita siempre.
     await expect(page.locator('iframe')).toHaveCount(0);
     await seVeBien(page, 'recargado con la sesion del emisor viva');
+  });
+
+  test('cancelar en el formulario vuelve al portal ANONIMO, con «Entrar» a la vista (issue 56)', async ({ page }) => {
+    const backend = await backendFalso(page, { cancela: true });
+    await abrirConPlataforma(page);
+
+    await principal(page).getByRole('button', { name: 'Entrar con mi cuenta' }).click();
+
+    // Se fue al formulario, volvio con `?error=access_denied`, y el portal esta donde estaba: sin
+    // «No se pudo abrir su sesión», con la barra limpia y el boton para volver a intentarlo.
+    await expect.poll(() => backend.conFormulario()).toBe(1);
+    await expect(page.getByRole('heading', { level: 1, name: 'Entre con su cuenta del portal' })).toBeVisible();
+    await expect(principal(page).getByRole('button', { name: 'Entrar con mi cuenta' })).toBeVisible();
+    await expect(page.getByText('No se pudo abrir su sesión')).toHaveCount(0);
+    expect(new URL(page.url()).search).toBe('');
+    // Y a quien acaba de decir que no no se le vuelve a preguntar en silencio: la unica pregunta es
+    // la del primer arranque.
+    expect(backend.silenciosas()).toBe(1);
+    expect(backend.consultas()).toBe(0);
   });
 
   test('si el emisor no contesta al arrancar, se dice «No se pudo abrir su sesión» (issue 35)', async ({ page }) => {

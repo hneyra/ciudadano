@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { identidad } from './api/identidad.ts';
-import { type Silencio, TEXTOS_DEL_SILENCIO } from './api/silencio.ts';
+import { TEXTOS_DEL_EMISOR } from './api/emisor.ts';
+import type { Silencio } from './api/silencio.ts';
 import { UMBRAL_DE_ESPERA, arrancar, entrar, preguntaFallida, salir, vueltaFallida } from './arranque.ts';
 import { emisorFalso, marcosEnLaPagina, sinSesion } from './pruebas/emisorFalso.ts';
 
@@ -20,6 +21,17 @@ import { emisorFalso, marcosEnLaPagina, sinSesion } from './pruebas/emisorFalso.
 
 /** El arranque de `yarn dev` y de las pruebas: sin plataforma, y por tanto sin emisor al que preguntar. */
 const EN_DEMOSTRACION = { conPlataforma: false } as const;
+
+/** Un canje silencioso que contesta lo que se le diga, cuando se le diga. */
+function silencioQueContesta(resultado: Silencio, tarda = 0) {
+  return {
+    intentar: vi.fn(
+      () => new Promise<Silencio>((listo) => (tarda === 0 ? listo(resultado) : setTimeout(() => listo(resultado), tarda))),
+    ),
+  };
+}
+
+const CON_PLATAFORMA = { conPlataforma: true } as const;
 
 /** Deja la barra de direcciones con lo que traeria una vuelta del emisor. */
 function laBarraDice(busqueda: string): void {
@@ -96,21 +108,114 @@ describe('la vuelta del emisor', () => {
     expect(montar).toHaveBeenCalledTimes(1);
   });
 
-  it('cuando falla, se monta IGUAL y se dice por que', async () => {
-    // El emisor contesta con `?error=` en la barra; la libreria lo traduce y limpia la URL.
-    laBarraDice('?error=access_denied&error_description=El+usuario+cancelo');
+  it('cuando falla, se monta IGUAL y se dice por que, con claves del portal (issue 56)', async () => {
+    // El emisor contesta con `?error=` en la barra; la libreria limpia la URL.
+    laBarraDice('?error=server_error&error_description=Unexpected+error');
 
     const montar = vi.fn();
     await arrancar(montar, EN_DEMOSTRACION);
 
     expect(montar, 'sin montar, la pagina se queda en blanco y sin una linea que leer').toHaveBeenCalledTimes(1);
+    // Claves que la pantalla pasa por `t()`, y no el castellano de la libreria («El emisor tuvo un
+    // problema»).
     expect(vueltaFallida()).toEqual({
-      motivo: 'No se completo la entrada',
-      detalle: 'El usuario cancelo',
+      estado: 'fallo',
+      motivo: { clave: TEXTOS_DEL_EMISOR.problema },
+      // Ni el codigo ni la descripcion: viajan en la barra y cualquiera los fabrica (revision del PR #66).
+      detalle: { clave: TEXTOS_DEL_EMISOR.problemaDetalle },
     });
     // Y la URL queda limpia: un codigo usado no vale dos veces, y recargar daria otro error que no
     // tiene nada que ver con lo que paso.
     expect(window.location.search).toBe('');
+  });
+
+  it.each(['access_denied', 'login_required', 'interaction_required', 'consent_required', 'account_selection_required'])(
+    'AC3 — «%s» es que la persona no quiso entrar: se monta ANONIMO, sin nada que explicar (issue 56)',
+    async (error) => {
+      laBarraDice(`?error=${error}&error_description=User+cancelled`);
+      const silencio = silencioQueContesta({ estado: 'identificado' });
+      const montar = vi.fn();
+
+      await arrancar(montar, { ...CON_PLATAFORMA, silencio });
+
+      expect(montar).toHaveBeenCalledTimes(1);
+      expect(vueltaFallida(), 'cancelar en el formulario acabo en «No se pudo abrir su sesión»').toBeNull();
+      expect(preguntaFallida()).toBeNull();
+      // Acaba de decir que no: preguntarle en silencio a continuacion seria no hacerle caso.
+      expect(silencio.intentar).not.toHaveBeenCalled();
+      expect(window.location.search).toBe('');
+    },
+  );
+
+  it('AC2 — si el canje REVIENTA en vez de contestar, se monta IGUAL y se dice (issue 56)', async () => {
+    laBarraDice('?code=un-codigo&state=un-estado');
+    vi.spyOn(identidad, 'canjearSiVuelve').mockRejectedValue(new Error('sessionStorage no disponible'));
+    const montar = vi.fn();
+
+    await arrancar(montar, EN_DEMOSTRACION);
+
+    expect(montar, 'la excepcion del canje dejo la pagina en blanco').toHaveBeenCalledTimes(1);
+    expect(vueltaFallida()).toEqual({
+      estado: 'fallo',
+      motivo: { clave: TEXTOS_DEL_EMISOR.vueltaInesperada },
+      detalle: { clave: TEXTOS_DEL_EMISOR.vueltaInesperadaDetalle, valores: { mensaje: 'sessionStorage no disponible' } },
+    });
+    // La libreria no llego a limpiar la barra: con el `?code=` puesto, recargar reventaria igual.
+    expect(window.location.search).toBe('');
+  });
+
+  it('y si revienta, tampoco se pregunta en silencio: se volvia del emisor', async () => {
+    vi.spyOn(identidad, 'canjearSiVuelve').mockRejectedValue(new Error('x'));
+    const silencio = silencioQueContesta({ estado: 'identificado' });
+
+    await arrancar(vi.fn(), { ...CON_PLATAFORMA, silencio });
+
+    expect(silencio.intentar).not.toHaveBeenCalled();
+  });
+
+  /** El canje de la libreria contestando lo que se le diga, con la ida guardada como la guarda ella. */
+  function vueltaConCodigo(): void {
+    sessionStorage.setItem('kamayuk.ciudadano.pkce.verificador', 'un-verificador');
+    sessionStorage.setItem('kamayuk.ciudadano.pkce.estado', 'un-estado');
+    laBarraDice('?code=un-codigo&state=un-estado');
+  }
+
+  it.each([
+    [
+      'la vuelta no cuadra con la ida',
+      () => laBarraDice('?code=un-codigo&state=otro-estado'),
+      { motivo: { clave: TEXTOS_DEL_EMISOR.vueltaNoCuadra }, detalle: { clave: TEXTOS_DEL_EMISOR.vueltaNoCuadraDetalle } },
+    ],
+    [
+      'el canje no llega',
+      () => {
+        vueltaConCodigo();
+        vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new TypeError('Failed to fetch'))));
+      },
+      { motivo: { clave: TEXTOS_DEL_EMISOR.noContesto }, detalle: { clave: TEXTOS_DEL_EMISOR.canjeNoLlego } },
+    ],
+    [
+      'el emisor rechaza el canje',
+      () => {
+        vueltaConCodigo();
+        vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response('{}', { status: 400 }))));
+      },
+      { motivo: { clave: TEXTOS_DEL_EMISOR.rechazo }, detalle: { clave: TEXTOS_DEL_EMISOR.rechazoDetalle, valores: { estado: '400' } } },
+    ],
+    [
+      'el canje vuelve sin token',
+      () => {
+        vueltaConCodigo();
+        vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response('{"id_token":"x"}', { status: 200 }))));
+      },
+      { motivo: { clave: TEXTOS_DEL_EMISOR.sinToken }, detalle: { clave: TEXTOS_DEL_EMISOR.sinTokenDetalle } },
+    ],
+  ])('una vuelta fallida de la libreria —%s— sale con claves del portal (issue 56)', async (_caso, preparar, esperado) => {
+    preparar();
+
+    await arrancar(vi.fn(), EN_DEMOSTRACION);
+
+    expect(vueltaFallida()).toEqual({ estado: 'fallo', ...esperado });
   });
 
   it('cada pasada vuelve a fijar la vuelta: no se arrastra la de antes', async () => {
@@ -125,16 +230,6 @@ describe('la vuelta del emisor', () => {
   });
 });
 
-/** Un canje silencioso que contesta lo que se le diga, cuando se le diga. */
-function silencioQueContesta(resultado: Silencio, tarda = 0) {
-  return {
-    intentar: vi.fn(
-      () => new Promise<Silencio>((listo) => (tarda === 0 ? listo(resultado) : setTimeout(() => listo(resultado), tarda))),
-    ),
-  };
-}
-
-const CON_PLATAFORMA = { conPlataforma: true } as const;
 
 describe('el canje silencioso (issue 35): cuando se pregunta al emisor, y cuando no', () => {
   it('en DEMOSTRACION no se habla con ningun emisor: cero peticiones y cero marcos', async () => {
@@ -199,8 +294,8 @@ describe('el canje silencioso (issue 35): cuando se pregunta al emisor, y cuando
     const montar = vi.fn();
     const fallo = {
       estado: 'fallo',
-      motivo: { clave: TEXTOS_DEL_SILENCIO.noContesto },
-      detalle: { clave: TEXTOS_DEL_SILENCIO.noContestoDetalle, valores: { segundos: '8' } },
+      motivo: { clave: TEXTOS_DEL_EMISOR.noContesto },
+      detalle: { clave: TEXTOS_DEL_EMISOR.noContestoDetalle, valores: { segundos: '8' } },
     } as const;
 
     await arrancar(montar, { ...CON_PLATAFORMA, silencio: silencioQueContesta(fallo) });
@@ -222,8 +317,8 @@ describe('el canje silencioso (issue 35): cuando se pregunta al emisor, y cuando
     expect(montar, 'la excepcion dejo la pagina en blanco').toHaveBeenCalledTimes(1);
     expect(preguntaFallida()).toEqual({
       estado: 'fallo',
-      motivo: { clave: TEXTOS_DEL_SILENCIO.inesperado },
-      detalle: { clave: TEXTOS_DEL_SILENCIO.inesperadoDetalle, valores: { mensaje: 'digest no disponible' } },
+      motivo: { clave: TEXTOS_DEL_EMISOR.inesperado },
+      detalle: { clave: TEXTOS_DEL_EMISOR.inesperadoDetalle, valores: { mensaje: 'digest no disponible' } },
     });
   });
 

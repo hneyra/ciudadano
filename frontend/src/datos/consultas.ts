@@ -35,7 +35,7 @@ import { QueryClient } from '@tanstack/react-query';
  * `data` —solo cambia `status` a `error`—. Lo que decide si eso se ve es la pantalla: `LaConsulta`
  * dibuja lo que hay antes que el error.
  *
- * Lo llaman `main.tsx` y `montarElPortal` (`src/pruebas/portal.tsx`), y nadie mas hace un
+ * Lo llaman `montaje.tsx` y `montarElPortal` (`src/pruebas/portal.tsx`), y nadie mas hace un
  * `new QueryClient` en `src/` (`src/datos/consultas.test.ts`): una prueba con otros valores estaria
  * midiendo otro portal.
  */

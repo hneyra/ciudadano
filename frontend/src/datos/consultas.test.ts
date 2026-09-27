@@ -11,8 +11,8 @@ import { crearClienteDeConsultas } from './consultas.ts';
  *
  * Que la politica diga lo que dice la mide su efecto en `LaConsulta.unaVerdad.test.tsx` (el foco no
  * vuelve a pedir, un error repetido no borra la lista). Aqui se mide lo que aquella prueba no puede
- * ver: que el portal de verdad (`main.tsx`) y el de las pruebas (`montarElPortal`) usan **el mismo**
- * cliente. Si `main.tsx` volviera a `new QueryClient()`, todas las pruebas seguirian en verde —montan
+ * ver: que el portal de verdad (`montaje.tsx`) y el de las pruebas (`montarElPortal`) usan **el mismo**
+ * cliente. Si `montaje.tsx` volviera a `new QueryClient()`, todas las pruebas seguirian en verde —montan
  * el suyo— y el portal servido volveria a pedir la situacion con cada cambio de pestana.
  */
 
@@ -56,6 +56,7 @@ describe('el cliente de consultas del portal', () => {
       .filter(({ texto }) => /=\s*crearClienteDeConsultas\(\)/.test(texto))
       .map(({ ruta }) => ruta)
       .sort();
-    expect(quienUsa).toEqual(['main.tsx', 'pruebas/portal.tsx']);
+    // `montaje.tsx` desde el issue 56: es el cuerpo de lo que hasta entonces era `main.tsx`.
+    expect(quienUsa).toEqual(['montaje.tsx', 'pruebas/portal.tsx']);
   });
 });
