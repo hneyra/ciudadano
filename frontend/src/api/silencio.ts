@@ -257,7 +257,7 @@ export function crearSilencio({ configuracion, identidad, espera = ESPERA_DEL_EM
     const error = contestacion.get('error');
     // La misma traduccion que la vuelta normal (issue 56): `login_required` y sus parientes —y
     // `access_denied`— montan anonimo; cualquier otro error es un fallo que se cuenta.
-    if (error !== null) return leerElError(error, contestacion.get('error_description'));
+    if (error !== null) return leerElError(error);
     const codigo = contestacion.get('code');
     if (codigo === null) {
       return fallo(texto(TEXTOS_DEL_EMISOR.sinCodigo), texto(TEXTOS_DEL_EMISOR.sinCodigoDetalle));

@@ -117,14 +117,12 @@ describe('la vuelta del emisor', () => {
 
     expect(montar, 'sin montar, la pagina se queda en blanco y sin una linea que leer').toHaveBeenCalledTimes(1);
     // Claves que la pantalla pasa por `t()`, y no el castellano de la libreria («El emisor tuvo un
-    // problema»): lo que dijo el emisor va en los huecos.
+    // problema»).
     expect(vueltaFallida()).toEqual({
       estado: 'fallo',
       motivo: { clave: TEXTOS_DEL_EMISOR.problema },
-      detalle: {
-        clave: TEXTOS_DEL_EMISOR.contestoConDescripcion,
-        valores: { error: 'server_error', descripcion: 'Unexpected error' },
-      },
+      // Ni el codigo ni la descripcion: viajan en la barra y cualquiera los fabrica (revision del PR #66).
+      detalle: { clave: TEXTOS_DEL_EMISOR.problemaDetalle },
     });
     // Y la URL queda limpia: un codigo usado no vale dos veces, y recargar daria otro error que no
     // tiene nada que ver con lo que paso.

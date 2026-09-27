@@ -16,14 +16,11 @@ import type { FalloDelEmisor } from './api/emisor.ts';
  * de verdad.
  */
 
-/** Un `?error=server_error` con su descripcion, tal como lo deja `leerElError()` (issue 56). */
+/** Un `?error=server_error`, tal como lo deja `leerElError()` (issue 56; sin descripcion desde el PR #66). */
 const LA_FALLA: FalloDelEmisor = {
   estado: 'fallo',
   motivo: { clave: 'El sistema de identidad tuvo un problema' },
-  detalle: {
-    clave: 'Contestó «{{error}}»: {{descripcion}}',
-    valores: { error: 'server_error', descripcion: 'Unexpected error when authenticating' },
-  },
+  detalle: { clave: 'Suele ser pasajero.' },
 };
 
 let fallaDeLaVuelta: FalloDelEmisor | null = null;
@@ -74,12 +71,10 @@ describe('con vuelta fallida, se explica y NO se monta el recorrido', () => {
     montar();
 
     expect(screen.getByText('No se pudo abrir su sesión')).toBeInTheDocument();
-    // Lo que dijo el emisor llega: sin ello el aviso diria «algo fallo» y habria que mirar la
-    // consola del navegador de quien lo sufrio. Pero dentro de frases del portal (issue 56).
+    // Frases del portal, y solo del portal (issue 56 y revision del PR #66).
     expect(
       screen.getByText(
-        'Volvimos del sistema de identidad sin poder entrar: El sistema de identidad tuvo un problema. ' +
-          'Contestó «server_error»: Unexpected error when authenticating',
+        'Volvimos del sistema de identidad sin poder entrar: El sistema de identidad tuvo un problema. Suele ser pasajero.',
       ),
     ).toBeInTheDocument();
     expect(screen.getByText(/ventanilla de la municipalidad/)).toBeInTheDocument();
@@ -115,7 +110,7 @@ describe('con vuelta fallida, se explica y NO se monta el recorrido', () => {
       screen.getByText(
         marcado(
           `Volvimos del sistema de identidad sin poder entrar: ${marcado('El sistema de identidad tuvo un problema')}. ` +
-            marcado('Contestó «server_error»: Unexpected error when authenticating'),
+            marcado('Suele ser pasajero.'),
         ),
       ),
     ).toBeInTheDocument();

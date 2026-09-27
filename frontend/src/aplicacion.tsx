@@ -45,7 +45,8 @@ const TEMA: ConfiguracionDeTema = {
  * traducen aqui, con sus huecos (issue 56). Hasta entonces iban tal cual los escribia
  * `@kamayuk/sesion` —«El emisor no dejo entrar», sin tildes, sin `t()` y en palabras de quien opera
  * Keycloak—, mientras el canje silencioso decia el mismo error con otras. Lo que el emisor dijo
- * (`error`, `error_description`) sigue llegando, pero como hueco de una frase del portal.
+ * (`error`, `error_description`) NO llega: viaja en la barra y cualquiera puede fabricarlo (revision
+ * del PR #66; ver `src/api/emisor.ts`).
  */
 function LaPuertaNoContesto({ falla }: { readonly falla: FalloDelEmisor }) {
   const { t } = useTranslation();

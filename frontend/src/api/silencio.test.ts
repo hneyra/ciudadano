@@ -333,16 +333,14 @@ describe('AC4 — el emisor que no contesta es un fallo con su motivo, no una es
     expect(marcosEnLaPagina()).toBe(0);
   });
 
-  it('un error que no es «no hay sesion» es un fallo, con lo que dijo el emisor', async () => {
+  it('un error que no es «no hay sesion» es un fallo, dicho con textos del portal', async () => {
     emisor = emisorFalso((pedida) => `?error=unauthorized_client&error_description=Cliente+desconocido&state=${pedida.searchParams.get('state') ?? ''}`);
 
     await expect(nuevo().intentar()).resolves.toEqual({
       estado: 'fallo',
       motivo: { clave: 'El sistema de identidad no reconoce a este portal' },
-      detalle: {
-        clave: 'Contestó «{{error}}»: {{descripcion}}',
-        valores: { error: 'unauthorized_client', descripcion: 'Cliente desconocido' },
-      },
+      // Ni el codigo ni la descripcion del emisor (revision del PR #66): solo textos del portal.
+      detalle: { clave: 'El sistema de identidad no tiene registrado este portal, o no con esta dirección.' },
     });
   });
 

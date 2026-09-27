@@ -27,11 +27,15 @@ import type { TextosDeLaPuerta, Vuelta } from '@kamayuk/sesion';
  * `verificaciones/el-locale-esta-completo.test.ts` por `clavesDelEmisor()`: `i18next-cli` no ve un
  * `t()` con una variable.
  *
- * <h2>Lo que dijo el emisor SI llega, pero dentro de una frase del portal</h2>
+ * <h2>Lo que dijo el emisor NO llega a la pantalla (revision del PR #66)</h2>
  *
- * El `error` y el `error_description` de la vuelta son lo unico que permite a alguien arreglar el
- * fallo, asi que se ensenan —como huecos de «Contestó «{{error}}»: {{descripcion}}», que es una clave
- * del portal y pasa por `t()`—. Nunca como la frase entera.
+ * Ni el `error` ni el `error_description` de la vuelta se ensenan, **nunca**, ni siquiera como hueco
+ * de una frase del portal. Viajan en la barra de direcciones, y la libreria no comprueba el `state`
+ * en la rama de `?error=`: cualquiera puede fabricar un enlace
+ * `…/portal/?error=x&error_description=Pague+al+999…` y el portal pintaria ese texto DENTRO del aviso
+ * de la municipalidad. React lo escapa —no hay XSS—, pero es suplantacion con el escudo al lado. Asi
+ * que el codigo solo ELIGE un texto del portal (`motivoDelError`), los que no se conocen caen en uno
+ * generico, y la descripcion se tira.
  */
 
 /**
@@ -73,12 +77,14 @@ export const TEXTOS_DEL_EMISOR = {
   sinTokenDetalle: 'La respuesta del canje no trae «access_token».',
   sinCodigo: 'La respuesta no cuadra con la pregunta',
   sinCodigoDetalle: 'Volvió sin código y sin error.',
-  contesto: 'Contestó «{{error}}».',
-  contestoConDescripcion: 'Contestó «{{error}}»: {{descripcion}}',
   alcance: 'El alcance que se pide no existe en el sistema de identidad',
+  alcanceDetalle: 'Este portal pide un permiso que el sistema de identidad no tiene configurado.',
   cliente: 'El sistema de identidad no reconoce a este portal',
+  clienteDetalle: 'El sistema de identidad no tiene registrado este portal, o no con esta dirección.',
   problema: 'El sistema de identidad tuvo un problema',
+  problemaDetalle: 'Suele ser pasajero.',
   noDejo: 'El sistema de identidad no dejó entrar',
+  noDejoDetalle: 'No dijo por qué.',
   inesperado: 'No se pudo preguntar al sistema de identidad',
   inesperadoDetalle: 'Algo falló al preparar la pregunta: {{mensaje}}',
   // ── Lo que solo le pasa a la vuelta normal (issue 56) ──────────────────────────────────────
@@ -125,19 +131,22 @@ export const NO_QUISO_ENTRAR: ReadonlySet<string> = new Set([
   'account_selection_required',
 ]);
 
-/** El motivo de un `?error=` que SI es una averia, segun el codigo de OAuth. */
-function motivoDelError(error: string): TextoDelEmisor {
+/**
+ * Lo que se dice de un `?error=` que SI es una averia, segun el codigo de OAuth: **solo textos del
+ * portal**. El codigo elige; no se ensena (ver la cabecera).
+ */
+function falloDelError(error: string): FalloDelEmisor {
   switch (error) {
     case 'invalid_scope':
-      return texto(TEXTOS_DEL_EMISOR.alcance);
+      return fallo(texto(TEXTOS_DEL_EMISOR.alcance), texto(TEXTOS_DEL_EMISOR.alcanceDetalle));
     case 'unauthorized_client':
     case 'invalid_client':
-      return texto(TEXTOS_DEL_EMISOR.cliente);
+      return fallo(texto(TEXTOS_DEL_EMISOR.cliente), texto(TEXTOS_DEL_EMISOR.clienteDetalle));
     case 'temporarily_unavailable':
     case 'server_error':
-      return texto(TEXTOS_DEL_EMISOR.problema);
+      return fallo(texto(TEXTOS_DEL_EMISOR.problema), texto(TEXTOS_DEL_EMISOR.problemaDetalle));
     default:
-      return texto(TEXTOS_DEL_EMISOR.noDejo);
+      return fallo(texto(TEXTOS_DEL_EMISOR.noDejo), texto(TEXTOS_DEL_EMISOR.noDejoDetalle));
   }
 }
 
@@ -145,17 +154,14 @@ function motivoDelError(error: string): TextoDelEmisor {
  * **La unica traduccion de un `?error=` del emisor** (issue 56): la usan la vuelta normal
  * (`arranque.ts`) y el canje silencioso (`silencio.ts`).
  *
- * @param error el `error` de la vuelta, tal cual.
- * @param descripcion su `error_description`, o `null` si no vino.
+ * Recibe **solo el codigo**, y a proposito: el `error_description` no se le pasa, para que no haya
+ * forma de que llegue a la pantalla (revision del PR #66).
+ *
+ * @param error el `error` de la vuelta. Elige el texto; no se ensena.
  */
-export function leerElError(error: string, descripcion: string | null): NoEntro | FalloDelEmisor {
+export function leerElError(error: string): NoEntro | FalloDelEmisor {
   if (NO_QUISO_ENTRAR.has(error)) return { estado: 'anonimo' };
-  return fallo(
-    motivoDelError(error),
-    descripcion === null
-      ? texto(TEXTOS_DEL_EMISOR.contesto, { error })
-      : texto(TEXTOS_DEL_EMISOR.contestoConDescripcion, { error, descripcion }),
-  );
+  return falloDelError(error);
 }
 
 /** El mensaje de una excepcion, para el hueco `{{mensaje}}`. */

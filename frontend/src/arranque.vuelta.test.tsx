@@ -95,6 +95,26 @@ describe('AC2 — un canje que revienta no deja la pagina en blanco', () => {
   });
 });
 
+describe('REVISION del PR #66 — un enlace fabricado no pinta su texto dentro del aviso', () => {
+  // La libreria no comprueba el `state` en la rama de `?error=`: cualquiera puede mandar un enlace
+  // con `?error=…&error_description=…` y, hasta esta revision, el portal pintaba esa descripcion
+  // —y el codigo— dentro del aviso de la municipalidad. React lo escapa (no hay XSS); es suplantacion.
+  const EL_ENGANO = 'Su deuda vence hoy. Yapee S/ 350 al 999 888 777 para no perder su predio';
+
+  it.each([
+    ['con un codigo conocido', 'server_error'],
+    ['con un codigo inventado', 'yapee_al_999_888_777'],
+  ])('%s: ni la descripcion ni el codigo llegan a la pantalla', async (_caso, error) => {
+    await volverCon(`?error=${error}&error_description=${encodeURIComponent(EL_ENGANO)}`);
+
+    expect(await screen.findByText('No se pudo abrir su sesión')).toBeInTheDocument();
+    const lo = document.body.textContent ?? '';
+    expect(lo, 'el aviso municipal pinto un texto que venia en la barra').not.toContain(EL_ENGANO);
+    expect(lo).not.toMatch(/999/);
+    expect(lo, 'el aviso ensena el codigo de error tal como vino en la barra').not.toContain(error);
+  });
+});
+
 /**
  * Cada forma en que la vuelta puede fallar, con lo que hace falta para provocarla de verdad: la barra,
  * el almacenamiento y la red. Son TODAS las ramas `fallo` de `canjearSiVuelve` de la libreria, mas

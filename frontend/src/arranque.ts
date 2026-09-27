@@ -146,10 +146,9 @@ function hayQuePreguntar(conPlataforma: boolean, volvio: boolean): boolean {
  * canjear y, al traducirlo, pierde el codigo —cualquier error que no conoce sale con el mismo
  * motivo—, asi que despues ya no se puede saber si fue `access_denied`.
  */
-function elErrorDeLaBarra(): { readonly error: string; readonly descripcion: string | null } | null {
-  const barra = new URLSearchParams(window.location.search);
-  const error = barra.get('error');
-  return error === null ? null : { error, descripcion: barra.get('error_description') };
+function elErrorDeLaBarra(): string | null {
+  // Solo el codigo: el `error_description` no se lee, porque no se ensena (revision del PR #66).
+  return new URLSearchParams(window.location.search).get('error');
 }
 
 /**
@@ -171,7 +170,7 @@ async function canjear(): Promise<boolean> {
   try {
     const vuelta = await identidad.canjearSiVuelve();
     if (vuelta.estado !== 'fallo') return vuelta.estado === 'canjeado';
-    const leido = enLaBarra === null ? deLaVuelta(vuelta) : leerElError(enLaBarra.error, enLaBarra.descripcion);
+    const leido = enLaBarra === null ? deLaVuelta(vuelta) : leerElError(enLaBarra);
     if (leido.estado === 'fallo') laVuelta = leido;
   } catch (error) {
     laVuelta = vueltaInesperada(error);
