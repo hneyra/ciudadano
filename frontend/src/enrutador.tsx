@@ -25,7 +25,9 @@ function PantallaDelPaso({ paso }: { readonly paso: Paso }) {
   useEffect(() => {
     if (visto.current === paso) return;
     visto.current = paso;
-    if (!alcanzable) navegar(RUTA_DEL_PASO[ultimoAlcanzable(estado)], { replace: true });
+    // `navegar` puede devolver una promesa (issue 55): esta redireccion no espera a que la
+    // navegacion termine, asi que se marca `void` a proposito y no por descuido.
+    if (!alcanzable) void navegar(RUTA_DEL_PASO[ultimoAlcanzable(estado)], { replace: true });
     else if (estado.paso !== paso) despachar({ tipo: 'irA', paso });
   }, [paso, alcanzable, estado, despachar, navegar]);
 

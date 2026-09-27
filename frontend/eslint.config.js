@@ -1,8 +1,10 @@
 import js from '@eslint/js';
 import globals from 'globals';
 import jsxA11y from 'eslint-plugin-jsx-a11y';
+import playwright from 'eslint-plugin-playwright';
 import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
+import vitest from '@vitest/eslint-plugin';
 
 import { PROHIBICIONES } from './eslint.prohibiciones.mjs';
 
@@ -89,6 +91,38 @@ export default tseslint.config(
       ecmaVersion: 2022,
       sourceType: 'module',
       globals: { ...globals.browser, ...globals.es2022 },
+      /**
+       * **Con tipos** (issue 55): `no-floating-promises` y `no-misused-promises` necesitan saber
+       * si una expresion es una Promise, y eso solo lo dice el compilador. `projectService` — y
+       * no `project: ['./tsconfig.json']` — porque busca el `tsconfig.json` de cada archivo por
+       * si mismo, sin mantener una lista de rutas aparte, y es lo que `typescript-eslint` 8
+       * recomienda. Alcanza a todo lo que `tsconfig.json` incluye (`src/`, `verificaciones/`,
+       * `e2e/`, y unos pocos archivos de la raiz); los `*.config.ts` no lo necesitan porque
+       * `ignores` de arriba no los linta.
+       *
+       * `allowDefaultProject` — sin el, `yarn verificar` se rompe (medido): `reglas-de-eslint.test.ts`
+       * y `los-datos-no-cuentan-a-mano.test.ts` juzgan sus muestras con `eslint.lintText`, con la
+       * RUTA de un archivo que no existe en el disco —«como si viviera en `src/pantallas/`», dice
+       * su cabecera— para que la regla se evalue en el sitio donde tiene que aplicar de verdad. Sin
+       * un proyecto que lo reclame, el «project service» de `typescript-eslint` no PARSEA el
+       * archivo: «Parsing error: … was not found by the project service», y la prohibicion que la
+       * muestra venia a demostrar nunca llega a evaluarse. `src/pantallas/` no existe como
+       * directorio real —es solo el sitio donde estas pruebas juzgan—, y `src/datos/calentamiento.ts`
+       * y `src/datos/recibos.ts` son archivos inventados de la segunda (su precalentamiento y su
+       * prueba del `fetch` exceptuado). El tope se sube porque son mas de las 8 rutas que trae por
+       * omision (nueve muestras mas unas pocas sinteticas por archivo de prueba).
+       */
+      parserOptions: {
+        projectService: {
+          allowDefaultProject: [
+            'src/pantallas/*',
+            'src/datos/calentamiento.ts',
+            'src/datos/recibos.ts',
+          ],
+          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 40,
+        },
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
     plugins: {
       'react-hooks': reactHooks,
@@ -103,6 +137,11 @@ export default tseslint.config(
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+      // Una promesa que nadie espera ni descarta es una corrida que puede mentir (issue 55): la
+      // asercion que iba dentro corre DESPUES de que Vitest ya dio la prueba por buena, y el
+      // efecto que faltaba disparar puede no haber ocurrido cuando la siguiente linea lo mira.
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
 
       'no-restricted-syntax': ['error', ...EN_TODAS_PARTES],
     },
@@ -137,5 +176,31 @@ export default tseslint.config(
     files: ['**/*.test.{ts,tsx}', 'verificaciones/*.ts'],
     languageOptions: { globals: { ...globals.node } },
     rules: { 'no-restricted-syntax': 'off' },
+  },
+
+  {
+    // **Un `it.only`/`test.only` deja la suite en verde corriendo un solo caso** (issue 55): sin
+    // esto, ESLint no distingue una prueba de las demas de un archivo cualquiera. Solo las dos
+    // reglas que el issue nombra, y no `vitest.configs.recommended` entero: ese trae treinta y
+    // tantas reglas de estilo que no son las que este issue pide, y adoptarlas de golpe es
+    // trabajo de otro dia.
+    files: ['**/*.test.{ts,tsx}'],
+    plugins: { vitest },
+    rules: {
+      'vitest/no-focused-tests': 'error',
+      'vitest/no-disabled-tests': 'error',
+    },
+  },
+
+  {
+    // El equivalente en el arnes de Playwright: un `test.only`/`test.skip` en una especificacion
+    // de `e2e/` (issue 55). `forbidOnly` de `playwright.config.ts` lo para en CI; esto lo para
+    // tambien en local, sin `CI=1` puesto y sin llegar a construir el bundle.
+    files: ['e2e/*.spec.ts'],
+    plugins: { playwright },
+    rules: {
+      'playwright/no-focused-test': 'error',
+      'playwright/no-skipped-test': 'error',
+    },
   },
 );

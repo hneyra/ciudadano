@@ -1,3 +1,5 @@
+import process from 'node:process';
+
 import { defineConfig, devices } from '@playwright/test';
 
 import {
@@ -40,6 +42,14 @@ export default defineConfig({
   // segundos y paga con rojos que dependen del orden.
   fullyParallel: false,
   workers: 1,
+  /**
+   * **Un `test.only` olvidado deja el arnes en verde recorriendo un solo camino** (issue 55). En
+   * CI para la corrida entera: «Playwright Test did not expect test.only() to be used». En local
+   * NO revienta a proposito —mientras se aisla un camino roto, `.only` es la forma normal de
+   * mirarlo solo a el—, pero `playwright/no-focused-test` de `eslint.config.js` ya lo senala ahi,
+   * asi que `yarn lint` sale rojo antes de llegar a construir el bundle.
+   */
+  forbidOnly: !!process.env.CI,
   // El informe HTML siempre: en CI viaja como artefacto (`playwright-report/`), y en local es donde se
   // abren las trazas de un rojo.
   reporter: [['list'], ['html', { open: 'never' }]],

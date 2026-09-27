@@ -49,7 +49,9 @@ export function useLaRutaSigueAlPaso(): void {
   useEffect(() => {
     if (visto.current === estado.paso) return;
     visto.current = estado.paso;
-    if (pathname !== RUTA_DEL_PASO[estado.paso]) navegar(RUTA_DEL_PASO[estado.paso]);
+    // Igual que en `enrutador.tsx`: `navegar` puede devolver una promesa (issue 55) y aqui no
+    // hace falta esperarla.
+    if (pathname !== RUTA_DEL_PASO[estado.paso]) void navegar(RUTA_DEL_PASO[estado.paso]);
   }, [estado.paso, pathname, navegar]);
 }
 
