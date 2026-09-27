@@ -459,7 +459,7 @@ function DeudasDeLaDemostracion() {
  * **Paso 2, en los dos modos** (issue 28).
  *
  * La pregunta que la pantalla hace es «¿de donde sale la deuda?», y la contesta la politica del modo
- * (`useModo().deuda`, issue 59) —que sale de la fuente inyectada, no de `import.meta.env`—: asi los
+ * (`useModo().contenido.laDeudaSeConsulta`, issues 59 y 60) —que sale de la fuente inyectada, no de `import.meta.env`—: asi los
  * dos modos se prueban inyectando una fuente en vez de trucando el entorno.
  *
  * Y son **dos pantallas enteras**, no una con condiciones dentro. Lo que el artboard dibuja —cuotas,
@@ -469,5 +469,5 @@ function DeudasDeLaDemostracion() {
  * de plataforma solo puede dibujar lo que le dieron.
  */
 export function Deudas() {
-  return useModo().deuda === 'de-la-consulta' ? <LaConsulta /> : <DeudasDeLaDemostracion />;
+  return useModo().contenido.laDeudaSeConsulta ? <LaConsulta /> : <DeudasDeLaDemostracion />;
 }

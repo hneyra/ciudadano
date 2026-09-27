@@ -255,7 +255,7 @@ function Bancos({ medio }: { readonly medio: MedioDePago }) {
 function useConfirmarElPago(): { readonly nada: boolean; readonly confirmar: () => void } {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
-  const { pagoSimulado } = useModo();
+  const pagoSimulado = useModo().cobro.simulado;
   const nada = porPagar(estado).length === 0;
 
   return {
@@ -372,7 +372,8 @@ function Resumen() {
   const { estado, despachar } = useRecorrido();
   // El reajuste solo lo trae la deuda de la consulta; el comprobante solo se envia si el pago no es
   // simulado. Lo decide el modo (issue 59).
-  const { deuda, pagoSimulado } = useModo();
+  const { contenido, cobro } = useModo();
+  const pagoSimulado = cobro.simulado;
   const idDelTitulo = useId();
   const conceptos = porPagar(estado);
   const lo = cuentaPorPagar(estado);
@@ -416,7 +417,7 @@ function Resumen() {
               El reajuste solo lo trae el servidor (issue 26); el artboard no lo tiene y su resumen
               son tres filas. Sin esta fila, con plataforma las filas no sumaban el total.
             */}
-            {deuda === 'de-la-consulta' ? (
+            {contenido.traeReajuste ? (
               <Total rotulo={t('Reajuste')} className="border-t border-linea-2 py-[9px]">
                 <Cifra valor={lo.reajuste} />
               </Total>
@@ -583,7 +584,7 @@ function PagarConLosMedios() {
  * derecha si es el mismo, porque lo que se deberia pagar se cuenta igual.
  */
 export function Pagar() {
-  const { pagoSimulado } = useModo();
+  const pagoSimulado = useModo().cobro.simulado;
 
   return (
     <div

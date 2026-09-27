@@ -348,7 +348,7 @@ export type AccionDelRecorrido =
 
 /** Los pasos numerados de ESTE recorrido: cinco en demostracion, cuatro con plataforma. */
 export function pasosNumerados(estado: DecisionesDelRecorrido): readonly PasoNumerado[] {
-  return estado.politica.pasos;
+  return estado.politica.recorrido.pasos;
 }
 
 /**
@@ -359,7 +359,7 @@ export function pasosNumerados(estado: DecisionesDelRecorrido): readonly PasoNum
  * devolver `entrar` con la sesion abierta dejaria al enrutador redirigiendo en circulo.
  */
 export function primerPaso(estado: DecisionesDelRecorrido): Paso {
-  const { primerPaso: primero } = estado.politica;
+  const { primerPaso: primero } = estado.politica.recorrido;
   return estado.autenticado ? primero.conSesion : primero.sinSesion;
 }
 
@@ -395,7 +395,7 @@ export function vivasDelServidor(estado: EstadoDelRecorrido): readonly DeudaDelS
  * omision —marcado con plataforma, desmarcado en demostracion—. Ver `marcadas`.
  */
 export function estaMarcada(estado: DecisionesDelRecorrido, id: string): boolean {
-  return estado.marcadas[id] ?? estado.politica.marcadoPorOmision;
+  return estado.marcadas[id] ?? estado.politica.recorrido.marcadoPorOmision;
 }
 
 /** Lo marcado DE LA DEUDA VIVA: lo pagado no se vuelve a cobrar aunque siga marcado. */
@@ -529,7 +529,7 @@ export function inicio(estado: EstadoDelRecorrido): Paso {
  */
 export function destinoDelComprobante(estado: EstadoDelRecorrido): string | null {
   // El de la cuenta del artboard, que llega con la demostracion (issue 58).
-  if (estado.autenticado && estado.politica.sesion === 'de-la-demostracion') {
+  if (estado.autenticado && estado.politica.sesion.traeElCorreo) {
     return laDemostracion(estado).usuario.correo;
   }
   const correo = estado.correo.trim();
@@ -625,7 +625,7 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
       // Sin nada que pagar no se sella nada. El aviso «No hay nada que pagar.» es de la pantalla.
       if (pagado.length === 0) return estado;
       const sellado = { conceptos: pagado, contribuyente: estado.contribuyente, ...cuentaDe(pagado) };
-      if (estado.politica.pagoSimulado) {
+      if (estado.politica.cobro.simulado) {
         // **Un pago simulado NO da la deuda por pagada** (issue 28, revision): no hubo cobro, y
         // quitar el concepto de la deuda viva seria el mismo embuste que la frase «la deuda pagada
         // ya se descontó de su cuenta» — dicho con la lista en vez de con palabras. El aviso de los

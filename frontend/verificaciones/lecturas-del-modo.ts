@@ -36,7 +36,7 @@ import { RAIZ } from './artboards.ts';
  *      importarla (`import { consultaDe as c }`) o reexportarla no la esconde.
  *
  * Escribir el modo no es leerlo: `modo: 'demostracion'` en el objeto de una fuente es una asignacion
- * de propiedad en un literal, y no se senala. Tampoco preguntar a la politica (`politica.pagoSimulado`):
+ * de propiedad en un literal, y no se senala. Tampoco preguntar a la politica (`politica.cobro.simulado`):
  * es lo que se pide.
  *
  * <h2>Lo que NO ve, dicho</h2>
@@ -46,7 +46,7 @@ import { RAIZ } from './artboards.ts';
  *     la pregunta se puede seguir haciendo asi; esta guarda no lo distingue de leer el dato.
  *   · **Una herramienta permitida usada para otra cosa en su sitio permitido**: `montaje.tsx` puede
  *     llamar a `politicaDe`, y la guarda no mira que haga con ella. Por eso la lista es corta.
- *   · **Comparar la politica campo a campo con una copia escrita a mano** (`useModo().pasos[0] ===
+ *   · **Comparar la politica campo a campo con una copia escrita a mano** (`useModo().recorrido.pasos[0] ===
  *     'entrar'`): es preguntar el modo por un sintoma, y no se distingue de preguntar por los pasos.
  *   · **Lo que se hace por reflexion**: `Reflect.get(fuente, 'modo')`, una clave elegida con una
  *     variable (`fuente[clave]`), `Object.values(fuente)`.

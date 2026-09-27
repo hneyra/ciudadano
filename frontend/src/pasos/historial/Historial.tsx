@@ -171,7 +171,7 @@ function PagosRealizados() {
   const { t } = useTranslation();
   const { estado } = useRecorrido();
   const historial = useHistorial();
-  const { publicaLosPagos } = useModo();
+  const { publicaLosPagos } = useModo().contenido;
   // Un pago simulado NO entra en «Pagos realizados»: esa tabla es la lista de lo que se pago, y ahi
   // no se pago nada (issue 28, revision). Lo de esta visita lo dice la banda de arriba, que ademas
   // dice que es simulado. Se pregunta al pago, no al modo (issue 59).
@@ -666,7 +666,7 @@ function DeDondeSale({ enfocar, alEnfocar }: { readonly enfocar: boolean; readon
 export function Historial() {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
-  const { publicaLosPagos, deuda } = useModo();
+  const { publicaLosPagos, laDeudaSeConsulta, publicaLasUnidades } = useModo().contenido;
   const pago = estado.recienPagado ? estado.ultimo : null;
   // Estable mientras lo sea `despachar`: en demostracion, siempre; con plataforma cambia cuando la
   // cache trae otra respuesta (issue 50), y entonces el efecto de `DeDondeSale` vuelve a correr, pero
@@ -688,16 +688,16 @@ export function Historial() {
 
       {pago === null ? null : <PagoReciente pago={pago} />}
       <PagosRealizados />
-      {deuda === 'de-la-consulta' ? <LoQueQuedaPendienteConPlataforma /> : <LoQueQuedaPendiente />}
+      {laDeudaSeConsulta ? <LoQueQuedaPendienteConPlataforma /> : <LoQueQuedaPendiente />}
       {/*
         Con plataforma las unidades salen de la CONSULTA y no de `useUnidades`, que el backend no
         publica. El foco de «Mis predios y vehículos» es del recorrido de la demostracion: con
         plataforma el menu lleva a esta misma pantalla y la seccion es la de abajo del todo.
       */}
-      {deuda === 'de-la-consulta' ? (
-        <DeDondeSaleConPlataforma />
-      ) : (
+      {publicaLasUnidades ? (
         <DeDondeSale enfocar={estado.enfocarUnidades} alEnfocar={alEnfocar} />
+      ) : (
+        <DeDondeSaleConPlataforma />
       )}
     </div>
   );

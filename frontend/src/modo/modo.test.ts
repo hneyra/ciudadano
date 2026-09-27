@@ -20,8 +20,8 @@ function alEmpezar(politica: PoliticaDelModo, autenticado: boolean): EstadoDelRe
 
 describe.each(Object.entries(POLITICAS))('la politica de «%s»', (_modo, politica) => {
   it('empieza, sin sesion y con ella, por un paso de su franja', () => {
-    expect(politica.pasos).toContain(politica.primerPaso.sinSesion);
-    expect(politica.pasos).toContain(politica.primerPaso.conSesion);
+    expect(politica.recorrido.pasos).toContain(politica.recorrido.primerPaso.sinSesion);
+    expect(politica.recorrido.pasos).toContain(politica.recorrido.primerPaso.conSesion);
   });
 
   it('y ese paso es alcanzable: el enrutador no redirige en circulo', () => {
@@ -33,6 +33,38 @@ describe.each(Object.entries(POLITICAS))('la politica de «%s»', (_modo, politi
   });
 
   it('con sesion no vuelve a `entrar`, que no se repite', () => {
-    expect(politica.primerPaso.conSesion).not.toBe('entrar');
+    expect(politica.recorrido.primerPaso.conSesion).not.toBe('entrar');
+  });
+});
+
+/**
+ * **La politica pregunta; no nombra el modo** (revision del PR #70, issue 60).
+ *
+ * Hasta el issue 60, `deuda: 'de-la-consulta'`, `sesion: 'del-emisor'` y `capacidades:
+ * 'las-de-la-plataforma'` eran el nombre del modo escrito en un valor: preguntar por ellos era
+ * preguntar el modo con otras palabras, y `deuda` contestaba a la vez preguntas distintas (la fila
+ * «Reajuste», las secciones de «Mis pagos»). Ahora la politica se agrupa por de que trata y cada campo
+ * es una pregunta con su respuesta.
+ */
+describe('la politica se nombra por las preguntas que contesta', () => {
+  /** Las hojas de un valor, con su camino: `contenido.capacidades.0 = 'pagar-en-linea'`. */
+  function hojas(valor: unknown, camino: string): [string, unknown][] {
+    if (valor !== null && typeof valor === 'object') {
+      return Object.entries(valor).flatMap(([clave, dentro]) => hojas(dentro, camino === '' ? clave : `${camino}.${clave}`));
+    }
+    return [[camino, valor]];
+  }
+
+  it.each(Object.entries(POLITICAS))('«%s» se agrupa en recorrido, sesion, cobro y contenido', (_modo, politica) => {
+    expect(Object.keys(politica).sort()).toEqual(['cobro', 'contenido', 'recorrido', 'sesion']);
+  });
+
+  it.each(Object.entries(POLITICAS))('y ningun valor de «%s» es el nombre de un modo', (_modo, politica) => {
+    // Un valor que dice «artboard», «plataforma», «demostracion», «consulta» o «emisor» no contesta
+    // una pregunta: dice en que modo se esta. Los pasos y las capacidades son otra cosa y pasan.
+    const conNombreDeModo = hojas(politica, '')
+      .filter(([, valor]) => typeof valor === 'string' && /artboard|plataforma|demostraci|consulta|emisor/i.test(valor))
+      .map(([camino, valor]) => `${camino} = ${String(valor)}`);
+    expect(conNombreDeModo).toEqual([]);
   });
 });

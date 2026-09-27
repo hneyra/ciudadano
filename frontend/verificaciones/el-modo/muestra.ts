@@ -51,8 +51,8 @@ export const delTemaPorPunto = elTema().modo;
 // Escribir el discriminante en un literal es DEFINIR un modo, no leerlo.
 export const escrito: Modo = { modo: 'plataforma' };
 // Preguntar a la politica es lo que se pide.
-export const simulado = politica.pagoSimulado;
-export const deDondeSale = politica.deuda === 'de-la-consulta';
+export const simulado = politica.cobro.simulado;
+export const deDondeSale = politica.contenido.laDeudaSeConsulta;
 // Algo que se llama como una herramienta y no lo es: su simbolo esta declarado aqui.
 declare const otro: { politicaDe(): boolean };
 export const seLlamaIgual = otro.politicaDe();

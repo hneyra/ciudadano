@@ -1,9 +1,11 @@
 import { Icono } from '@kamayuk/ui';
 import { type ReactNode, useId } from 'react';
+import { type TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 
 import { ORDENANZA } from '../datos/constantes.ts';
 import { TRAZOS_DEL_ARTBOARD, type TrazoDelArtboard } from '../pasos/buscar/trazos.ts';
+import type { CapacidadDelPortal } from '../modo/modo.ts';
 import { useModo } from '../modo/useModo.ts';
 import { useRecorrido } from '../recorrido/ProveedorDelRecorrido.tsx';
 import { AvisoConFilo } from './AvisoConFilo.tsx';
@@ -58,7 +60,54 @@ function IconoDeCapacidad({ icono }: { readonly icono: Capacidad['icono'] }): Re
 }
 
 /**
- * «Qué puede hacer aquí»: las cuatro capacidades del portal, al pie de la tarjeta del paso 1.
+ * Lo que se dice de cada capacidad. El modo solo elige CUALES (`contenido.capacidades` de la politica,
+ * issue 60); lo que dice cada una es de la portada, y es el mismo texto en cualquier modo que la ofrezca.
+ */
+function capacidadDe(id: CapacidadDelPortal, t: TFunction): Capacidad {
+  switch (id) {
+    case 'ver-la-deuda-con-cuotas':
+      return {
+        titulo: t('Ver lo que debe'),
+        detalle: t('Su impuesto predial, arbitrios y vehicular, con el vencimiento de cada cuota.'),
+        icono: 'lupa',
+      };
+    case 'ver-la-deuda-por-municipalidad':
+      return {
+        titulo: t('Ver lo que debe'),
+        detalle: t('Lo que debe en cada municipalidad del sistema, por tributo y año, con la fecha de cada importe.'),
+        icono: 'lupa',
+      };
+    case 'pagar-en-linea':
+      return { titulo: t('Pagar en línea'), detalle: t('Con tarjeta, Yape, pagalo.pe o un código para el banco.'), icono: 'pagar' };
+    case 'pagar-en-la-ventanilla':
+      return {
+        titulo: t('Pagar en la ventanilla'),
+        detalle: t('El pago en línea todavía no está disponible: se paga con su documento en la municipalidad.'),
+        icono: 'pagar',
+      };
+    case 'descargar-comprobantes':
+      return {
+        titulo: t('Descargar comprobantes'),
+        detalle: t('El del pago que acaba de hacer y los de años anteriores.'),
+        icono: 'recibo',
+      };
+    case 'saber-de-donde-sale':
+      return {
+        titulo: t('Saber de dónde sale'),
+        detalle: t('El autovalúo de su predio, los metros de frontis y la tabla que se le aplica.'),
+        icono: 'detalle',
+      };
+    case 'ver-los-predios':
+      return {
+        titulo: t('Ver sus predios'),
+        detalle: t('Los predios que figuran a su nombre, con su código catastral.'),
+        icono: 'detalle',
+      };
+  }
+}
+
+/**
+ * «Qué puede hacer aquí»: las capacidades del portal, al pie de la tarjeta del paso 1.
  *
  * **Es un `h2` y una lista**; en el artboard, un `p` y cuatro `div`. Se ve igual y se recorre por
  * encabezados.
@@ -66,50 +115,9 @@ function IconoDeCapacidad({ icono }: { readonly icono: Capacidad['icono'] }): Re
 export function QuePuedeHacerAqui() {
   const { t } = useTranslation();
   const idDeCapacidades = useId();
-
-  // Que ofrece la portada lo decide el modo (issue 59): las del artboard, o lo que el portal con
-  // plataforma hace de verdad.
-  const capacidades: readonly Capacidad[] =
-    useModo().capacidades === 'las-de-la-plataforma'
-    ? [
-        {
-          titulo: t('Ver lo que debe'),
-          detalle: t('Lo que debe en cada municipalidad del sistema, por tributo y año, con la fecha de cada importe.'),
-          icono: 'lupa',
-        },
-        {
-          titulo: t('Ver sus predios'),
-          detalle: t('Los predios que figuran a su nombre, con su código catastral.'),
-          icono: 'detalle',
-        },
-        {
-          titulo: t('Pagar en la ventanilla'),
-          detalle: t('El pago en línea todavía no está disponible: se paga con su documento en la municipalidad.'),
-          icono: 'pagar',
-        },
-      ]
-    : [
-        {
-          titulo: t('Ver lo que debe'),
-          detalle: t('Su impuesto predial, arbitrios y vehicular, con el vencimiento de cada cuota.'),
-          icono: 'lupa',
-        },
-        {
-          titulo: t('Pagar en línea'),
-          detalle: t('Con tarjeta, Yape, pagalo.pe o un código para el banco.'),
-          icono: 'pagar',
-        },
-        {
-          titulo: t('Descargar comprobantes'),
-          detalle: t('El del pago que acaba de hacer y los de años anteriores.'),
-          icono: 'recibo',
-        },
-        {
-          titulo: t('Saber de dónde sale'),
-          detalle: t('El autovalúo de su predio, los metros de frontis y la tabla que se le aplica.'),
-          icono: 'detalle',
-        },
-      ];
+  // Cuales ofrece la portada lo decide el modo (issues 59 y 60): las del artboard, o lo que el portal
+  // con plataforma hace de verdad.
+  const capacidades = useModo().contenido.capacidades.map((id) => ({ id, ...capacidadDe(id, t) }));
 
   return (
     <section aria-labelledby={idDeCapacidades} className="border-t border-linea-2 bg-sup px-[26px] pt-[18px] pb-5">
@@ -118,7 +126,7 @@ export function QuePuedeHacerAqui() {
       </h2>
       <ul className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(232px,1fr))] gap-0 p-0">
         {capacidades.map((capacidad) => (
-          <li key={capacidad.icono} className="mr-[18px] border-t border-linea pt-[14px] pr-[18px] pb-4">
+          <li key={capacidad.id} className="mr-[18px] border-t border-linea pt-[14px] pr-[18px] pb-4">
             <span className="mb-[6px] flex items-center gap-[9px]">
               <span className="grid size-7 flex-[0_0_auto] place-items-center rounded-sm bg-azul-suave text-azul">
                 <IconoDeCapacidad icono={capacidad.icono} />
