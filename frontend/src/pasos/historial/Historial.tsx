@@ -111,9 +111,9 @@ function PagoReciente({ pago }: { readonly pago: PagoSellado }) {
   const { estado, despachar } = useRecorrido();
   const idDelTitulo = useId();
   // Una sola pregunta, al pago (issue 59): uno simulado no tiene ni numeros, ni medio, ni destino.
-  const registrado = esSimulado(pago) ? null : pago;
+  // El pago registrado va junto con su sello: los dos existen o ninguno.
+  const registrado = esSimulado(pago) ? null : { pago, sello: selloDeLaDemostracion(estado, pago) };
   const simulado = registrado === null;
-  const sello = registrado === null ? null : selloDeLaDemostracion(estado, registrado);
 
   return (
     <section
@@ -132,13 +132,13 @@ function PagoReciente({ pago }: { readonly pago: PagoSellado }) {
         <span
           className={cn('mt-[3px] block text-[13.5px] text-pretty', simulado ? 'text-tinta-3' : 'text-ok-tinta')}
         >
-          {registrado === null || sello === null
+          {registrado === null
             ? t('No se cobró nada, no se envió ningún comprobante y su deuda sigue pendiente.')
             : t('Operación {{operacion}} · {{medio}} · comprobante {{numero}}, enviado a {{destino}}', {
-                operacion: sello.comprobante.operacion,
-                medio: t(sello.medio),
-                numero: sello.comprobante.numero,
-                destino: registrado.destino ?? t('su correo'),
+                operacion: registrado.sello.comprobante.operacion,
+                medio: t(registrado.sello.medio),
+                numero: registrado.sello.comprobante.numero,
+                destino: registrado.pago.destino ?? t('su correo'),
               })}
         </span>
       </span>
@@ -176,20 +176,20 @@ function PagosRealizados() {
   // no se pago nada (issue 28, revision). Lo de esta visita lo dice la banda de arriba, que ademas
   // dice que es simulado. Se pregunta al pago, no al modo (issue 59).
   const ultimo = estado.recienPagado ? estado.ultimo : null;
-  const pago = ultimo === null || esSimulado(ultimo) ? null : ultimo;
-  // Y sus numeros, que solo los tiene un pago registrado (`sello.ts`).
-  const sello = pago === null ? null : selloDeLaDemostracion(estado, pago);
+  // Con sus numeros, que solo los tiene un pago registrado (`sello.ts`): los dos existen o ninguno.
+  const reciente =
+    ultimo === null || esSimulado(ultimo) ? null : { pago: ultimo, sello: selloDeLaDemostracion(estado, ultimo) };
 
   const filas: FilaDePago[] = [
-    ...(pago === null || sello === null
+    ...(reciente === null
       ? []
       : [
           {
-            fecha: formatearFecha(sello.comprobante.fecha),
-            concepto: pago.conceptos.map((deuda) => deuda.concepto).join(' · '),
-            medio: t(sello.medio),
-            comprobante: sello.comprobante.numero,
-            importe: cifraSinSimbolo(aCobrar(estado, pago)),
+            fecha: formatearFecha(reciente.sello.comprobante.fecha),
+            concepto: reciente.pago.conceptos.map((deuda) => deuda.concepto).join(' · '),
+            medio: t(reciente.sello.medio),
+            comprobante: reciente.sello.comprobante.numero,
+            importe: cifraSinSimbolo(aCobrar(estado, reciente.pago)),
             reciente: true,
           },
         ]),

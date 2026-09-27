@@ -210,6 +210,14 @@ export interface DecisionesDelRecorrido {
   readonly enfocarUnidades: boolean;
 }
 
+/**
+ * **Las decisiones con que una prueba puede hacer empezar el portal**: todas menos la politica
+ * (revision del PR #70). La politica la fija SIEMPRE el proveedor, de la fuente (`politicaDe`): una
+ * prueba que la pisara montaria el recorrido de un modo con los datos del otro, y el modo volveria a
+ * leerse de dos sitios. Con este tipo, pisarla no compila.
+ */
+export type DecisionesDePartida = Omit<DecisionesDelRecorrido, 'politica'>;
+
 /** Lo que leen los selectores y las pantallas: lo decidido y lo leido, juntos. */
 export interface EstadoDelRecorrido extends DecisionesDelRecorrido, DatosLeidos {}
 

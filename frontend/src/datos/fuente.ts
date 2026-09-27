@@ -80,34 +80,28 @@ export interface FuenteConPlataforma extends ConPlataforma, LoQueTodaFuenteSabe 
 export type FuenteDelPortal = FuenteDeDemostracion | FuenteConPlataforma;
 
 /**
- * **Nadie inyecto una fuente**, que es el unico valor por omision honesto.
+ * **Nadie inyecto una fuente**, y se dice a la vista (revision del PR #70).
  *
- * Antes lo era la de demostracion, y no puede seguir siendolo: un valor por omision es un `import`
- * estatico, y un `import` estatico de la demostracion la mete en el paquete de produccion pase lo
- * que pase con la bandera. Lo que se pone en su sitio no calla: `montaje.tsx` inyecta siempre la que
+ * Hasta el issue 58 el valor por omision era la fuente de demostracion, y no puede seguir siendolo: un
+ * valor por omision es un `import` estatico, y un `import` estatico de la demostracion la mete en el
+ * paquete de produccion pase lo que pase con la bandera. En el issue 59 fue una fuente de plataforma
+ * cuya consulta rechazaba: fallaba en silencio, dibujando un «no se pudo consultar» verosimil. Ahora
+ * no hay valor por omision (`null`) y leer la fuente sin ella REVIENTA con este mensaje, como
+ * `useRecorrido()` fuera de su proveedor. En produccion no pasa: `montaje.tsx` inyecta siempre la que
  * `laFuente.ts` elige, y las pruebas, la suya (`src/pruebas/portal.tsx`).
  */
-const SIN_INYECTAR =
+export const SIN_INYECTAR =
   'Nadie inyecto una fuente en `FuenteActiva`. La elige `src/datos/laFuente.ts` y la pone ' +
-  '`montaje.tsx`; en una prueba, `montarElPortal({ fuente })`.';
+  '`montaje.tsx`; en una prueba, `montarElPortal({ fuente })` o `<FuenteActiva value={…}>`.';
 
-const NADIE: FuenteDelPortal = {
-  // Un modo hay que tenerlo (issue 59): el que no inventa datos. Su consulta rechaza diciendo por que,
-  // como lo demas.
-  modo: 'plataforma',
-  consulta: () => Promise.reject(new Error(SIN_INYECTAR)),
-  // Nadie dijo que la haya: no se condona nada.
-  amnistia: false,
-  historial: () => Promise.reject(new Error(SIN_INYECTAR)),
-  unidades: () => Promise.reject(new Error(SIN_INYECTAR)),
-};
+/** La fuente que leen los ganchos. Sin valor por omision: ver `SIN_INYECTAR`. */
+export const FuenteActiva = createContext<FuenteDelPortal | null>(null);
 
-/** La fuente que leen los ganchos. Ver `NADIE`: por omision, ninguna. */
-export const FuenteActiva = createContext<FuenteDelPortal>(NADIE);
-
-/** La fuente activa, para quien tenga que preguntarle algo que no sea una de las tres lecturas. */
+/** La fuente activa. Revienta, con su nombre, si nadie la inyecto. */
 export function useLaFuente(): FuenteDelPortal {
-  return useContext(FuenteActiva);
+  const fuente = useContext(FuenteActiva);
+  if (fuente === null) throw new Error(SIN_INYECTAR);
+  return fuente;
 }
 
 /** La rama de la cache donde vive todo lo del portal. Escrita una sola vez. */
@@ -145,7 +139,7 @@ export const LLAVES = {
  * consulta ni pide ni reintenta, y quien la dibuja pregunta antes a la politica (`deuda`).
  */
 export function useLaSituacion() {
-  const consulta = consultaDe(useContext(FuenteActiva));
+  const consulta = consultaDe(useLaFuente());
   return useQuery({
     queryKey: LLAVES.situacion,
     queryFn: consulta === null ? skipToken : consulta,
@@ -166,7 +160,7 @@ export function useLaSituacion() {
  * la tira nunca y `staleTime: Infinity` no la vuelve a pedir al montar.
  */
 export function useLaSituacionSinPedir() {
-  const consulta = consultaDe(useContext(FuenteActiva));
+  const consulta = consultaDe(useLaFuente());
   return useQuery({
     queryKey: LLAVES.situacion,
     queryFn: consulta === null ? skipToken : consulta,
@@ -177,7 +171,7 @@ export function useLaSituacionSinPedir() {
 
 /** Los pagos ya hechos. */
 export function useHistorial() {
-  const fuente = useContext(FuenteActiva);
+  const fuente = useLaFuente();
   return useQuery({
     queryKey: LLAVES.historial,
     queryFn: () => fuente.historial(),
@@ -187,7 +181,7 @@ export function useHistorial() {
 
 /** Los predios y vehiculos. */
 export function useUnidades() {
-  const fuente = useContext(FuenteActiva);
+  const fuente = useLaFuente();
   return useQuery({
     queryKey: LLAVES.unidades,
     queryFn: () => fuente.unidades(),

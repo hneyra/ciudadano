@@ -154,9 +154,10 @@ export interface PoliticaDelModo {
 
 /**
  * **Una politica por modo.** El tipo exige una entrada por cada variante de `Modo`: un modo nuevo sin
- * su politica no compila.
+ * su politica no compila. Se exporta para que `modo.test.ts` las recorra TODAS (revision del PR #70);
+ * fuera de `src/modo/` y de las pruebas no se usa (`verificaciones/lecturas-del-modo.ts`).
  */
-const POLITICAS: { readonly [M in Modo['modo']]: PoliticaDelModo } = {
+export const POLITICAS: { readonly [M in Modo['modo']]: PoliticaDelModo } = {
   demostracion: {
     pasos: PASOS_DE_LA_DEMOSTRACION,
     primerPaso: { sinSesion: 'buscar', conSesion: 'buscar' },

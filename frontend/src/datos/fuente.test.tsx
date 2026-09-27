@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { HISTORIAL } from './demostracion.ts';
 import type { FuenteConPlataforma, FuenteDelPortal } from './fuente.ts';
-import { FuenteActiva, LLAVES, useHistorial, useLaSituacion, useUnidades } from './fuente.ts';
+import { FuenteActiva, LLAVES, SIN_INYECTAR, useHistorial, useLaFuente, useLaSituacion, useUnidades } from './fuente.ts';
 import { POLITICA_CON_PLATAFORMA, POLITICA_DE_LA_DEMOSTRACION, politicaDe } from '../modo/modo.ts';
 import { fuenteDeDemostracion } from './fuenteDeDemostracion.ts';
 import type { SituacionDelServidor } from './tipos.ts';
@@ -134,5 +134,27 @@ describe('LLAVES', () => {
     expect(LLAVES.situacion[0]).toBe(rama);
     expect(LLAVES.historial[0]).toBe(rama);
     expect(LLAVES.unidades[0]).toBe(rama);
+  });
+});
+
+describe('sin fuente inyectada', () => {
+  // Revision del PR #70: hasta entonces el contexto traia una fuente de plataforma cuya consulta
+  // rechazaba, y olvidar `<FuenteActiva>` dibujaba un «no se pudo consultar» verosimil. Ahora se
+  // revienta con el nombre de lo que falta, antes de pedir nada.
+  it.each([
+    ['useLaFuente', useLaFuente],
+    ['useLaSituacion', useLaSituacion],
+    ['useHistorial', useHistorial],
+    ['useUnidades', useUnidades],
+  ])('%s revienta diciendo que falta `FuenteActiva`', (_nombre, gancho) => {
+    const cliente = new QueryClient();
+    const soloConsultas = ({ children }: { readonly children: ReactNode }) => (
+      <QueryClientProvider client={cliente}>{children}</QueryClientProvider>
+    );
+    // React escribe el error en la consola al reventar un render: se calla aqui, que se espera.
+    const consola = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(() => renderHook(() => gancho(), { wrapper: soloConsultas })).toThrow(SIN_INYECTAR);
+    expect(SIN_INYECTAR).toMatch(/FuenteActiva/);
+    consola.mockRestore();
   });
 });

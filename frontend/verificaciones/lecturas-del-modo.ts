@@ -26,6 +26,15 @@ import { RAIZ } from './artboards.ts';
  *      tipos del compilador—, no por su nombre: `const { modo } = useTema()` (claro u oscuro) es otra
  *      cosa y no se senala.
  *
+ *   3. **Una de las herramientas del modulo del modo** (`HERRAMIENTAS`) fuera de los sitios de
+ *      `PERMITIDAS` (revision del PR #70): `consultaDe(fuente) !== null` es el `hayPlataforma` de antes
+ *      con otro nombre, `demostracionDe(x) !== null` lo mismo del otro lado, y
+ *      `useModo() === POLITICA_CON_PLATAFORMA` pregunta el modo comparando la politica por identidad.
+ *      Las exporta el propio modulo porque unos pocos sitios las necesitan —la fuente, para pedir; el
+ *      idioma, para sumar los textos; el montaje y el proveedor, para arrancar—, y esos sitios estan
+ *      escritos aqui con su nombre. Se reconocen por el SIMBOLO, siguiendo los alias: renombrarla al
+ *      importarla (`import { consultaDe as c }`) o reexportarla no la esconde.
+ *
  * Escribir el modo no es leerlo: `modo: 'demostracion'` en el objeto de una fuente es una asignacion
  * de propiedad en un literal, y no se senala. Tampoco preguntar a la politica (`politica.pagoSimulado`):
  * es lo que se pide.
@@ -35,6 +44,10 @@ import { RAIZ } from './artboards.ts';
  *   · **Un sustituto del modo hecho con otro dato**: `estado.demostracion !== null` dice lo mismo que
  *     «estoy en demostracion». Con la fuente como union ya no puede ser `null` en demostracion, pero
  *     la pregunta se puede seguir haciendo asi; esta guarda no lo distingue de leer el dato.
+ *   · **Una herramienta permitida usada para otra cosa en su sitio permitido**: `montaje.tsx` puede
+ *     llamar a `politicaDe`, y la guarda no mira que haga con ella. Por eso la lista es corta.
+ *   · **Comparar la politica campo a campo con una copia escrita a mano** (`useModo().pasos[0] ===
+ *     'entrar'`): es preguntar el modo por un sintoma, y no se distingue de preguntar por los pasos.
  *   · **Lo que se hace por reflexion**: `Reflect.get(fuente, 'modo')`, una clave elegida con una
  *     variable (`fuente[clave]`), `Object.values(fuente)`.
  *   · **Las pruebas y su andamiaje** (`*.test.*`, `src/pruebas/`): una prueba construye estados de un
@@ -57,6 +70,48 @@ export const VARIANTES: ReadonlySet<string> = new Set([
   'FuenteDeDemostracion',
   'FuenteConPlataforma',
 ]);
+
+/**
+ * Lo que el modulo del modo exporta para los pocos sitios que arrancan o piden, y que en cualquier
+ * otro sitio es preguntar el modo por otro camino. Los tipos no estan: nombrar `Modo` no lo lee.
+ */
+export const HERRAMIENTAS: ReadonlySet<string> = new Set([
+  'consultaDe',
+  'demostracionDe',
+  'loLeidoDe',
+  'politicaDe',
+  'enDemostracion',
+  'CON_PLATAFORMA',
+  'POLITICAS',
+  'POLITICA_DE_LA_DEMOSTRACION',
+  'POLITICA_CON_PLATAFORMA',
+  'PASOS_DE_LA_DEMOSTRACION',
+  'PASOS_CON_PLATAFORMA',
+]);
+
+/** **Donde se permite cada herramienta**, archivo por archivo y con su porque. Crecerla es una decision. */
+export const PERMITIDAS: Readonly<Record<string, readonly string[]>> = {
+  // Pedir la situacion: solo la fuente sabe a quien.
+  'src/datos/fuente.ts': ['consultaDe'],
+  // Sumar al idioma los textos de los datos de ejemplo, si el modo los trae (issue 58).
+  'src/i18n/i18n.ts': ['demostracionDe'],
+  // Decidir antes de montar si se le pregunta al emisor (issue 35).
+  'src/montaje.tsx': ['politicaDe'],
+  // Fijar la politica del recorrido y leer lo que el modo aporta, en cada dibujo.
+  'src/recorrido/ProveedorDelRecorrido.tsx': ['politicaDe', 'loLeidoDe'],
+  // El estado inicial y las decisiones de partida; y los pasos de los dos recorridos, que reexporta y
+  // de los que deriva `TODOS_LOS_PASOS` (las rutas).
+  'src/recorrido/recorrido.ts': [
+    'politicaDe',
+    'loLeidoDe',
+    'POLITICA_DE_LA_DEMOSTRACION',
+    'PASOS_DE_LA_DEMOSTRACION',
+    'PASOS_CON_PLATAFORMA',
+  ],
+};
+
+/** El archivo que define las herramientas: un simbolo de otro sitio con el mismo nombre no es una. */
+const DEFINICION_DEL_MODO = 'src/modo/modo.ts';
 
 export interface Lectura {
   readonly ruta: string;
@@ -117,8 +172,27 @@ function tipoConPropiedadDeUnaVariante(tipo: ts.Type, nombre: string): boolean {
   return miembros.some((miembro) => esDeUnaVariante(miembro.getProperty(nombre)));
 }
 
+/**
+ * La `HERRAMIENTA` del modulo del modo que nombra el identificador, siguiendo los alias —`consultaDe`
+ * importada como `preguntar` sigue siendo `consultaDe`—, o `null` si no nombra ninguna.
+ */
+function herramientaDe(nodo: ts.Identifier, comprobador: ts.TypeChecker): string | null {
+  // Nombrarla al importarla no es usarla: lo que se senala es cada uso.
+  if (ts.isImportSpecifier(nodo.parent) || ts.isImportClause(nodo.parent)) return null;
+  let simbolo = comprobador.getSymbolAtLocation(nodo);
+  if (simbolo !== undefined && (simbolo.flags & ts.SymbolFlags.Alias) !== 0) {
+    simbolo = comprobador.getAliasedSymbol(simbolo);
+  }
+  if (simbolo === undefined || !HERRAMIENTAS.has(simbolo.name)) return null;
+  const delModulo = (simbolo.declarations ?? []).some(
+    (declaracion) => relative(RAIZ, declaracion.getSourceFile().fileName).replaceAll('\\', '/') === DEFINICION_DEL_MODO,
+  );
+  return delModulo ? simbolo.name : null;
+}
+
 function juzgar(arbol: ts.SourceFile, comprobador: ts.TypeChecker, ruta: string): Lectura[] {
   const salida: Lectura[] = [];
+  const permitidas = new Set(PERMITIDAS[ruta.replaceAll('\\', '/')] ?? []);
   const senalar = (nodo: ts.Node, forma: string): void => {
     const linea = arbol.getLineAndCharacterOfPosition(nodo.getStart(arbol)).line + 1;
     salida.push({ ruta, linea, forma });
@@ -127,6 +201,11 @@ function juzgar(arbol: ts.SourceFile, comprobador: ts.TypeChecker, ruta: string)
   const visitar = (nodo: ts.Node): void => {
     if ((ts.isIdentifier(nodo) || ts.isStringLiteralLike(nodo)) && NOMBRES_DEL_BOOLEANO.has(nodo.text)) {
       senalar(nodo, `el booleano \`${nodo.text}\``);
+    } else if (ts.isIdentifier(nodo)) {
+      const herramienta = herramientaDe(nodo, comprobador);
+      if (herramienta !== null && !permitidas.has(herramienta)) {
+        senalar(nodo, `usa \`${herramienta}\`, del modulo del modo, fuera de sus sitios`);
+      }
     } else if (ts.isPropertyAccessExpression(nodo)) {
       const simbolo = comprobador.getSymbolAtLocation(nodo.name);
       if (

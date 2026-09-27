@@ -7,7 +7,14 @@
  * no la importa nadie.
  */
 import type { FuenteDelPortal } from '../../src/datos/fuente.ts';
-import type { EnDemostracion, Modo, PoliticaDelModo } from '../../src/modo/modo.ts';
+import {
+  type EnDemostracion,
+  type Modo,
+  POLITICA_CON_PLATAFORMA,
+  type PoliticaDelModo,
+  consultaDe as preguntar,
+  demostracionDe,
+} from '../../src/modo/modo.ts';
 
 declare const fuente: FuenteDelPortal;
 declare const modo: Modo;
@@ -29,6 +36,12 @@ export const elBooleanoPorCorchete = estado['conPlataforma']; // senala
 export function hayPlataforma(): boolean { // senala
   return false;
 }
+// Las herramientas del modulo, fuera de sus sitios (revision del PR #70): el `hayPlataforma` de antes
+// con otro nombre —tambien renombrada al importarla—, el mismo del otro lado, y la politica
+// comparada por identidad.
+export const conOtroNombre = preguntar(fuente) !== null; // senala
+export const delOtroLado = demostracionDe(modo) !== null; // senala
+export const porIdentidad = politica === POLITICA_CON_PLATAFORMA; // senala
 
 // ── Lo que se le parece y no es leer el modo ──────────────────────────────────────────────────────
 
@@ -40,5 +53,8 @@ export const escrito: Modo = { modo: 'plataforma' };
 // Preguntar a la politica es lo que se pide.
 export const simulado = politica.pagoSimulado;
 export const deDondeSale = politica.deuda === 'de-la-consulta';
+// Algo que se llama como una herramienta y no lo es: su simbolo esta declarado aqui.
+declare const otro: { politicaDe(): boolean };
+export const seLlamaIgual = otro.politicaDe();
 // Lo que toda fuente sabe, este en el modo que este, tampoco es del modo.
 export const amnistia = fuente.amnistia;

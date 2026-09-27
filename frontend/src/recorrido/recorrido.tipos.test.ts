@@ -75,7 +75,15 @@ describe('un pago simulado no tiene donde poner un numero de operacion ni un med
     // Y uno registrado sin sus numeros, tampoco.
     // @ts-expect-error — un pago registrado siempre tiene comprobante.
     const registradoSinNumeros: PagoRegistrado = { ...LO_COMUN, medio: 'tarjeta', destino: null, comprobante: null };
+    // El control positivo (revision del PR #70): las formas buenas, con lo MISMO de arriba. Si
+    // `LO_COMUN` dejara de ser lo que un pago lleva, los `@ts-expect-error` de arriba se cumplirian por
+    // ese otro motivo y la prueba seguiria en verde sin medir nada; con estas, sale rojo.
+    const simuladoBueno: PagoSimulado = { ...LO_COMUN, comprobante: null };
+    const registradoBueno: PagoRegistrado = { ...LO_COMUN, medio: 'tarjeta', destino: null, comprobante: COMPROBANTE };
+    const selladoSimulado: PagoSellado = { ...LO_COMUN, comprobante: null };
+    const selladoRegistrado: PagoSellado = { ...LO_COMUN, medio: 'yape', destino: 'ana@example.com', comprobante: COMPROBANTE };
     expect([conNumero, conMedio, conDestino, selladoConMedio, registradoSinNumeros]).toHaveLength(5);
+    expect([simuladoBueno, registradoBueno, selladoSimulado, selladoRegistrado]).toHaveLength(4);
   });
 
   it('y leer el numero de operacion de un pago sin saber cual es, tampoco', () => {

@@ -7,6 +7,7 @@ import {
   type AccionDelRecorrido,
   type ComoEmpieza,
   type DatosLeidos,
+  type DecisionesDePartida,
   type DecisionesDelRecorrido,
   type EstadoDelRecorrido,
   decisionesDe,
@@ -104,14 +105,19 @@ const Contexto = createContext<ValorDelRecorrido | null>(null);
 
 export interface ProveedorDelRecorridoProps {
   readonly children: ReactNode;
-  /** Lo que una prueba quiere de partida. Si trae `deudas`, `contribuyente` o `demostracion`, se ignoran: se leen. */
-  readonly inicial?: DecisionesDelRecorrido;
+  /**
+   * Lo que una prueba quiere de partida. Si trae `deudas`, `contribuyente` o `demostracion`, se
+   * ignoran: se leen. Y la politica no la trae (`DecisionesDePartida`): la fija la fuente.
+   */
+  readonly inicial?: DecisionesDePartida;
 }
 
 export function ProveedorDelRecorrido({ children, inicial }: ProveedorDelRecorridoProps) {
   const fuente = useLaFuente();
   const [decisiones, enviar] = useReducer(conLoLeido, inicial, (dado) =>
-    decisionesDe(dado ?? estadoInicial(comoEmpiezaCon(fuente))),
+    // La politica, SIEMPRE de la fuente (revision del PR #70): lo que traiga `inicial` no la pisa, y
+    // el tipo ya no la deja traer.
+    decisionesDe({ ...(dado ?? estadoInicial(comoEmpiezaCon(fuente))), politica: politicaDe(fuente) }),
   );
   const datos = useLoLeido(fuente);
   // Cambia solo si cambia lo leido: en demostracion, nunca; con plataforma, cuando la cache trae una
