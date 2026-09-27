@@ -295,7 +295,8 @@ describe('lo que la pantalla dice y mide', () => {
 
     const rejilla = within(principal()).getByRole('region', { name: 'Solo con mi correo' }).parentElement;
     expect(rejilla?.className.split(/\s+/)).toEqual(
-      expect.arrayContaining(['grid', 'grid-cols-[repeat(auto-fit,minmax(316px,1fr))]', 'gap-[18px]']),
+      // Las columnas de 316 px del artboard, salvo que no quepan (issue 62: a 320 px se salian).
+      expect.arrayContaining(['grid', 'grid-cols-[repeat(auto-fit,minmax(min(316px,100%),1fr))]', 'gap-[18px]']),
     );
   });
 

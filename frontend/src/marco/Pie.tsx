@@ -21,6 +21,8 @@ import { useModo } from '../modo/useModo.ts';
  * son los de la persona, y la frase viajaba en la imagen de produccion diciendo lo contrario. Lo que
  * con plataforma SI es de demostracion —pagar y el comprobante— lo dice su aviso, en su pantalla.
  */
+const ENLACE_DEL_PIE = 'inline-flex min-h-[44px] items-center';
+
 export function Pie() {
   const { t } = useTranslation();
   const { sonDatosDeEjemplo } = useModo().contenido;
@@ -38,10 +40,18 @@ export function Pie() {
                 entidad,
               })}
         </p>
-        <span className="flex flex-wrap gap-4 text-[13px]">
-          <a href="#/">{t('Preguntas frecuentes')}</a>
-          <a href="#/">{t('Reclamos')}</a>
-          <a href="#/">{t('Términos')}</a>
+        {/* Cada enlace, 44 px de alto (issue 62): el artboard no les fija medida y con la del texto
+            median 20, un blanco de dedo muy chico en un telefono. */}
+        <span className="flex flex-wrap gap-x-4 text-[13px]">
+          <a href="#/" className={ENLACE_DEL_PIE}>
+            {t('Preguntas frecuentes')}
+          </a>
+          <a href="#/" className={ENLACE_DEL_PIE}>
+            {t('Reclamos')}
+          </a>
+          <a href="#/" className={ENLACE_DEL_PIE}>
+            {t('Términos')}
+          </a>
         </span>
       </div>
     </footer>

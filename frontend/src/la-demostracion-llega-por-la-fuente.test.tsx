@@ -111,7 +111,7 @@ describe('con otra demostracion, cada pantalla dice la otra', () => {
       fuente: OTRA_FUENTE,
     });
 
-    fireEvent.click(enMain().getByRole('button', { name: 'Yape o Plin' }));
+    fireEvent.click(enMain().getByRole('radio', { name: 'Yape o Plin' }));
     expect(enMain().getByText('900 111 222')).toBeInTheDocument();
     nadaDelArtboard();
 

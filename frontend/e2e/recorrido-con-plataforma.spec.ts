@@ -113,7 +113,17 @@ interface BackendFalso {
  * El backend falso entero. Se instala en la pagina ANTES de la primera navegacion, y sobrevive a
  * las que vengan: el rebote del emisor es una navegacion mas.
  */
-async function backendFalso(pagina: Page, { cancela = false }: { readonly cancela?: boolean } = {}): Promise<BackendFalso> {
+async function backendFalso(
+  pagina: Page,
+  {
+    cancela = false,
+    retener,
+  }: {
+    readonly cancela?: boolean;
+    /** Si viene, la deuda no se contesta hasta que se cumpla: la espera, «Consultando su deuda…», se ve. */
+    readonly retener?: Promise<void>;
+  } = {},
+): Promise<BackendFalso> {
   let consultas = 0;
   let silenciosas = 0;
   let conFormulario = 0;
@@ -172,9 +182,10 @@ async function backendFalso(pagina: Page, { cancela = false }: { readonly cancel
   );
 
   // 4. La deuda. La ruta es la del cliente: `/rentas/api/v1` + `/portal/situacion`.
-  await pagina.route('**/rentas/api/v1/portal/situacion', (ruta) => {
+  await pagina.route('**/rentas/api/v1/portal/situacion', async (ruta) => {
     consultas += 1;
-    void ruta.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SITUACION) });
+    await retener;
+    await ruta.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SITUACION) });
   });
 
   return { consultas: () => consultas, silenciosas: () => silenciosas, conFormulario: () => conFormulario };
@@ -234,7 +245,7 @@ test.describe('el recorrido con plataforma', () => {
     expect(backend.consultas()).toBe(1);
 
     // Y el desglose dice que no lo hay, en vez de rellenarlo.
-    await principal(page).getByRole('button', { name: 'Ver el detalle' }).click();
+    await principal(page).getByRole('button', { name: 'Ver el detalle de Impuesto predial 2024' }).click();
     await expect(principal(page).getByText('El portal no publica el desglose de este concepto.')).toBeVisible();
 
     // Paso 3 · Pagar: no hay medio de pago que ofrecer, y se dice.
@@ -289,14 +300,55 @@ test.describe('el recorrido con plataforma', () => {
     await expect(barra.getByRole('button', { name: 'Iniciar sesión' })).toHaveCount(0);
   });
 
-  test('a 400 px se ve igual de bien, y sin desplazar la pagina', async ({ page }) => {
-    await page.setViewportSize({ width: 400, height: 900 });
-    await backendFalso(page);
-    await abrirConPlataforma(page);
-    await seVeBien(page, 'entrar a 400 px');
+  // A 1280, 400 y 320 px (issue 62), en cada paso —y `seVeBien` pasa axe y mide las areas tactiles en
+  // cada uno—: a 320 el boton «Simular el pago: no se cobra nada», sin poder partirse, se salia 36 px.
+  for (const ancho of [1280, 400, 320] as const) {
+    test(`a ${ancho} px se ve igual de bien en cada paso, y sin desplazar la pagina`, async ({ page }) => {
+      await page.setViewportSize({ width: ancho, height: 900 });
+      await backendFalso(page);
+      await abrirConPlataforma(page);
+      await seVeBien(page, `entrar a ${ancho} px`);
 
-    await entrarYLlegarALaDeuda(page);
-    await seVeBien(page, 'elegir qué pago con plataforma a 400 px');
+      await entrarYLlegarALaDeuda(page);
+      await seVeBien(page, `elegir qué pago con plataforma a ${ancho} px`);
+      await principal(page).getByRole('button', { name: 'Ver el detalle de Impuesto predial 2024' }).click();
+      await seVeBien(page, `elegir qué pago con plataforma a ${ancho} px, con el detalle abierto`);
+
+      await principal(page).getByRole('button', { name: 'Pagar todo' }).click();
+      await expect(page.getByRole('heading', { level: 1, name: 'Todavía no se puede pagar en línea' })).toBeVisible();
+      await seVeBien(page, `pagar con plataforma a ${ancho} px`);
+
+      await principal(page).getByRole('button', { name: 'Simular el pago: no se cobra nada' }).click();
+      await expect(page.getByRole('heading', { level: 1, name: 'Así se vería su comprobante' })).toBeVisible();
+      await seVeBien(page, `el comprobante con plataforma a ${ancho} px`);
+
+      await page.getByRole('banner').getByRole('button', { name: /Rufina Medina Medina/ }).click();
+      await page.getByRole('menuitem', { name: 'Mis pagos' }).click();
+      await expect(page.getByRole('heading', { level: 1, name: 'Mis pagos' })).toBeVisible();
+      await expect(principal(page).getByText('Impuesto predial 2024')).toBeVisible();
+      await seVeBien(page, `mis pagos con plataforma a ${ancho} px`);
+    });
+  }
+
+  test('mientras consulta, «Consultando su deuda…» es un `status` que se ve, y axe no encuentra nada grave (issue 62)', async ({
+    page,
+  }) => {
+    let soltar = () => {};
+    const retenida = new Promise<void>((cumplir) => {
+      soltar = cumplir;
+    });
+    await backendFalso(page, { retener: retenida });
+    await abrirConPlataforma(page);
+    await principal(page).getByRole('button', { name: 'Entrar con mi cuenta' }).click();
+
+    const espera = principal(page).getByRole('status').filter({ hasText: 'Consultando su deuda…' });
+    await expect(espera).toBeVisible();
+    await expect(espera).not.toHaveAttribute('aria-busy', 'true');
+    await seVeBien(page, 'consultando su deuda');
+
+    soltar();
+    await expect(page.getByRole('heading', { level: 1, name: 'Lo que debe, por concepto' })).toBeVisible();
+    await expect(espera).toHaveCount(0);
   });
 
   test('recargar NO echa: con la sesion del emisor viva, se sigue dentro sin pulsar nada (issue 35)', async ({ page }) => {

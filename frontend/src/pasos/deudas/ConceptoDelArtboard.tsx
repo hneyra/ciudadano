@@ -53,7 +53,15 @@ function Detalle({ detalle }: { readonly detalle: TablaDeDetalle }) {
       <Tabla
         aria-labelledby={idDelTitulo}
         style={{ minWidth: anchoMinimo }}
-        marco={{ className: 'border border-linea bg-superficie' }}
+        // El marco desplaza la tabla por debajo de su ancho minimo, y sin nada enfocable dentro el
+        // teclado no llegaba a desplazarlo (issue 62; axe `scrollable-region-focusable`, a 320 px):
+        // entra en el tabulador como una region con el nombre de la tabla.
+        marco={{
+          className: 'border border-linea bg-superficie',
+          tabIndex: 0,
+          role: 'region',
+          'aria-labelledby': idDelTitulo,
+        }}
       >
         <TablaCabecera>
           <tr>

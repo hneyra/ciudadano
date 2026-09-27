@@ -1,11 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Boton, Campo, Casilla, Etiqueta, Formulario } from '@kamayuk/ui';
+import { Boton, Campo, Casilla, Etiqueta, Formulario, cn } from '@kamayuk/ui';
 import { useId, useMemo } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 
 import { MEDIDAS_DE_CONTROL, Rotulo } from '../../piezas/Rotulo.tsx';
+import { BLANCO_DE_44 } from '../../piezas/variantes.tsx';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
 import { MensajeDeError, Tarjeta, conError } from './piezas.tsx';
 import { correoCompleto } from './vista.ts';
@@ -97,7 +98,9 @@ export function SoloConMiCorreo() {
                   onCheckedChange={(marcada) => field.onChange(marcada === true)}
                   onBlur={field.onBlur}
                   ref={field.ref}
-                  className="size-[19px] cursor-pointer"
+                  // 44 × 44 de blanco (issue 62): la etiqueta mide 20 de alto, y a la izquierda de la marca
+                  // no habia nada que tocar.
+                  className={cn('size-[19px] cursor-pointer', BLANCO_DE_44)}
                 />
               </span>
               <span className="text-[13.5px] leading-[1.5] text-pretty text-tinta-3">

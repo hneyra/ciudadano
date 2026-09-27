@@ -18,11 +18,19 @@ import { Bloque, Parrafo } from './piezas.tsx';
 
 const MARGEN = 'mb-[18px]';
 
-/** Mientras la consulta viaja. Sin cifras y sin esqueleto de cifras: no hay ninguna todavia. */
+/**
+ * Mientras la consulta viaja. Sin cifras y sin esqueleto de cifras: no hay ninguna todavia.
+ *
+ * **Se anuncia** (issue 62): es un `status`, region viva cortes, y lo que dice se lee sin mover el
+ * foco. Hasta el issue 62 era una `section aria-busy` que nadie anunciaba. Y ya **sin `aria-busy`**:
+ * con `aria-busy="true"` una tecnologia de apoyo puede retener lo que cambia dentro hasta que pase a
+ * `false` (ARIA 1.2), y esta seccion no pasa a `false`, desaparece. Quien espera a que la pantalla
+ * termine (`quieta`, en `src/afirmaciones.plataforma.test.tsx`) mira ademas que ya no se diga esto.
+ */
 export function Pidiendo() {
   const { t } = useTranslation();
   return (
-    <section aria-busy="true" className="mb-[18px] border border-linea bg-superficie px-[22px] py-5">
+    <section role="status" className="mb-[18px] border border-linea bg-superficie px-[22px] py-5">
       <h1 className="m-0 text-[18px] font-bold">{t('Consultando su deuda…')}</h1>
       <Parrafo>{t('Estamos preguntando a las municipalidades. Tarda unos segundos.')}</Parrafo>
     </section>

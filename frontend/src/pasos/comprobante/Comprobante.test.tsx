@@ -77,6 +77,21 @@ describe('el recibo, tras pagar los cuatro conceptos con tarjeta', () => {
     ]);
   });
 
+  /**
+   * **La tabla se desplaza, y el teclado llega a desplazarla** (issue 62). Por debajo de su ancho
+   * minimo la tabla se desplaza dentro de su marco (`overflow-x-auto`), y sin nada enfocable dentro
+   * quien no usa raton no podia verla entera: axe, `scrollable-region-focusable` (serious), medido a
+   * 320 px. El marco entra en el orden del tabulador como una region con nombre.
+   */
+  it('el marco que desplaza la tabla se enfoca con el teclado y se llama «Conceptos del comprobante»', async () => {
+    await pagar();
+
+    const marco = within(recibo()).getByRole('region', { name: 'Conceptos del comprobante' });
+    expect(marco).toHaveAttribute('tabindex', '0');
+    expect(marco.className).toContain('overflow-x-auto');
+    expect(marco).toContainElement(within(recibo()).getByRole('table'));
+  });
+
   it('la cabecera, la meta, la nota y la banda de exito dicen lo sellado', async () => {
     await pagar();
     const constancia = within(recibo());

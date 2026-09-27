@@ -63,3 +63,14 @@ export const botonApagado = cva('', {
     apagado: { true: 'bg-linea text-tinta-2 hover:bg-linea', false: null },
   },
 });
+
+/**
+ * **Un blanco de 44 × 44 px alrededor de un control mas chico, sin cambiar su dibujo** (issue 62): un
+ * `::after` transparente, centrado en el control, que recibe el toque como el control mismo. Es para
+ * las casillas, que el artboard dibuja de 19 y 20 px (lineas 232 y 329): ahi el blanco no puede
+ * crecer sin que crezca la marca. Centrado y de medida fija, y no con un margen negativo, porque el
+ * `::after` se mide desde dentro del filo y con `-inset-3` una casilla de 20 px quedaba en 42 (medido
+ * por el arnes, `lasAreasTactilesLleganA44` en `e2e/portal.ts`).
+ */
+export const BLANCO_DE_44 =
+  'relative after:absolute after:top-1/2 after:left-1/2 after:size-[44px] after:-translate-x-1/2 after:-translate-y-1/2';

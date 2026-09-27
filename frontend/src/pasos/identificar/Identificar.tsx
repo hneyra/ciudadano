@@ -72,7 +72,9 @@ export function Identificar() {
         {laIntroduccion(estado, t)}
       </p>
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(316px,1fr))] gap-[18px]">
+      {/* `min(316px,100%)` (issue 62): las columnas del artboard, de al menos 316 px, salvo que no quepan.
+          A 320 px el hueco mide 288 y la tarjeta se salia 14 px de la pagina (WCAG 1.4.10). */}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(316px,100%),1fr))] gap-[18px]">
         <SoloConMiCorreo />
         <ConMiCuenta />
       </div>
