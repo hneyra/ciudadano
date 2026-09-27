@@ -1,4 +1,5 @@
-import { type Locator, type Page, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+import { type Locator, type Page, expect, test } from '@playwright/test';
 
 /**
  * **Como se recorre el portal en el navegador**, por rol y nombre accesible, como lo recorre quien usa
@@ -144,6 +145,55 @@ export async function seVeBien(pagina: Page, donde: string): Promise<void> {
     medido.fuenteDelTema,
   );
   await lasAreasTactilesLleganA44(pagina, donde);
+  await axeNoEncuentraNadaGrave(pagina, donde);
+}
+
+/**
+ * **Lo que axe encuentra `serious` o `critical` y se deja, uno a uno y con su porque** (issue 62).
+ *
+ * Vacio: en ningun paso de los dos modos, a ninguna de las anchuras que mide el arnes, queda nada
+ * grave. Una entrada nueva aqui tiene que decir la regla, a que nodo se refiere (un trozo de su
+ * `target`) y por que se admite; no se apaga ninguna regla entera (`disableRules`), porque eso la
+ * apagaria tambien donde si importa.
+ */
+export const LO_GRAVE_QUE_SE_ADMITE: ReadonlyArray<{
+  readonly regla: string;
+  readonly nodo: string;
+  readonly porque: string;
+}> = [];
+
+/**
+ * **axe, en cada paso** (issue 62): `@axe-core/playwright` con todas sus reglas —WCAG 2.x A y AA y
+ * las buenas practicas— sobre la pagina entera tal como esta. Falla con cualquier violacion `serious`
+ * o `critical` que no este en `LO_GRAVE_QUE_SE_ADMITE`; las `moderate` y `minor` no la hacen fallar,
+ * pero quedan anotadas en el informe del arnes con el paso en que salieron, para que se vean.
+ *
+ * Lo que axe no ve: el orden del foco, lo que un lector de pantalla anuncia de verdad y si una region
+ * viva se lee. Eso lo miden las pruebas por rol y nombre.
+ */
+export async function axeNoEncuentraNadaGrave(pagina: Page, donde: string): Promise<void> {
+  // Antes, que acabe lo que se esta moviendo. Un aviso (`avisar`) entra con una transicion de opacidad,
+  // y medido a mitad de ella axe calcula el contraste de un texto medio transparente: salio
+  // `color-contrast` en `div[data-title]` una vez de cada tres a 400 px, y en reposo pasa. Las
+  // animaciones infinitas no se esperan: no acaban.
+  await pagina.evaluate(async () => {
+    const finitas = document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity);
+    await Promise.all(finitas.map((a) => a.finished.catch(() => undefined)));
+  });
+  const { violations: violaciones } = await new AxeBuilder({ page: pagina }).analyze();
+  const graves: string[] = [];
+  for (const violacion of violaciones) {
+    for (const nodo of violacion.nodes) {
+      const objetivo = nodo.target.join(' ');
+      const detalle = (nodo.failureSummary ?? '').replace(/\s+/g, ' ').trim();
+      const linea = `${violacion.impact ?? '(sin impacto)'} ${violacion.id} en ${objetivo}: ${violacion.help} — ${detalle}`;
+      const grave = violacion.impact === 'serious' || violacion.impact === 'critical';
+      const admitida = LO_GRAVE_QUE_SE_ADMITE.some((a) => a.regla === violacion.id && objetivo.includes(a.nodo));
+      if (grave && !admitida) graves.push(linea);
+      else test.info().annotations.push({ type: `axe (${donde})`, description: linea });
+    }
+  }
+  expect(graves, `${donde}: axe encuentra violaciones graves`).toEqual([]);
 }
 
 /**
