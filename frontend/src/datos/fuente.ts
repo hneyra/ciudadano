@@ -1,7 +1,8 @@
 import { skipToken, useQuery } from '@tanstack/react-query';
 import { createContext, useContext } from 'react';
 
-import type { LaDemostracion, PagoDelHistorial, SituacionDelServidor, Unidad } from './tipos.ts';
+import { type ConPlataforma, type EnDemostracion, consultaDe } from '../modo/modo.ts';
+import type { PagoDelHistorial, SituacionDelServidor, Unidad } from './tipos.ts';
 
 /**
  * **De donde lee el portal**, y los ganchos con que lo leen las pantallas.
@@ -19,49 +20,35 @@ import type { LaDemostracion, PagoDelHistorial, SituacionDelServidor, Unidad } f
  * `<FuenteActiva value={falsa}>`. No hay un modulo global que se sustituya con `vi.mock`, que es
  * justo lo que dejaria a dos pruebas pisandose la fuente.
  *
- * <h2>`consulta` es `null` en demostracion, y ese `null` es la bandera que ven las pantallas</h2>
+ * <h2>Una union por modo (issue 59)</h2>
  *
- * Es lo unico que distingue los dos modos **desde dentro de un componente**, y se prefiere a leer
- * `import.meta.env` alli por dos razones: una pantalla que lee el entorno no se puede probar en los
- * dos modos sin trucar el entorno, y una condicion de entorno repartida por seis pantallas es seis
- * sitios donde el dia de manana se olvida uno. Aqui la pregunta es `hayPlataforma(fuente)` y la
- * contesta el dato.
+ * La fuente ES un modo (`src/modo/modo.ts`) con lo que sabe pedir encima: la de demostracion trae los
+ * datos del artboard (`demostracion`), la de la plataforma trae la consulta (`consulta`), y ninguna
+ * trae las dos ni puede no traer ninguna. Hasta el issue 59 las dos eran campos independientes
+ * —`consulta` o `null`, `demostracion` o `null`— y una fuente con los dos a `null` arrancaba en
+ * demostracion y `laDemostracion(estado)` reventaba en la primera pantalla.
+ *
+ * **Las pantallas no preguntan a la fuente en que modo esta**: preguntan a la politica del modo
+ * (`useModo()`). Lo vigila `verificaciones/el-modo-se-lee-en-su-modulo.test.ts`. Antes la pregunta era
+ * `hayPlataforma(fuente)`, repartida por seis archivos.
  *
  * `demostracion.ts` y `cuentas.ts` no importan React; este archivo si, porque los ganchos lo son.
  * Y este archivo **no importa la demostracion**: lo hace `fuenteDeDemostracion.ts`, al que solo se
  * llega por el `import()` plegable de `laFuente.ts` (`verificaciones/la-demostracion-no-viaja-al-bundle.test.ts`).
  */
 
-/** Lo que el portal sabe pedir. */
-export interface FuenteDelPortal {
-  /**
-   * La situacion del ciudadano **tal como la cuenta el servidor**, o `null` cuando no hay
-   * plataforma a la que preguntar.
-   *
-   * Sin parametros a proposito: ADR-0020 retiro `GET /portal/deuda?doc=` —era una enumeracion de
-   * contribuyentes— y lo reemplazo por `GET /portal/situacion`, donde el sujeto sale del token. Por
-   * eso la fuente ya no ofrece «la deuda de este documento»: el servidor no lo ofrece.
-   */
-  readonly consulta: (() => Promise<SituacionDelServidor>) | null;
+/** Lo que toda fuente sabe, este en el modo que este. */
+interface LoQueTodaFuenteSabe {
   /**
    * **Si hay una amnistia que condone el interes moratorio** (issue 49).
    *
    * La dice la fuente y no cada pantalla: en demostracion, la de la Ordenanza del artboard; con
    * plataforma, ninguna, porque el contrato de `GET /portal/situacion` no la trae. El recorrido la
    * copia al arrancar (`estadoInicial`) y de ella cuelga lo que se cobra (`aCobrar`) y si se nombra.
+   * No es del modo (ver la cabecera de `src/modo/modo.ts`): el dia que el contrato la traiga, saldra
+   * de la respuesta.
    */
   readonly amnistia: boolean;
-  /**
-   * **Los datos del artboard, cuando la fuente es la de demostracion** (issue 58); `null` con
-   * plataforma.
-   *
-   * La deuda, el contribuyente, la usuaria, el sello del comprobante, los medios de pago y los
-   * ejemplos de los campos de documento llegan por aqui, y no por un `import` de `demostracion.ts`
-   * en cada pantalla: esos `import` estaticos eran los que metian los datos en el paquete de
-   * produccion aunque la fuente de demostracion se quedara fuera. Sincrono porque ya esta en memoria
-   * —llego con la fuente, por el `import()` de `laFuente.ts`— y el recorrido arranca con ellos.
-   */
-  readonly demostracion: LaDemostracion | null;
   /** Los pagos ya hechos por la cuenta con sesion. */
   historial(): Promise<readonly PagoDelHistorial[]>;
   /** Los predios y vehiculos del contribuyente de la cuenta con sesion. */
@@ -69,43 +56,52 @@ export interface FuenteDelPortal {
 }
 
 /**
- * Si esta fuente habla con la plataforma.
- *
- * Una funcion de una linea, y no `fuente.consulta !== null` escrito en cada pantalla: lo que las
- * pantallas preguntan es «¿hay plataforma?», y que eso se conteste mirando si hay consulta es un
- * detalle de esta capa.
+ * **La fuente de la demostracion**: los datos del artboard (issue 58) —la deuda, el contribuyente, la
+ * usuaria, el sello del comprobante, los medios de pago y los ejemplos de los campos—, en
+ * `demostracion`, que le viene de `EnDemostracion`. Llegan por aqui y no por un `import` de
+ * `demostracion.ts` en cada pantalla: esos `import` estaticos eran los que metian los datos en el
+ * paquete de produccion aunque la fuente de demostracion se quedara fuera.
  */
-export function hayPlataforma(fuente: FuenteDelPortal): boolean {
-  return fuente.consulta !== null;
+export interface FuenteDeDemostracion extends EnDemostracion, LoQueTodaFuenteSabe {}
+
+/** **La fuente de la plataforma**: sin datos de ejemplo, y con a quien preguntar. */
+export interface FuenteConPlataforma extends ConPlataforma, LoQueTodaFuenteSabe {
+  /**
+   * La situacion del ciudadano **tal como la cuenta el servidor**.
+   *
+   * Sin parametros a proposito: ADR-0020 retiro `GET /portal/deuda?doc=` —era una enumeracion de
+   * contribuyentes— y lo reemplazo por `GET /portal/situacion`, donde el sujeto sale del token. Por
+   * eso la fuente ya no ofrece «la deuda de este documento»: el servidor no lo ofrece.
+   */
+  readonly consulta: () => Promise<SituacionDelServidor>;
 }
 
+/** Lo que el portal sabe pedir: en un modo o en el otro, nunca en los dos ni en ninguno (issue 59). */
+export type FuenteDelPortal = FuenteDeDemostracion | FuenteConPlataforma;
+
 /**
- * **Nadie inyecto una fuente**, que es el unico valor por omision honesto.
+ * **Nadie inyecto una fuente**, y se dice a la vista (revision del PR #70).
  *
- * Antes lo era la de demostracion, y no puede seguir siendolo: un valor por omision es un `import`
- * estatico, y un `import` estatico de la demostracion la mete en el paquete de produccion pase lo
- * que pase con la bandera. Lo que se pone en su sitio no calla: `montaje.tsx` inyecta siempre la que
+ * Hasta el issue 58 el valor por omision era la fuente de demostracion, y no puede seguir siendolo: un
+ * valor por omision es un `import` estatico, y un `import` estatico de la demostracion la mete en el
+ * paquete de produccion pase lo que pase con la bandera. En el issue 59 fue una fuente de plataforma
+ * cuya consulta rechazaba: fallaba en silencio, dibujando un «no se pudo consultar» verosimil. Ahora
+ * no hay valor por omision (`null`) y leer la fuente sin ella REVIENTA con este mensaje, como
+ * `useRecorrido()` fuera de su proveedor. En produccion no pasa: `montaje.tsx` inyecta siempre la que
  * `laFuente.ts` elige, y las pruebas, la suya (`src/pruebas/portal.tsx`).
  */
-const SIN_INYECTAR =
+export const SIN_INYECTAR =
   'Nadie inyecto una fuente en `FuenteActiva`. La elige `src/datos/laFuente.ts` y la pone ' +
-  '`montaje.tsx`; en una prueba, `montarElPortal({ fuente })`.';
+  '`montaje.tsx`; en una prueba, `montarElPortal({ fuente })` o `<FuenteActiva value={…}>`.';
 
-const NADIE: FuenteDelPortal = {
-  consulta: null,
-  // Nadie dijo que la haya: no se condona nada.
-  amnistia: false,
-  demostracion: null,
-  historial: () => Promise.reject(new Error(SIN_INYECTAR)),
-  unidades: () => Promise.reject(new Error(SIN_INYECTAR)),
-};
+/** La fuente que leen los ganchos. Sin valor por omision: ver `SIN_INYECTAR`. */
+export const FuenteActiva = createContext<FuenteDelPortal | null>(null);
 
-/** La fuente que leen los ganchos. Ver `NADIE`: por omision, ninguna. */
-export const FuenteActiva = createContext<FuenteDelPortal>(NADIE);
-
-/** La fuente activa, para quien tenga que preguntarle algo que no sea una de las tres lecturas. */
+/** La fuente activa. Revienta, con su nombre, si nadie la inyecto. */
 export function useLaFuente(): FuenteDelPortal {
-  return useContext(FuenteActiva);
+  const fuente = useContext(FuenteActiva);
+  if (fuente === null) throw new Error(SIN_INYECTAR);
+  return fuente;
 }
 
 /** La rama de la cache donde vive todo lo del portal. Escrita una sola vez. */
@@ -140,11 +136,10 @@ export const LLAVES = {
  *
  * Sin plataforma la consulta queda **apagada** (`enabled: false`) en vez de no llamarse: un gancho
  * que unas veces se llama y otras no seria un gancho condicional, y React no lo admite. Apagada, la
- * consulta ni pide ni reintenta, y quien la dibuja mira antes `hayPlataforma`.
+ * consulta ni pide ni reintenta, y quien la dibuja pregunta antes a la politica (`deuda`).
  */
 export function useLaSituacion() {
-  const fuente = useContext(FuenteActiva);
-  const consulta = fuente.consulta;
+  const consulta = consultaDe(useLaFuente());
   return useQuery({
     queryKey: LLAVES.situacion,
     queryFn: consulta === null ? skipToken : consulta,
@@ -165,8 +160,7 @@ export function useLaSituacion() {
  * la tira nunca y `staleTime: Infinity` no la vuelve a pedir al montar.
  */
 export function useLaSituacionSinPedir() {
-  const fuente = useContext(FuenteActiva);
-  const consulta = fuente.consulta;
+  const consulta = consultaDe(useLaFuente());
   return useQuery({
     queryKey: LLAVES.situacion,
     queryFn: consulta === null ? skipToken : consulta,
@@ -177,7 +171,7 @@ export function useLaSituacionSinPedir() {
 
 /** Los pagos ya hechos. */
 export function useHistorial() {
-  const fuente = useContext(FuenteActiva);
+  const fuente = useLaFuente();
   return useQuery({
     queryKey: LLAVES.historial,
     queryFn: () => fuente.historial(),
@@ -187,7 +181,7 @@ export function useHistorial() {
 
 /** Los predios y vehiculos. */
 export function useUnidades() {
-  const fuente = useContext(FuenteActiva);
+  const fuente = useLaFuente();
   return useQuery({
     queryKey: LLAVES.unidades,
     queryFn: () => fuente.unidades(),

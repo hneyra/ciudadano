@@ -6,7 +6,7 @@ import type { FalloDelEmisor } from './api/emisor.ts';
 import { preguntaFallida, vueltaFallida } from './arranque.ts';
 import type { Enrutador } from './enrutador.tsx';
 import { ProveedorDelRecorrido } from './recorrido/ProveedorDelRecorrido.tsx';
-import type { DecisionesDelRecorrido } from './recorrido/recorrido.ts';
+import type { DecisionesDePartida } from './recorrido/recorrido.ts';
 
 /**
  * **El tema de este portal** (issue 2): dos decisiones, y ningun color.
@@ -154,7 +154,7 @@ export function ComprobandoLaSesion() {
  */
 export interface AplicacionProps {
   readonly enrutador: Enrutador;
-  readonly inicial?: DecisionesDelRecorrido;
+  readonly inicial?: DecisionesDePartida;
 }
 
 export function Aplicacion({ enrutador, inicial }: AplicacionProps) {

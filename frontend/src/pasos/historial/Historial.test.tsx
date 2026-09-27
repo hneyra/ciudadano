@@ -238,7 +238,7 @@ describe('sin haber pagado nada en esta visita', () => {
     let contestar: (valor: typeof HISTORIAL) => void = () => {};
     const lenta: FuenteDelPortal = {
       // Sin plataforma no hay consulta que hacer: el historial se lee igual (issue 27).
-      consulta: null,
+      modo: 'demostracion',
       amnistia: true,
       demostracion: LA_DEMOSTRACION,
       historial: () => new Promise((resolver) => (contestar = resolver)),
@@ -260,7 +260,7 @@ describe('sin haber pagado nada en esta visita', () => {
   it('y si fallan los pagos, tambien', async () => {
     const rota: FuenteDelPortal = {
       // Sin plataforma no hay consulta que hacer: el historial se lee igual (issue 27).
-      consulta: null,
+      modo: 'demostracion',
       amnistia: true,
       demostracion: LA_DEMOSTRACION,
       historial: () => Promise.reject(new Error('la fuente no contesto')),

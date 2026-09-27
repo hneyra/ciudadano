@@ -14,7 +14,7 @@ import { useTranslation } from 'react-i18next';
 import escudo from '../../diseno/escudo-catacaos.png';
 import { claimsDelCiudadano, haySesion } from '../api/claims.ts';
 import { entrar, salir } from '../arranque.ts';
-import { hayPlataforma, useLaFuente } from '../datos/fuente.ts';
+import { useModo } from '../modo/useModo.ts';
 import { useRecorrido } from '../recorrido/ProveedorDelRecorrido.tsx';
 import { type EstadoDelRecorrido, inicio, laDemostracion } from '../recorrido/recorrido.ts';
 
@@ -141,8 +141,8 @@ function delToken(t: (texto: string) => string): QuienEntro | null {
 export function Barra() {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
-  const fuente = useLaFuente();
-  const conPlataforma = hayPlataforma(fuente);
+  // De quien es la sesion lo decide el modo (issue 59): la del emisor, o la de la demostracion.
+  const delEmisor = useModo().sesion === 'del-emisor';
   // Se lee cuando el menu ya se cerro: un `ref`, y no el estado de un dibujo que ya no es el ultimo.
   const elFocoVaALasUnidades = useRef(false);
 
@@ -154,7 +154,7 @@ export function Barra() {
    * `salir()` tambien). Un estado que lo copiara no tendria ningun momento en que refrescarse, y el
    * dia que lo tuviera seria una copia del token viviendo mas de lo que vive el token.
    */
-  const quien: QuienEntro | null = conPlataforma ? delToken(t) : deLaDemostracion(estado);
+  const quien: QuienEntro | null = delEmisor ? delToken(t) : deLaDemostracion(estado);
 
   /**
    * **«Iniciar sesión»**: la puerta de verdad cuando hay plataforma, el paso «Mis datos» cuando no.
@@ -164,7 +164,7 @@ export function Barra() {
    * avisa, porque si no el boton se pulsa y no ocurre nada visible.
    */
   const iniciarSesion = () => {
-    if (!conPlataforma) {
+    if (!delEmisor) {
       despachar({ tipo: 'irA', paso: 'identificar' });
       return;
     }
@@ -180,7 +180,7 @@ export function Barra() {
    * sitio. Con plataforma no se levanta el aviso de «Sesión cerrada.»: la pagina se va.
    */
   const cerrarSesion = () => {
-    if (conPlataforma) {
+    if (delEmisor) {
       salir();
       return;
     }
@@ -277,7 +277,7 @@ export function Barra() {
               className="px-4 py-3 text-[14.5px]"
               onSelect={() =>
                 avisar(
-                  conPlataforma ? t('El portal todavía no permite cambiar la clave.') : t('Abriría el cambio de clave.'),
+                  delEmisor ? t('El portal todavía no permite cambiar la clave.') : t('Abriría el cambio de clave.'),
                 )
               }
             >

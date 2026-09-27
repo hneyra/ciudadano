@@ -33,7 +33,14 @@ afterEach(() => {
 /** Un texto que solo dicen los datos: la direccion del predio principal. */
 const DE_LOS_DATOS = UNIDADES[0]?.titulo ?? '(sin unidades)';
 
-const SIN_DEMOSTRACION: FuenteDelPortal = { ...fuenteDeDemostracion, consulta: null, demostracion: null };
+// Desde el issue 59 una fuente sin demostracion es una de la plataforma: no hay otra forma de no traerla.
+const SIN_DEMOSTRACION: FuenteDelPortal = {
+  modo: 'plataforma',
+  consulta: () => Promise.reject(new Error('no se consulta en esta prueba')),
+  amnistia: fuenteDeDemostracion.amnistia,
+  historial: fuenteDeDemostracion.historial,
+  unidades: fuenteDeDemostracion.unidades,
+};
 
 describe('sumarLosTextosDeLaFuente', () => {
   it('EL CENTINELA: la direccion es un texto de los datos, y el locale de siempre no la trae', () => {

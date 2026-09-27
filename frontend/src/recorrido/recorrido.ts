@@ -1,7 +1,6 @@
 import type { Importe } from '@kamayuk/formato';
 
 import { type ConSaldo, type Cuenta, conAmnistiaDe, cuentaDe, type Resumen, resumenDe, totalDe } from '../datos/cuentas.ts';
-import { quienDebeDe } from '../datos/deLaSituacion.ts';
 import type {
   ComprobanteDeDemostracion,
   ConceptoDeDeuda,
@@ -10,9 +9,20 @@ import type {
   LaDemostracion,
   MedioDePago,
   QuienDebe,
-  SituacionDelServidor,
   TipoDeDocumento,
 } from '../datos/tipos.ts';
+import {
+  type Modo,
+  PASOS_CON_PLATAFORMA,
+  PASOS_DE_LA_DEMOSTRACION,
+  POLITICA_DE_LA_DEMOSTRACION,
+  type Paso,
+  type PasoNumerado,
+  type PoliticaDelModo,
+  loLeidoDe,
+  politicaDe,
+} from '../modo/modo.ts';
+import type { DatosLeidos } from './leido.ts';
 
 /**
  * **El estado del recorrido de pago**, como un reductor puro.
@@ -67,41 +77,25 @@ import type {
  * eso este reductor sigue siendo una funcion pura sobre el estado entero —se prueba igual que
  * antes—, y lo que cambio es quien la llama: con los datos de ESE momento, no con una copia.
  *
- * <h2>Dos recorridos, y el modo lo dice el estado</h2>
+ * <h2>Dos recorridos, y el estado lleva la POLITICA del modo, no el modo (issue 59)</h2>
  *
- * `conPlataforma` entra en el estado **una vez, al montar** (`estadoInicial`, desde
- * `ProveedorDelRecorrido`), y de el cuelgan que pasos hay, cual es el primero y a donde lleva
- * «Pagar». Se guarda aqui en vez de preguntarselo a la fuente en cada selector porque el reductor es
- * puro y se prueba llamandolo: con la bandera dentro del estado, los dos recorridos se prueban con
- * datos y sin montar nada.
- */
-
-/** Los cinco pasos numerados de la franja en DEMOSTRACION, en su orden (artboard, lineas 1018-1022). */
-export const PASOS_DE_LA_DEMOSTRACION = ['buscar', 'deudas', 'identificar', 'pagar', 'comprobante'] as const;
-
-/**
- * **Los cuatro pasos numerados con plataforma** (issue 28).
+ * La politica del modo (`PoliticaDelModo`, en `src/modo/modo.ts`) entra en el estado **una vez, al
+ * montar** (`estadoInicial`, desde `ProveedorDelRecorrido`), y los selectores le preguntan a ella que
+ * pasos hay, cual es el primero, que vale un concepto sin marcar y si el pago es simulado. Se guarda
+ * aqui en vez de preguntarsela a la fuente en cada selector porque el reductor es puro y se prueba
+ * llamandolo: con la politica dentro del estado, los dos recorridos se prueban con datos y sin montar
+ * nada.
  *
- * · `buscar` se cae porque el backend ya no ofrece buscar: el ADR-0020 retiro
- *   `GET /portal/deuda?doc=` —era una enumeracion de contribuyentes— y lo reemplazo por
- *   `GET /portal/situacion` **sin parametros**, donde el sujeto sale del token. Sin parametro que
- *   escribir, el primer paso no es buscar: es **entrar**.
- * · `identificar` se cae porque ese paso pedia un correo o una cuenta de demostracion para saber a
- *   quien enviar el comprobante. Con plataforma se entro con la cuenta del portal en el paso 1:
- *   volver a pedir quien es seria preguntarlo dos veces.
+ * Hasta el issue 59 lo que entraba era el booleano `conPlataforma`, y cada selector lo resolvia a su
+ * manera. Ningun selector sabe ya en que modo esta: un modo nuevo es una politica nueva.
  */
-export const PASOS_CON_PLATAFORMA = ['entrar', 'deudas', 'pagar', 'comprobante'] as const;
 
-export type PasoNumerado =
-  | (typeof PASOS_DE_LA_DEMOSTRACION)[number]
-  | (typeof PASOS_CON_PLATAFORMA)[number];
-
-/**
- * Donde puede estar el recorrido. El artboard llama `listo` al quinto; aqui es `comprobante`, que es
- * su ruta (`#/comprobante`). `historial` no es un paso numerado: con sesion, alli no hay nada que
- * avanzar y no se dibuja la franja.
- */
-export type Paso = PasoNumerado | 'historial';
+// Viven en `src/modo/modo.ts` desde el issue 59 —cada recorrido es de un modo— y se siguen exportando
+// de aqui, que es donde los buscan las pantallas y las pruebas.
+export { PASOS_CON_PLATAFORMA, PASOS_DE_LA_DEMOSTRACION };
+export type { Paso, PasoNumerado };
+// Lo leido, por lo mismo: vive en `leido.ts` para que el modulo del modo lo alcance sin importar este.
+export { type DatosLeidos, SIN_DATOS, datosDeLaDemostracion, datosDeLaSituacion } from './leido.ts';
 
 /**
  * Todos los pasos que existen, sin repetir: los de los dos recorridos mas el historial.
@@ -117,8 +111,8 @@ export const TODOS_LOS_PASOS: readonly Paso[] = [
 // sigue exportando de aqui, que es donde lo buscan las pantallas.
 export type { TipoDeDocumento };
 
-/** Lo que el comprobante dice para siempre, sellado en `confirmarPago`. */
-export interface PagoSellado extends Cuenta {
+/** Lo que todo pago sellado dice, sea de verdad o simulado. */
+interface LoQueSeSella extends Cuenta {
   /**
    * **Los conceptos pagados, tal como estaban al pagar**, en el orden de la lista de la que salen.
    *
@@ -130,49 +124,54 @@ export interface PagoSellado extends Cuenta {
   readonly conceptos: readonly ConceptoDeDeuda[];
   /** A nombre de quien estaba esa deuda al pagar. Por lo mismo: no se vuelve a leer de la cache. */
   readonly contribuyente: QuienDebe | null;
-  readonly medio: MedioDePago['id'];
-  /** A donde se envio el comprobante; `null` es «su correo» (artboard, linea 1027). */
-  readonly destino: string | null;
-  /**
-   * Los numeros del sello: los de la demostracion. **`null` con plataforma** (issue 58): no hubo
-   * cobro y no hay comprobante emitido que numerar —la pantalla ya no los dibujaba (issue 28)—, y los
-   * del artboard no viajan en ese paquete.
-   */
-  readonly comprobante: ComprobanteDeDemostracion | null;
 }
 
 /**
- * **Lo que se LEE**: los conceptos y a nombre de quien estan (issue 50).
- *
- * No lo guarda el reductor: lo pone `ProveedorDelRecorrido` en cada dibujo, de la demostracion o de
- * la cache de consultas. Ver la cabecera.
+ * **Un pago registrado**: el de la demostracion, que dice con que se pago, a donde se envio el
+ * comprobante y sus numeros.
  */
-export interface DatosLeidos {
-  /**
-   * Los conceptos sobre los que trabaja el recorrido: los del artboard en demostracion, los de
-   * `GET /portal/situacion` con plataforma. De aqui cuelgan `vivas`, `seleccion` y lo que se sella.
-   */
-  readonly deudas: readonly ConceptoDeDeuda[];
-  /** De quien es esa deuda. `null` con plataforma mientras la consulta no ha contestado con deuda. */
-  readonly contribuyente: QuienDebe | null;
-  /**
-   * **Los datos del artboard, tal como los aporta la fuente de demostracion** (issue 58); `null` con
-   * plataforma. De aqui salen el sello del comprobante y el correo de la cuenta del artboard, y lo
-   * leen las pantallas que solo existen en demostracion (la usuaria de la barra, los medios, los
-   * ejemplos de los campos). Hasta el issue 58 cada una lo importaba de `demostracion.ts`, y con esos
-   * `import` los datos viajaban en el paquete de produccion.
-   */
-  readonly demostracion: LaDemostracion | null;
+export interface PagoRegistrado extends LoQueSeSella {
+  readonly medio: MedioDePago['id'];
+  /** A donde se envio el comprobante; `null` es «su correo» (artboard, linea 1027). */
+  readonly destino: string | null;
+  /** Los numeros del sello: el comprobante y la operacion, los de la demostracion (issue 58). */
+  readonly comprobante: ComprobanteDeDemostracion;
+}
+
+/**
+ * **Un pago simulado** (issues 28 y 59): lo que se habria pagado, y nada mas.
+ *
+ * **No tiene donde poner** un medio, un destino, ni un numero de comprobante o de operacion: no hubo
+ * cobro, no se envio nada y no hay ningun comprobante emitido que numerar. Hasta el issue 59 esos
+ * campos existian con plataforma —`comprobante: null` y un medio elegido por omision— y era la vista
+ * la que tenia que acordarse de no ensenarlos; ahora un pago simulado con numero de operacion no
+ * compila (`recorrido.tipos.test.ts`).
+ *
+ * `comprobante: null` es el discriminante: `esSimulado(pago)` lo pregunta.
+ */
+export interface PagoSimulado extends LoQueSeSella {
+  readonly comprobante: null;
+}
+
+/** Lo que el comprobante dice para siempre, sellado en `confirmarPago`: de verdad o simulado. */
+export type PagoSellado = PagoRegistrado | PagoSimulado;
+
+/** Si un pago sellado es simulado: no hubo cobro, y no hay ni medio, ni destino, ni numeros. */
+export function esSimulado(pago: PagoSellado): pago is PagoSimulado {
+  return pago.comprobante === null;
 }
 
 /** **Lo que DECIDE la persona**: lo unico que guarda el reductor montado (issue 50). */
 export interface DecisionesDelRecorrido {
   readonly paso: Paso;
-  /** Si el portal lee de la plataforma. Se fija al montar y no cambia: ver la cabecera. */
-  readonly conPlataforma: boolean;
+  /**
+   * **Lo que decide el modo** (issue 59): que pasos hay, por cual se empieza, si el pago es simulado…
+   * Se fija al montar y no cambia: ver la cabecera. Las pantallas la leen con `useModo()`.
+   */
+  readonly politica: PoliticaDelModo;
   /**
    * **Si hay una amnistia que condone el interes** (issue 49). La dice la FUENTE
-   * (`FuenteDelPortal.amnistia`) y se fija al montar, como `conPlataforma`: en demostracion, la del
+   * (`FuenteDelPortal.amnistia`) y se fija al montar, como la politica: en demostracion, la del
    * artboard; con plataforma, ninguna, porque `GET /portal/situacion` no trae ninguna. De aqui cuelga
    * lo que se cobra (`aCobrar`, `aCobrarDe`) y si las pantallas la nombran.
    */
@@ -182,8 +181,7 @@ export interface DecisionesDelRecorrido {
   readonly numero: string;
   /**
    * Lo que el ciudadano marco o desmarco, por id. **Un id que no esta aqui vale lo de por omision**
-   * (`estaMarcada`): con plataforma, marcado —el artboard abre con todo marcado, linea 929—; en
-   * demostracion, desmarcado, porque alli las cuatro marcas del artboard ya estan escritas.
+   * (`estaMarcada`, que se lo pregunta a la politica: `marcadoPorOmision`).
    *
    * Por id y con omision, y no una lista marcada entera (issue 50): asi un concepto que llega en una
    * consulta posterior sale marcado como los demas, y lo que la persona ya decidio de los que siguen
@@ -212,6 +210,14 @@ export interface DecisionesDelRecorrido {
   readonly enfocarUnidades: boolean;
 }
 
+/**
+ * **Las decisiones con que una prueba puede hacer empezar el portal**: todas menos la politica
+ * (revision del PR #70). La politica la fija SIEMPRE el proveedor, de la fuente (`politicaDe`): una
+ * prueba que la pisara montaria el recorrido de un modo con los datos del otro, y el modo volveria a
+ * leerse de dos sitios. Con este tipo, pisarla no compila.
+ */
+export type DecisionesDePartida = Omit<DecisionesDelRecorrido, 'politica'>;
+
 /** Lo que leen los selectores y las pantallas: lo decidido y lo leido, juntos. */
 export interface EstadoDelRecorrido extends DecisionesDelRecorrido, DatosLeidos {}
 
@@ -234,46 +240,6 @@ export function laDemostracion(estado: DatosLeidos): LaDemostracion {
   return estado.demostracion;
 }
 
-/** Nada leido todavia: con plataforma, mientras la consulta no contesta con deuda. */
-export const SIN_DATOS: DatosLeidos = { deudas: [], contribuyente: null, demostracion: null };
-
-/**
- * **Lo que el recorrido lee de la demostracion**: sus cuatro conceptos y la persona a cuyo nombre
- * estan, desde lo que aporta la fuente (issue 58). Sin demostracion —una fuente que no la trae—,
- * `SIN_DATOS`: nada que marcar ni que pagar.
- *
- * Hasta el issue 58 esto era una constante escrita sobre `DEUDAS` y `CONTRIBUYENTE`, importados de
- * `demostracion.ts`: el reductor era uno de los archivos que metian los datos en el paquete de
- * produccion.
- */
-export function datosDeLaDemostracion(demostracion: LaDemostracion | null): DatosLeidos {
-  if (demostracion === null) return SIN_DATOS;
-  const { contribuyente } = demostracion;
-  return {
-    deudas: demostracion.deudas,
-    contribuyente: {
-      nombre: contribuyente.nombre,
-      codigo: contribuyente.codigo,
-      documento: `${contribuyente.tipoDeDocumento} ${contribuyente.numeroDeDocumento}`,
-    },
-    demostracion,
-  };
-}
-
-/**
- * **Lo que el recorrido lee de una respuesta del servidor** (issue 50): sus conceptos y a nombre de
- * quien estan, solo si contesto CON DEUDA. Pura: la misma respuesta da los mismos conceptos —el
- * mismo arreglo, el que guarda la cache—, asi que una respuesta igual no cambia nada de lo que se
- * dibuja.
- *
- * Mientras no hay respuesta (`undefined`) y en los otros tres finales, `SIN_DATOS`: no hay nada que
- * marcar ni que pagar, y esas pantallas no dibujan la lista.
- */
-export function datosDeLaSituacion(situacion: SituacionDelServidor | undefined): DatosLeidos {
-  if (situacion?.estado !== 'con-deuda') return SIN_DATOS;
-  return { deudas: situacion.deudas, contribuyente: quienDebeDe(situacion), demostracion: null };
-}
-
 /**
  * **Las decisiones, sin los datos leidos**: lo que el reductor montado guarda. Si un estado entero
  * llega aqui —el `inicial` de una prueba, o lo que devuelve `recorrido`—, lo leido se tira: la
@@ -291,7 +257,7 @@ export function decisionesDe(estado: DecisionesDelRecorrido & Partial<DatosLeido
  */
 export const DECISIONES_INICIALES: DecisionesDelRecorrido = {
   paso: 'buscar',
-  conPlataforma: false,
+  politica: POLITICA_DE_LA_DEMOSTRACION,
   amnistia: true,
   tipoDeDocumento: 'Código de contribuyente',
   numero: '',
@@ -308,40 +274,44 @@ export const DECISIONES_INICIALES: DecisionesDelRecorrido = {
   enfocarUnidades: false,
 };
 
-/** Como arranca el portal: de donde lee, y si ya hay sesion abierta. */
+/** Como arranca el portal: en que modo, y si ya hay sesion abierta. */
 export interface ComoEmpieza {
-  readonly conPlataforma: boolean;
-  /** Con plataforma, `haySesion()`; en demostracion, siempre `false` (no hay a quien entrar). */
+  /**
+   * El modo (issue 59): la fuente, que es uno, o en las pruebas del reductor `CON_PLATAFORMA` y
+   * `enDemostracion(…)`. En demostracion trae sus datos: un modo de demostracion sin ellos no existe.
+   */
+  readonly en: Modo;
+  /** Con la sesion del emisor, `haySesion()`; en demostracion, siempre `false` (no hay a quien entrar). */
   readonly autenticado: boolean;
   /** Lo que dice la fuente: `FuenteDelPortal.amnistia` (issue 49). */
   readonly amnistia: boolean;
-  /** Lo que aporta la fuente: `FuenteDelPortal.demostracion` (issue 58). `null` con plataforma. */
-  readonly demostracion: LaDemostracion | null;
 }
 
 /**
  * **El estado con que se abre el portal, segun de donde lea** (issue 28).
  *
- * Con plataforma no hay deuda que ensenar hasta que la consulta conteste: la lista arranca **vacia**
- * (`SIN_DATOS`) y sin ninguna marca escrita —lo que llegue, llega marcado por omision—.
+ * Lo leido al empezar es lo que el modo tenga ya (`loLeidoDe`, sin respuesta todavia): con plataforma
+ * no hay deuda que ensenar hasta que la consulta conteste, y la lista arranca **vacia** y sin ninguna
+ * marca escrita —lo que llegue, llega marcado por omision (`marcadoPorOmision`)—.
  *
  * En demostracion, los conceptos y la persona son los que aporta la fuente (issue 58), y cada
  * concepto arranca con su marca ESCRITA: son las cuatro del artboard (linea 929), que las escribe
  * todas. Se derivan de los conceptos en vez de copiarse por id para que las marcas no puedan hablar
- * de conceptos que no estan.
+ * de conceptos que no estan. Es la misma linea para los dos modos: con la lista vacia no escribe
+ * ninguna.
  *
  * Quien lo llama es `ProveedorDelRecorrido`, una sola vez: la bandera es de construccion y el token
  * lo fija el canje ANTES de montar (`src/arranque.ts`).
  */
-export function estadoInicial({ conPlataforma, autenticado, amnistia, demostracion }: ComoEmpieza): EstadoDelRecorrido {
-  const leido = conPlataforma ? SIN_DATOS : datosDeLaDemostracion(demostracion);
+export function estadoInicial({ en, autenticado, amnistia }: ComoEmpieza): EstadoDelRecorrido {
+  const leido = loLeidoDe(en, undefined);
   const base: EstadoDelRecorrido = {
     ...DECISIONES_INICIALES,
     ...leido,
-    conPlataforma,
+    politica: politicaDe(en),
     autenticado,
     amnistia,
-    marcadas: conPlataforma ? {} : Object.fromEntries(leido.deudas.map((deuda) => [deuda.id, true])),
+    marcadas: Object.fromEntries(leido.deudas.map((deuda) => [deuda.id, true])),
   };
   return { ...base, paso: primerPaso(base) };
 }
@@ -377,8 +347,8 @@ export type AccionDelRecorrido =
 // ── Selectores ─────────────────────────────────────────────────────────────────────────────────
 
 /** Los pasos numerados de ESTE recorrido: cinco en demostracion, cuatro con plataforma. */
-export function pasosNumerados(estado: EstadoDelRecorrido): readonly PasoNumerado[] {
-  return estado.conPlataforma ? PASOS_CON_PLATAFORMA : PASOS_DE_LA_DEMOSTRACION;
+export function pasosNumerados(estado: DecisionesDelRecorrido): readonly PasoNumerado[] {
+  return estado.politica.pasos;
 }
 
 /**
@@ -388,9 +358,9 @@ export function pasosNumerados(estado: EstadoDelRecorrido): readonly PasoNumerad
  * Es tambien a donde redirige lo que no es alcanzable, asi que **tiene que ser alcanzable siempre**:
  * devolver `entrar` con la sesion abierta dejaria al enrutador redirigiendo en circulo.
  */
-export function primerPaso(estado: EstadoDelRecorrido): Paso {
-  if (!estado.conPlataforma) return 'buscar';
-  return estado.autenticado ? 'deudas' : 'entrar';
+export function primerPaso(estado: DecisionesDelRecorrido): Paso {
+  const { primerPaso: primero } = estado.politica;
+  return estado.autenticado ? primero.conSesion : primero.sinSesion;
 }
 
 /** La deuda que sigue viva: todo lo que no esta pagado (artboard, `vivas()`, linea 990). */
@@ -425,7 +395,7 @@ export function vivasDelServidor(estado: EstadoDelRecorrido): readonly DeudaDelS
  * omision —marcado con plataforma, desmarcado en demostracion—. Ver `marcadas`.
  */
 export function estaMarcada(estado: DecisionesDelRecorrido, id: string): boolean {
-  return estado.marcadas[id] ?? estado.conPlataforma;
+  return estado.marcadas[id] ?? estado.politica.marcadoPorOmision;
 }
 
 /** Lo marcado DE LA DEUDA VIVA: lo pagado no se vuelve a cobrar aunque siga marcado. */
@@ -460,12 +430,24 @@ export function cuentaPendiente(estado: EstadoDelRecorrido): Cuenta {
 /**
  * A donde lleva «Pagar»: sin sesion hay que dar un correo; con sesion, directo a pagar (1173).
  *
- * **Con plataforma, siempre a pagar**: el paso «Mis datos» no existe en ese recorrido —se entro con
- * la cuenta del portal en el paso 1— y mandar alli seria mandar a un paso que no es alcanzable.
+ * **Sin «Mis datos» en el recorrido, siempre a pagar**: con plataforma ese paso no existe —se entro
+ * con la cuenta del portal en el paso 1— y mandar alli seria mandar a un paso que no es alcanzable.
+ * Se deduce de los pasos de la politica, no del modo.
  */
 export function destinoAlPagar(estado: EstadoDelRecorrido): 'identificar' | 'pagar' {
-  if (estado.conPlataforma) return 'pagar';
+  if (indiceDelPaso(estado, 'identificar') < 0) return 'pagar';
   return estado.autenticado ? 'pagar' : 'identificar';
+}
+
+/**
+ * **A donde se vuelve desde el paso 4 para cambiar lo que se paga** (issue 59, antes en `Pagar.tsx`).
+ *
+ * A buscar si el recorrido empieza buscando y no se busco —se llego a pagar por «Iniciar sesión» →
+ * «Solo con mi correo» (issue 8)—; si no, a elegir qué pago. Con plataforma `buscar` no existe: se
+ * vuelve siempre a elegir. Se deduce de los pasos de la politica, no del modo.
+ */
+export function dondeSeElige(estado: EstadoDelRecorrido): 'buscar' | 'deudas' {
+  return indiceDelPaso(estado, 'buscar') >= 0 && estado.numero === '' ? 'buscar' : 'deudas';
 }
 
 /**
@@ -541,21 +523,21 @@ export function inicio(estado: EstadoDelRecorrido): Paso {
 /**
  * A donde se envia el comprobante (artboard, linea 1027). `null`: aun no hay correo, «su correo».
  *
- * **Con plataforma no hay correo que decir**: el realm del ciudadano pone `tipo_documento` y
- * `numero_documento`, y ni el correo ni el codigo de contribuyente (`src/api/claims.ts`). Poner el
+ * **Con la sesion del emisor no hay correo que decir**: el realm del ciudadano pone `tipo_documento`
+ * y `numero_documento`, y ni el correo ni el codigo de contribuyente (`src/api/claims.ts`). Poner el
  * del artboard escribiria el buzon de otra persona debajo del pago de esta.
  */
 export function destinoDelComprobante(estado: EstadoDelRecorrido): string | null {
   // El de la cuenta del artboard, que llega con la demostracion (issue 58).
-  if (estado.autenticado && !estado.conPlataforma && estado.demostracion !== null) {
-    return estado.demostracion.usuario.correo;
+  if (estado.autenticado && estado.politica.sesion === 'de-la-demostracion') {
+    return laDemostracion(estado).usuario.correo;
   }
   const correo = estado.correo.trim();
   return correo === '' ? null : correo;
 }
 
 /** La posicion de un paso en la franja de ESTE recorrido, o -1 si no esta en ella. */
-export function indiceDelPaso(estado: EstadoDelRecorrido, paso: Paso): number {
+export function indiceDelPaso(estado: DecisionesDelRecorrido, paso: Paso): number {
   return pasosNumerados(estado).indexOf(paso as PasoNumerado);
 }
 
@@ -566,7 +548,7 @@ export function indiceDelPaso(estado: EstadoDelRecorrido, paso: Paso): number {
  * · **El comprobante, siempre que haya un pago sellado** (issue 9). Es la constancia que se conserva:
  *   volver a elegir qué pago y regresar a `#/comprobante` tiene que ensenar el MISMO recibo, y con la
  *   regla de la franja sola, desde `deudas` el comprobante seria un paso futuro y se redirigiria.
- * · **`entrar` solo con plataforma y sin sesion** (issue 28). Es el paso que no se repite: quien ya
+ * · **`entrar` solo si esta en la franja —con plataforma— y sin sesion** (issue 28). Es el paso que no se repite: quien ya
  *   entro no vuelve a entrar —para cambiar de cuenta se cierra la sesion, que es otra cosa y esta en
  *   la barra—, y ademas el emisor devuelve el navegador a `#/entrar`, asi que sin esta linea entrar
  *   con la cuenta acabaria en la misma pantalla de la que se salio.
@@ -579,7 +561,7 @@ export function indiceDelPaso(estado: EstadoDelRecorrido, paso: Paso): number {
  */
 export function pasoAlcanzable(estado: EstadoDelRecorrido, paso: Paso): boolean {
   if (paso === 'historial') return estado.autenticado;
-  if (paso === 'entrar') return estado.conPlataforma && !estado.autenticado;
+  if (paso === 'entrar') return indiceDelPaso(estado, 'entrar') >= 0 && !estado.autenticado;
   if (paso === 'comprobante' && estado.ultimo !== null) return true;
   const donde = indiceDelPaso(estado, paso);
   if (donde < 0) return false;
@@ -642,28 +624,29 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
       const pagado = porPagar(estado);
       // Sin nada que pagar no se sella nada. El aviso «No hay nada que pagar.» es de la pantalla.
       if (pagado.length === 0) return estado;
+      const sellado = { conceptos: pagado, contribuyente: estado.contribuyente, ...cuentaDe(pagado) };
+      if (estado.politica.pagoSimulado) {
+        // **Un pago simulado NO da la deuda por pagada** (issue 28, revision): no hubo cobro, y
+        // quitar el concepto de la deuda viva seria el mismo embuste que la frase «la deuda pagada
+        // ya se descontó de su cuenta» — dicho con la lista en vez de con palabras. El aviso de los
+        // pasos 4 y 5 promete que «su deuda no cambia»; esto es lo que lo hace verdad. Y se sella sin
+        // medio, sin destino y sin numeros (`PagoSimulado`, issue 59).
+        return { ...estado, paso: 'comprobante', recienPagado: true, ultimo: { ...sellado, comprobante: null } };
+      }
       return {
         ...estado,
         paso: 'comprobante',
         recienPagado: true,
-        // **Con plataforma, lo pagado NO se da por pagado** (issue 28, revision): no hubo cobro, y
-        // quitar el concepto de la deuda viva seria el mismo embuste que la frase «la deuda pagada
-        // ya se descontó de su cuenta» — dicho con la lista en vez de con palabras. El aviso de los
-        // pasos 4 y 5 promete que «su deuda no cambia»; esto es lo que lo hace verdad.
-        pagadas: estado.conPlataforma
-          ? estado.pagadas
-          : {
-              ...estado.pagadas,
-              ...Object.fromEntries(pagado.map((deuda) => [deuda.id, true as const])),
-            },
+        pagadas: {
+          ...estado.pagadas,
+          ...Object.fromEntries(pagado.map((deuda) => [deuda.id, true as const])),
+        },
         ultimo: {
-          conceptos: pagado,
-          contribuyente: estado.contribuyente,
-          ...cuentaDe(pagado),
+          ...sellado,
           medio: estado.medio,
           destino: destinoDelComprobante(estado),
-          // Con plataforma no hay sello que poner (issue 58): ver `PagoSellado.comprobante`.
-          comprobante: estado.demostracion?.comprobante ?? null,
+          // Los numeros de la demostracion, que llegan con ella (issue 58).
+          comprobante: laDemostracion(estado).comprobante,
         },
       };
     }

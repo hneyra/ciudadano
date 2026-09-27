@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fuenteDeDemostracion } from './fuenteDeDemostracion.ts';
 import { fuenteDeLaPlataforma } from './fuenteDeLaPlataforma.ts';
 import { laFuente } from './laFuente.ts';
+import { consultaDe } from '../modo/modo.ts';
 
 /**
  * **La bandera elige, y elige las dos cosas** (issue 27).
@@ -48,9 +49,9 @@ describe('laFuente', () => {
   });
 
   it('la de demostracion NO tiene consulta, y la de la plataforma SI', () => {
-    // Es la mitad que ven las pantallas (`hayPlataforma`): si las dos tuvieran consulta, el doble
+    // Es la mitad que ven las pantallas (la politica del modo): si las dos tuvieran consulta, el doble
     // modo existiria en el arranque y no en la pantalla, que es donde se nota.
-    expect(fuenteDeDemostracion.consulta).toBeNull();
-    expect(fuenteDeLaPlataforma.consulta).not.toBeNull();
+    expect(consultaDe(fuenteDeDemostracion)).toBeNull();
+    expect(consultaDe(fuenteDeLaPlataforma)).not.toBeNull();
   });
 });

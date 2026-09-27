@@ -2,6 +2,7 @@ import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
 import type { FuenteDelPortal } from '../datos/fuente.ts';
+import { demostracionDe } from '../modo/modo.ts';
 import es from './locales/es.json' with { type: 'json' };
 
 /**
@@ -97,8 +98,9 @@ await i18next
  * la demostracion seria un archivo que nadie lee.
  */
 export function sumarLosTextosDeLaFuente(fuente: FuenteDelPortal): void {
-  if (fuente.demostracion === null) return;
-  i18next.addResourceBundle(IDIOMA_POR_OMISION, 'translation', fuente.demostracion.textos, true, false);
+  const demostracion = demostracionDe(fuente);
+  if (demostracion === null) return;
+  i18next.addResourceBundle(IDIOMA_POR_OMISION, 'translation', demostracion.textos, true, false);
 }
 
 export default i18next;

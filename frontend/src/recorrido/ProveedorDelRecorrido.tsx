@@ -1,15 +1,15 @@
 import { type Dispatch, type ReactNode, createContext, useCallback, useContext, useMemo, useReducer } from 'react';
 
 import { haySesion } from '../api/claims.ts';
-import { hayPlataforma, useLaFuente, useLaSituacionSinPedir } from '../datos/fuente.ts';
-import type { LaDemostracion } from '../datos/tipos.ts';
+import { type FuenteDelPortal, useLaFuente, useLaSituacionSinPedir } from '../datos/fuente.ts';
+import { loLeidoDe, politicaDe } from '../modo/modo.ts';
 import {
   type AccionDelRecorrido,
+  type ComoEmpieza,
   type DatosLeidos,
+  type DecisionesDePartida,
   type DecisionesDelRecorrido,
   type EstadoDelRecorrido,
-  datosDeLaDemostracion,
-  datosDeLaSituacion,
   decisionesDe,
   estadoInicial,
   recorrido,
@@ -27,7 +27,7 @@ import {
  *
  * <h2>Quien decide con que recorrido se arranca (issue 28)</h2>
  *
- * Aqui, y **una sola vez**: `estadoInicial` pregunta si hay plataforma —a la fuente inyectada, no al
+ * Aqui, y **una sola vez**: `estadoInicial` recibe el modo —la fuente inyectada, que es uno; no el
  * entorno— y si hay sesion —a la puerta, que es quien tiene el token—. Las dos respuestas estan
  * fijadas antes de montar: la bandera es de construccion y el canje corre en `arrancar()`, antes de
  * que React dibuje nada. Por eso se leen en el inicializador de `useReducer` y no en cada dibujo.
@@ -65,16 +65,29 @@ function conLoLeido(decisiones: DecisionesDelRecorrido, { accion, datos }: Envio
 }
 
 /**
- * Lo que se lee, segun el modo. `datosDeLaSituacion` da el MISMO arreglo de conceptos mientras la
- * cache no cambie (React Query conserva la referencia si la respuesta repetida es igual), y el
- * `useMemo` el mismo objeto: sin cambio de datos no hay dibujo nuevo, ni un `despachar` nuevo.
+ * Lo que se lee, segun el modo (`loLeidoDe`, que es quien lo sabe). Con plataforma da el MISMO arreglo
+ * de conceptos mientras la cache no cambie (React Query conserva la referencia si la respuesta
+ * repetida es igual), y el `useMemo` el mismo objeto: sin cambio de datos no hay dibujo nuevo, ni un
+ * `despachar` nuevo.
  */
-function useLoLeido(conPlataforma: boolean, demostracion: LaDemostracion | null): DatosLeidos {
+function useLoLeido(fuente: FuenteDelPortal): DatosLeidos {
   const situacion = useLaSituacionSinPedir().data;
-  return useMemo(
-    () => (conPlataforma ? datosDeLaSituacion(situacion) : datosDeLaDemostracion(demostracion)),
-    [conPlataforma, situacion, demostracion],
-  );
+  return useMemo(() => loLeidoDe(fuente, situacion), [fuente, situacion]);
+}
+
+/**
+ * **Como empieza el portal con esta fuente**: en su modo, con la amnistia que dice, y con sesion solo
+ * si la sesion es la del emisor y el emisor ya la abrio. En demostracion no hay ninguna puerta a la
+ * que haber entrado: la sesion del artboard la enciende el paso «Mis datos».
+ *
+ * Exportada para `src/pruebas/portal.tsx`, que calcula el mismo estado de partida y lo retoca.
+ */
+export function comoEmpiezaCon(fuente: FuenteDelPortal): ComoEmpieza {
+  return {
+    en: fuente,
+    autenticado: politicaDe(fuente).sesion === 'del-emisor' && haySesion(),
+    amnistia: fuente.amnistia,
+  };
 }
 
 export interface ValorDelRecorrido {
@@ -92,28 +105,21 @@ const Contexto = createContext<ValorDelRecorrido | null>(null);
 
 export interface ProveedorDelRecorridoProps {
   readonly children: ReactNode;
-  /** Lo que una prueba quiere de partida. Si trae `deudas`, `contribuyente` o `demostracion`, se ignoran: se leen. */
-  readonly inicial?: DecisionesDelRecorrido;
+  /**
+   * Lo que una prueba quiere de partida. Si trae `deudas`, `contribuyente` o `demostracion`, se
+   * ignoran: se leen. Y la politica no la trae (`DecisionesDePartida`): la fija la fuente.
+   */
+  readonly inicial?: DecisionesDePartida;
 }
 
 export function ProveedorDelRecorrido({ children, inicial }: ProveedorDelRecorridoProps) {
   const fuente = useLaFuente();
-  const conPlataforma = hayPlataforma(fuente);
   const [decisiones, enviar] = useReducer(conLoLeido, inicial, (dado) =>
-    decisionesDe(
-      // `haySesion()` solo se pregunta con plataforma: en demostracion no hay ninguna puerta a la que
-      // haber entrado, y la sesion del artboard la enciende el paso «Mis datos».
-      dado ??
-        estadoInicial({
-          conPlataforma,
-          autenticado: conPlataforma && haySesion(),
-          amnistia: fuente.amnistia,
-          demostracion: fuente.demostracion,
-        }),
-    ),
+    // La politica, SIEMPRE de la fuente (revision del PR #70): lo que traiga `inicial` no la pisa, y
+    // el tipo ya no la deja traer.
+    decisionesDe({ ...(dado ?? estadoInicial(comoEmpiezaCon(fuente))), politica: politicaDe(fuente) }),
   );
-  // El modo, del estado y no de la fuente: es donde vive (`estado.conPlataforma`, issue 28).
-  const datos = useLoLeido(decisiones.conPlataforma, fuente.demostracion);
+  const datos = useLoLeido(fuente);
   // Cambia solo si cambia lo leido: en demostracion, nunca; con plataforma, cuando la cache trae una
   // respuesta distinta. Un `despachar` que enviara datos viejos sellaria un pago que ya no se ve.
   const despachar = useCallback((accion: AccionDelRecorrido) => enviar({ accion, datos }), [datos]);

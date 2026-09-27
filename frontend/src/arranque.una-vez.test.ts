@@ -28,8 +28,8 @@ describe('una pregunta por carga', () => {
     const emisor = emisorFalso(sinSesion());
     const montar = vi.fn();
 
-    await arrancar(montar, { conPlataforma: true });
-    await arrancar(montar, { conPlataforma: true });
+    await arrancar(montar, { conEmisor: true });
+    await arrancar(montar, { conEmisor: true });
     emisor.soltar();
 
     expect(emisor.pedidas, 'el arranque volvio a preguntar en la misma carga').toHaveLength(1);

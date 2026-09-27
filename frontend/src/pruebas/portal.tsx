@@ -3,10 +3,9 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, configure, render } from '@testing-library/react';
 import { vi } from 'vitest';
 
-import { haySesion } from '../api/claims.ts';
 import { Aplicacion } from '../aplicacion.tsx';
 import { crearClienteDeConsultas } from '../datos/consultas.ts';
-import { FuenteActiva, type FuenteDelPortal, hayPlataforma } from '../datos/fuente.ts';
+import { FuenteActiva, type FuenteDelPortal } from '../datos/fuente.ts';
 // La de demostracion, importada A PROPOSITO de forma estatica: esto es andamiaje de pruebas y no
 // entra en el paquete (solo lo importan los `*.test.tsx`). Que siga siendo asi —y que ningun archivo
 // de produccion lo importe— lo vigila `verificaciones/la-demostracion-no-viaja-al-bundle.test.ts`.
@@ -14,7 +13,8 @@ import { fuenteDeDemostracion } from '../datos/fuenteDeDemostracion.ts';
 import { type Enrutador, crearEnrutador } from '../enrutador.tsx';
 import i18n, { ABRE, CIERRA, IDIOMA_POR_OMISION, sumarLosTextosDeLaFuente } from '../i18n/i18n.ts';
 import { precargarLasPantallas } from '../pasos/pantallas.tsx';
-import { type DecisionesDelRecorrido, estadoInicial } from '../recorrido/recorrido.ts';
+import { comoEmpiezaCon } from '../recorrido/ProveedorDelRecorrido.tsx';
+import { type DecisionesDePartida, estadoInicial } from '../recorrido/recorrido.ts';
 
 /**
  * **Montar el portal entero en una prueba**, entrando por un hash como entraria el navegador.
@@ -152,9 +152,10 @@ export interface ComoMontar {
   /**
    * Las decisiones con que se empieza. Solo DECISIONES (issue 50): los conceptos y el contribuyente
    * se leen —de la demostracion o de la `fuente`—, y un `deudas` sembrado aqui el proveedor lo tiraria
-   * en silencio. Con este tipo, sembrarlo no compila.
+   * en silencio. Con este tipo, sembrarlo no compila. Y la politica tampoco (revision del PR #70): la
+   * fija el proveedor, de la `fuente`.
    */
-  readonly estado?: Partial<DecisionesDelRecorrido>;
+  readonly estado?: Partial<DecisionesDePartida>;
   /** De donde leen las pantallas (issue 10). Por omision, la de demostracion, como en `montaje.tsx`. */
   readonly fuente?: FuenteDelPortal;
 }
@@ -234,12 +235,7 @@ export function montarElPortal({ hash = '#/buscar', estado = {}, fuente = fuente
   // El estado de partida se calcula como en `ProveedorDelRecorrido`, y `estado` lo retoca encima:
   // con la fuente de la plataforma, una prueba que no dijera nada arrancaria en el recorrido de la
   // demostracion y estaria midiendo el otro portal.
-  const base = estadoInicial({
-    conPlataforma: hayPlataforma(fuente),
-    autenticado: hayPlataforma(fuente) && haySesion(),
-    amnistia: fuente.amnistia,
-    demostracion: fuente.demostracion,
-  });
+  const base = estadoInicial(comoEmpiezaCon(fuente));
   // Como `montaje.tsx` (issue 58).
   sumarLosTextosDeLaFuente(fuente);
   const enrutador = crearEnrutador();

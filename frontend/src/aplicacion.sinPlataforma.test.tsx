@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { identidad } from './api/identidad.ts';
 import { laFuente } from './datos/laFuente.ts';
+import { consultaDe } from './modo/modo.ts';
 import { limpiarElPortal, montarElPortal, plazosDelPortal } from './pruebas/portal.tsx';
 
 /**
@@ -50,7 +51,7 @@ plazosDelPortal();
 describe('el recorrido entero en modo demostracion', () => {
   it('EL CENTINELA: la fuente elegida es la de demostracion, y no tiene consulta', async () => {
     // Sin esto, lo de abajo pasaria en verde con una fuente de plataforma que nadie llegara a usar.
-    expect((await laFuente()).consulta).toBeNull();
+    expect(consultaDe(await laFuente())).toBeNull();
   });
 
   it('se busca, se elige y se llega a pagar sin UNA sola peticion ni una ida a la puerta', async () => {

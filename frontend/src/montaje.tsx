@@ -6,10 +6,11 @@ import { I18nextProvider } from 'react-i18next';
 import { Aplicacion, ComprobandoLaSesion } from './aplicacion.tsx';
 import { arrancar } from './arranque.ts';
 import { crearClienteDeConsultas } from './datos/consultas.ts';
-import { FuenteActiva, type FuenteDelPortal, hayPlataforma } from './datos/fuente.ts';
+import { FuenteActiva, type FuenteDelPortal } from './datos/fuente.ts';
 import { laFuente } from './datos/laFuente.ts';
 import { crearEnrutador } from './enrutador.tsx';
 import i18n, { sumarLosTextosDeLaFuente } from './i18n/i18n.ts';
+import { politicaDe } from './modo/modo.ts';
 
 /**
  * **El portal, como trozo aparte** (issue 56): lo que hasta entonces era el cuerpo de `main.tsx`.
@@ -90,9 +91,9 @@ export function montar(raiz: HTMLElement): Promise<void> {
       // Lo que dicen los datos de la demostracion llega con ella, no en el locale de siempre (issue 58).
       sumarLosTextosDeLaFuente(fuente);
       return arrancar(() => dibujar(fuente, <Aplicacion enrutador={enrutador} />), {
-        // De la fuente, que es el dato, y no del entorno otra vez: en demostracion no se le pregunta
-        // nada a ningun emisor (issue 35).
-        conPlataforma: hayPlataforma(fuente),
+        // De la politica del modo de la fuente, y no del entorno otra vez: con la sesion de la
+        // demostracion no se le pregunta nada a ningun emisor (issue 35).
+        conEmisor: politicaDe(fuente).sesion === 'del-emisor',
         esperando: () => dibujar(fuente, <ComprobandoLaSesion />),
       });
     })

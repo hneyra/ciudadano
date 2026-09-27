@@ -19,8 +19,9 @@ import { cifraSinSimbolo, totalDe } from '../../datos/cuentas.ts';
 import { useHistorial, useLaSituacion, useUnidades } from '../../datos/fuente.ts';
 import type { PredioDelPortal, Unidad } from '../../datos/tipos.ts';
 import { AvisoConFilo } from '../../piezas/AvisoConFilo.tsx';
+import { useModo } from '../../modo/useModo.ts';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
-import { type PagoSellado, aCobrar, cuentaPendiente, pendientes } from '../../recorrido/recorrido.ts';
+import { type PagoSellado, aCobrar, cuentaPendiente, esSimulado, pendientes } from '../../recorrido/recorrido.ts';
 import { selloDeLaDemostracion } from '../comprobante/sello.ts';
 
 /**
@@ -109,9 +110,10 @@ function PagoReciente({ pago }: { readonly pago: PagoSellado }) {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
   const idDelTitulo = useId();
-  const simulado = estado.conPlataforma;
-  // Los numeros y el medio, solo en demostracion (issue 58, `sello.ts`).
-  const sello = selloDeLaDemostracion(estado, pago);
+  // Una sola pregunta, al pago (issue 59): uno simulado no tiene ni numeros, ni medio, ni destino.
+  // El pago registrado va junto con su sello: los dos existen o ninguno.
+  const registrado = esSimulado(pago) ? null : { pago, sello: selloDeLaDemostracion(estado, pago) };
+  const simulado = registrado === null;
 
   return (
     <section
@@ -130,13 +132,13 @@ function PagoReciente({ pago }: { readonly pago: PagoSellado }) {
         <span
           className={cn('mt-[3px] block text-[13.5px] text-pretty', simulado ? 'text-tinta-3' : 'text-ok-tinta')}
         >
-          {sello === null
+          {registrado === null
             ? t('No se cobró nada, no se envió ningún comprobante y su deuda sigue pendiente.')
             : t('Operación {{operacion}} · {{medio}} · comprobante {{numero}}, enviado a {{destino}}', {
-                operacion: sello.comprobante.operacion,
-                medio: t(sello.medio),
-                numero: sello.comprobante.numero,
-                destino: pago.destino ?? t('su correo'),
+                operacion: registrado.sello.comprobante.operacion,
+                medio: t(registrado.sello.medio),
+                numero: registrado.sello.comprobante.numero,
+                destino: registrado.pago.destino ?? t('su correo'),
               })}
         </span>
       </span>
@@ -169,23 +171,25 @@ function PagosRealizados() {
   const { t } = useTranslation();
   const { estado } = useRecorrido();
   const historial = useHistorial();
-  // Con plataforma el pago simulado NO entra en «Pagos realizados»: esa tabla es la lista de lo que
-  // se pago, y ahi no se pago nada (issue 28, revision). Lo de esta visita lo dice la banda de
-  // arriba, que ademas dice que es simulado.
-  const pago = estado.recienPagado && !estado.conPlataforma ? estado.ultimo : null;
-  // Y sus numeros, que solo los hay en demostracion (issue 58, `sello.ts`).
-  const sello = pago === null ? null : selloDeLaDemostracion(estado, pago);
+  const { publicaLosPagos } = useModo();
+  // Un pago simulado NO entra en «Pagos realizados»: esa tabla es la lista de lo que se pago, y ahi
+  // no se pago nada (issue 28, revision). Lo de esta visita lo dice la banda de arriba, que ademas
+  // dice que es simulado. Se pregunta al pago, no al modo (issue 59).
+  const ultimo = estado.recienPagado ? estado.ultimo : null;
+  // Con sus numeros, que solo los tiene un pago registrado (`sello.ts`): los dos existen o ninguno.
+  const reciente =
+    ultimo === null || esSimulado(ultimo) ? null : { pago: ultimo, sello: selloDeLaDemostracion(estado, ultimo) };
 
   const filas: FilaDePago[] = [
-    ...(pago === null || sello === null
+    ...(reciente === null
       ? []
       : [
           {
-            fecha: formatearFecha(sello.comprobante.fecha),
-            concepto: pago.conceptos.map((deuda) => deuda.concepto).join(' · '),
-            medio: t(sello.medio),
-            comprobante: sello.comprobante.numero,
-            importe: cifraSinSimbolo(aCobrar(estado, pago)),
+            fecha: formatearFecha(reciente.sello.comprobante.fecha),
+            concepto: reciente.pago.conceptos.map((deuda) => deuda.concepto).join(' · '),
+            medio: t(reciente.sello.medio),
+            comprobante: reciente.sello.comprobante.numero,
+            importe: cifraSinSimbolo(aCobrar(estado, reciente.pago)),
             reciente: true,
           },
         ]),
@@ -226,15 +230,15 @@ function PagosRealizados() {
         a insistir contra algo que no existe (issue 28).
       */}
       {historial.isError ? (
-        estado.conPlataforma ? (
+        publicaLosPagos ? (
+          <AvisoConFilo tono="mal" role="alert" className="m-5 px-4 py-3">
+            {t('No pudimos traer sus pagos. Vuelva a intentarlo en unos minutos.')}
+          </AvisoConFilo>
+        ) : (
           <AvisoConFilo tono="atencion" className="m-5 px-4 py-3">
             {t(
               'El portal todavía no publica su historial de pagos: por ahora solo sabe lo que debe hoy. Los pagos anteriores están en la ventanilla de la municipalidad, con su comprobante.',
             )}
-          </AvisoConFilo>
-        ) : (
-          <AvisoConFilo tono="mal" role="alert" className="m-5 px-4 py-3">
-            {t('No pudimos traer sus pagos. Vuelva a intentarlo en unos minutos.')}
           </AvisoConFilo>
         )
       ) : null}
@@ -662,6 +666,7 @@ function DeDondeSale({ enfocar, alEnfocar }: { readonly enfocar: boolean; readon
 export function Historial() {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
+  const { publicaLosPagos, deuda } = useModo();
   const pago = estado.recienPagado ? estado.ultimo : null;
   // Estable mientras lo sea `despachar`: en demostracion, siempre; con plataforma cambia cuando la
   // cache trae otra respuesta (issue 50), y entonces el efecto de `DeDondeSale` vuelve a correr, pero
@@ -676,20 +681,20 @@ export function Historial() {
           Con plataforma no hay «todos sus pagos» ni comprobantes: el backend no publica ninguno
           (issue 49). Se dice lo que la pantalla ensena de verdad.
         */}
-        {estado.conPlataforma
-          ? t('Lo que le queda pendiente, según la consulta de hoy, y los predios a su nombre. El portal todavía no publica sus pagos.')
-          : t('Todos sus pagos, con sus comprobantes. Abajo está lo que le queda pendiente.')}
+        {publicaLosPagos
+          ? t('Todos sus pagos, con sus comprobantes. Abajo está lo que le queda pendiente.')
+          : t('Lo que le queda pendiente, según la consulta de hoy, y los predios a su nombre. El portal todavía no publica sus pagos.')}
       </p>
 
       {pago === null ? null : <PagoReciente pago={pago} />}
       <PagosRealizados />
-      {estado.conPlataforma ? <LoQueQuedaPendienteConPlataforma /> : <LoQueQuedaPendiente />}
+      {deuda === 'de-la-consulta' ? <LoQueQuedaPendienteConPlataforma /> : <LoQueQuedaPendiente />}
       {/*
         Con plataforma las unidades salen de la CONSULTA y no de `useUnidades`, que el backend no
         publica. El foco de «Mis predios y vehículos» es del recorrido de la demostracion: con
         plataforma el menu lleva a esta misma pantalla y la seccion es la de abajo del todo.
       */}
-      {estado.conPlataforma ? (
+      {deuda === 'de-la-consulta' ? (
         <DeDondeSaleConPlataforma />
       ) : (
         <DeDondeSale enfocar={estado.enfocarUnidades} alEnfocar={alEnfocar} />
