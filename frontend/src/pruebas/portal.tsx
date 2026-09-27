@@ -308,24 +308,59 @@ export async function limpiarElPortal(): Promise<void> {
  */
 export async function moverElNavegador(mover: () => void): Promise<void> {
   await act(async () => {
-    let dejarDeOir = () => {};
-    const llego = new Promise<void>((listo, fallar) => {
-      const alMoverse = () => {
-        dejarDeOir();
-        listo();
-      };
-      const plazo = setTimeout(() => {
-        dejarDeOir();
-        fallar(new Error(`El navegador no se movio: ningun \`popstate\` en ${ESPERA_DEL_PORTAL} ms (${window.location.hash}).`));
-      }, ESPERA_DEL_PORTAL);
-      dejarDeOir = () => {
-        clearTimeout(plazo);
-        window.removeEventListener('popstate', alMoverse);
-      };
-      window.addEventListener('popstate', alMoverse);
-    });
-    mover();
-    await llego;
+    const escucha = oirAlNavegador();
+    try {
+      mover();
+    } catch (error) {
+      // Sin esto, el oyente y el plazo seguirian vivos, y a los 5 s saldria un rechazo sin nadie que lo
+      // espere, que Vitest podria achacar a otro caso (revision del PR #76).
+      escucha.dejarDeOir();
+      throw error;
+    }
+    await escucha.llego;
+  });
+}
+
+/** El proximo `popstate`, con su plazo para fallar diciendolo; y como dejar de esperarlo. */
+export interface EscuchaDelNavegador {
+  readonly llego: Promise<void>;
+  readonly dejarDeOir: () => void;
+}
+
+/**
+ * **Empieza a oir el proximo `popstate` YA**, para esperarlo despues con `esperarAlNavegador`.
+ *
+ * Para cuando el movimiento lo provoca otro —una trampa dentro del portal, a media accion— y el oyente
+ * tiene que estar puesto ANTES de moverse: registrado despues, el `popstate` ya encolado podria llegar
+ * antes que el oyente (revision del PR #76). Con `moverElNavegador` no hace falta: oye y mueve a la vez.
+ */
+export function oirAlNavegador(): EscuchaDelNavegador {
+  let dejarDeOir = () => {};
+  const llego = new Promise<void>((listo, fallar) => {
+    const alMoverse = () => {
+      dejarDeOir();
+      listo();
+    };
+    const plazo = setTimeout(() => {
+      dejarDeOir();
+      fallar(new Error(`El navegador no se movio: ningun \`popstate\` en ${ESPERA_DEL_PORTAL} ms (${window.location.hash}).`));
+    }, ESPERA_DEL_PORTAL);
+    dejarDeOir = () => {
+      clearTimeout(plazo);
+      window.removeEventListener('popstate', alMoverse);
+    };
+    window.addEventListener('popstate', alMoverse);
+  });
+  // El rechazo lo recibe quien espere `llego`; esto solo evita que, mientras nadie lo espera todavia,
+  // Node lo cuente como un rechazo sin manejar.
+  llego.catch(() => {});
+  return { llego, dejarDeOir };
+}
+
+/** Espera, dentro de `act`, el `popstate` que ya se estaba oyendo (`oirAlNavegador`). */
+export async function esperarAlNavegador(escucha: EscuchaDelNavegador): Promise<void> {
+  await act(async () => {
+    await escucha.llego;
   });
 }
 

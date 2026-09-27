@@ -1,7 +1,15 @@
 import { screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { limpiarElPortal, montarElPortal, moverElNavegador, plazosDelPortal } from '../pruebas/portal.tsx';
+import {
+  type EscuchaDelNavegador,
+  esperarAlNavegador,
+  limpiarElPortal,
+  montarElPortal,
+  moverElNavegador,
+  oirAlNavegador,
+  plazosDelPortal,
+} from '../pruebas/portal.tsx';
 import type { AccionDelRecorrido } from './recorrido.ts';
 
 /**
@@ -76,16 +84,21 @@ describe('la URL cambia otra vez antes de que se dibuje el paso que el recorrido
     // Primer Atras, a «Mis datos». En cuanto el gancho despacha el `irA` que lo sigue —antes del
     // dibujo—, la URL pasa a «Elegir qué pago».
     const seguidos: AccionDelRecorrido[] = [];
+    const escuchas: EscuchaDelNavegador[] = [];
     trampa.alSeguir = (accion) => {
       seguidos.push(accion);
+      // El oyente del `popstate` de este cambio, puesto ANTES de hacerlo: jsdom lo encola un
+      // `setTimeout` despues, y no debe poder llegar antes que quien lo espera.
+      escuchas.push(oirAlNavegador());
       window.location.hash = '#/deudas';
     };
     await moverElNavegador(() => window.history.back());
-    // Y que llegue el `popstate` del segundo cambio, que jsdom manda un `setTimeout` despues.
-    await moverElNavegador(() => {});
 
     // La trampa salto donde tenia que saltar: al seguir el primer Atras.
     expect(seguidos).toEqual([{ tipo: 'irA', paso: 'identificar' }]);
+    // Y que llegue el `popstate` del segundo cambio.
+    expect(escuchas).toHaveLength(1);
+    for (const escucha of escuchas) await esperarAlNavegador(escucha);
     // Manda lo ULTIMO que dijo la URL. Hasta el issue 74: «expected '#/identificar' to be '#/deudas'».
     expect(window.location.hash).toBe('#/deudas');
     expect(franja().getByRole('button', { name: 'Elegir qué pago' })).toHaveAttribute('aria-current', 'step');

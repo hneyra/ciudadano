@@ -134,11 +134,11 @@ describe('atras y adelante del navegador', () => {
     }
     expect(window.location.hash).toBe('#/pagar');
     fireEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: 'Mis datos' }));
-    // Y ahora si, que llegue todo lo atrasado. Aqui no se mueve el historial —no habra `popstate`—:
-    // lo atrasado es el dibujo de la transicion del enrutador, que no tiene una senal que esperar.
-    await act(async () => {
-      await new Promise((listo) => setTimeout(listo, 50));
-    });
+    // Y ahora si, que llegue todo lo atrasado: la transicion del enrutador y lo que el efecto haga con
+    // ella. Es trabajo de React, y `act` lo vacia al salir; hasta la revision del PR #76 aqui se
+    // esperaban ademas 50 ms, que sobraban: sin ellos, 3 de 3 en verde, y con el efecto leyendo la ruta
+    // del dibujo, 3 de 3 en rojo («expected '#/pagar' to be '#/identificar'»).
+    await act(async () => {});
 
     expect(window.location.hash).toBe('#/identificar');
     expect(within(screen.getByRole('navigation')).getByRole('button', { name: 'Mis datos' })).toHaveAttribute(
@@ -175,13 +175,17 @@ describe('atras y adelante del navegador', () => {
     const empujar = vi.spyOn(window.history, 'pushState');
     const reemplazar = vi.spyOn(window.history, 'replaceState');
     const vistos: string[] = [];
-    for (const mover of ['back', 'back', 'back', 'forward', 'forward', 'forward'] as const) {
-      await moverElNavegador(() => window.history[mover]());
-      vistos.push(`${window.location.hash} ${String(actual())}`);
+    let escrito: string[];
+    try {
+      for (const mover of ['back', 'back', 'back', 'forward', 'forward', 'forward'] as const) {
+        await moverElNavegador(() => window.history[mover]());
+        vistos.push(`${window.location.hash} ${String(actual())}`);
+      }
+      escrito = [...empujar.mock.calls, ...reemplazar.mock.calls].map(([, , url]) => String(url));
+    } finally {
+      empujar.mockRestore();
+      reemplazar.mockRestore();
     }
-    const escrito = [...empujar.mock.calls, ...reemplazar.mock.calls].map(([, , url]) => String(url));
-    empujar.mockRestore();
-    reemplazar.mockRestore();
     expect(escrito).toEqual([]);
     expect(vistos).toEqual([
       '#/identificar Mis datos',

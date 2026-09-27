@@ -1,8 +1,8 @@
 import { avisar } from '@kamayuk/ui';
 import { act, cleanup, screen } from '@testing-library/react';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { limpiarElPortal, montarElPortal, plazosDelPortal, remendarJsdomParaElMenu } from './portal.tsx';
+import { limpiarElPortal, montarElPortal, moverElNavegador, plazosDelPortal, remendarJsdomParaElMenu } from './portal.tsx';
 
 /**
  * **Limpiar el portal no deja ningun temporizador vivo** (revision del PR #46, issue 42).
@@ -59,5 +59,30 @@ describe('limpiar el portal', () => {
     }
 
     expect(programados, 'temporizadores programados al limpiar el portal').toEqual([]);
+  });
+});
+
+/**
+ * **Si mover el navegador revienta, `moverElNavegador` deja de oirlo** (revision del PR #76). Sin eso,
+ * el oyente del `popstate` y su plazo seguirian vivos, y a los 5 s el plazo rechazaria una promesa que
+ * ya nadie espera: un «Unhandled Rejection» que Vitest puede achacar a otro caso.
+ */
+describe('moverElNavegador', () => {
+  it('si `mover` revienta, el error sale tal cual y el oyente del `popstate` se quita', async () => {
+    const poner = vi.spyOn(window, 'addEventListener');
+    const quitar = vi.spyOn(window, 'removeEventListener');
+    try {
+      await expect(
+        moverElNavegador(() => {
+          throw new Error('mover revento');
+        }),
+      ).rejects.toThrow('mover revento');
+      const oyentes = poner.mock.calls.filter(([tipo]) => tipo === 'popstate').map(([, oyente]) => oyente);
+      expect(oyentes).toHaveLength(1);
+      expect(quitar.mock.calls.filter(([tipo, oyente]) => tipo === 'popstate' && oyente === oyentes[0])).toHaveLength(1);
+    } finally {
+      poner.mockRestore();
+      quitar.mockRestore();
+    }
   });
 });
