@@ -240,9 +240,12 @@ describe('el desglose de un concepto', () => {
     expect(within(tabla).getAllByRole('columnheader')[2]?.className).toContain('text-right');
     expect(within(filas[0] as HTMLElement).getAllByRole('cell')[2]?.className).toContain('tabular-nums');
     expect(within(filas[0] as HTMLElement).getAllByRole('cell')[0]?.className).toContain('whitespace-nowrap');
-    // El ancho minimo del dato, y el desplazamiento dentro de su contenedor.
+    // El ancho minimo del dato, y el desplazamiento dentro de su contenedor, que el teclado alcanza
+    // (issue 62: sin nada enfocable dentro, axe `scrollable-region-focusable`, serious, a 320 px).
     expect(tabla.style.minWidth).toBe('580px');
     expect(tabla.parentElement?.className).toContain('overflow-x-auto');
+    expect(fila.getByRole('region', { name: 'Cuotas del impuesto predial 2026' })).toBe(tabla.parentElement);
+    expect(tabla.parentElement).toHaveAttribute('tabindex', '0');
     expect(
       fila.getByText(
         'El impuesto del año sale del autovalúo de todos sus predios: S/ 151,406.75 de base, con la escala progresiva. Se reparte en cuatro cuotas iguales.',

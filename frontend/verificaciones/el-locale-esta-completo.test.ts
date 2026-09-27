@@ -202,6 +202,8 @@ const LITERALES = [
   // El nombre accesible de «Ver el detalle», con su concepto (issue 62): cuatro iguales en la lista.
   'Ver el detalle de {{concepto}}',
   'Ocultar el detalle de {{concepto}}',
+  // El nombre del marco que desplaza la tabla del recibo (issue 62): se enfoca con el teclado.
+  'Conceptos del comprobante',
   // Lineas 1158-1173: la barra de pago, el aviso sin nada marcado y la ayuda de la linea 298.
   'No ha marcado ningún concepto',
   'Con la amnistía paga {{conAmnistia}}: se descuentan {{interes}} de interés',

@@ -83,7 +83,13 @@ export function Recibo({ pago }: { readonly pago: PagoSellado }) {
         ))}
       </dl>
 
-      <Tabla className="min-w-[660px] max-[701px]:min-w-0">
+      {/* El marco desplaza la tabla por debajo de su ancho minimo, y sin nada enfocable dentro el teclado
+          no llegaba a desplazarlo (issue 62; axe `scrollable-region-focusable`, a 320 px): entra en el
+          tabulador como una region con nombre. No el del recibo: dos regiones «Constancia de pago». */}
+      <Tabla
+        className="min-w-[660px] max-[701px]:min-w-0"
+        marco={{ tabIndex: 0, role: 'region', 'aria-label': t('Conceptos del comprobante') }}
+      >
         <TablaCabecera>
           <tr>
             {columnas.map((columna) => (
