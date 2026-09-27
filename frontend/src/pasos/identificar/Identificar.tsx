@@ -8,7 +8,7 @@ import { z } from 'zod';
 
 import { MEDIDAS_DE_CONTROL, Rotulo } from '../../piezas/Rotulo.tsx';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
-import { cuenta, destinoAlEntrar, hayQuePagar } from '../../recorrido/recorrido.ts';
+import { cuenta, destinoAlEntrar, hayQuePagar, laDemostracion } from '../../recorrido/recorrido.ts';
 
 /**
  * **Paso 3 · Mis datos** (`diseno/Ciudadano.dc.html`: plantilla 311-354, logica 1177-1201).
@@ -52,13 +52,13 @@ import { cuenta, destinoAlEntrar, hayQuePagar } from '../../recorrido/recorrido.
  *   texto, como el del artboard: pulsar el texto la alterna.
  * · **Sin seleccion, el parrafo cambia** (nota del revisor): «Todavía no ha elegido qué pagar…».
  *
- * `03593174` y los puntos de la clave son DATO, como los ejemplos de «Buscar mi deuda»: no pasan por
- * `t()`. `nombre@example.com` si, porque se lee como una plantilla («nombre@…»), no como un dato
+ * El ejemplo del documento y los puntos de la clave son DATO, como los ejemplos de «Buscar mi deuda»:
+ * no pasan por `t()`. El documento es el DNI del contribuyente del artboard, asi que llega con la
+ * demostracion (`LaDemostracion.ejemplos`, issue 58) y no se escribe aqui. `nombre@example.com` si, porque se lee como una plantilla («nombre@…»), no como un dato
  * opaco (issue 51: el dominio de ejemplo era antes real y registrable; ahora es el reservado
  * `example.com` — RFC 2606 —, y la palabra que lo delataba como legible sigue siendo «nombre»).
  */
 
-const EJEMPLO_DE_DOCUMENTO = '03593174';
 const PUNTOS_DE_LA_CLAVE = '••••••••';
 
 interface ValoresDelCorreo {
@@ -219,6 +219,8 @@ function ConMiCuenta() {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
   const idDelError = useId();
+  // Artboard, linea 340.
+  const ejemploDeDocumento = laDemostracion(estado).ejemplos.cuenta;
 
   const esquema = useMemo(() => {
     const falta = t('Escriba su documento y su clave para entrar.');
@@ -263,7 +265,7 @@ function ConMiCuenta() {
                 {...field}
                 inputMode="numeric"
                 autoComplete="username"
-                placeholder={EJEMPLO_DE_DOCUMENTO}
+                placeholder={ejemploDeDocumento}
                 onChange={(evento) => {
                   field.onChange(evento);
                   form.clearErrors();

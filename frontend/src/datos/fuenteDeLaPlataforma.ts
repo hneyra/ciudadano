@@ -68,6 +68,8 @@ export function crearFuenteDeLaPlataforma(cliente: Cliente): FuenteDelPortal {
     // de verdad seria aplicarle el descuento de una ordenanza del artboard. El dia que el contrato
     // la traiga, sale de la respuesta y no de aqui.
     amnistia: false,
+    // Los datos de la persona los trae la consulta; los del artboard no viajan en este paquete (issue 58).
+    demostracion: null,
     historial: (): Promise<readonly PagoDelHistorial[]> => noPublicado(),
     unidades: (): Promise<readonly Unidad[]> => noPublicado(),
   };

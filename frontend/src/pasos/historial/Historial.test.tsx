@@ -3,9 +3,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { DEUDAS, HISTORIAL, UNIDADES, USUARIO } from '../../datos/demostracion.ts';
 import type { FuenteDelPortal } from '../../datos/fuente.ts';
+import { LA_DEMOSTRACION } from '../../datos/fuenteDeDemostracion.ts';
 import i18n, { ABRE, CIERRA, IDIOMA_MARCADO } from '../../i18n/i18n.ts';
 import { limpiarElPortal, marcado, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
-import { DATOS_DE_LA_DEMOSTRACION, type EstadoDelRecorrido } from '../../recorrido/recorrido.ts';
+import { type EstadoDelRecorrido, datosDeLaDemostracion } from '../../recorrido/recorrido.ts';
 import { textosDeLaUnidad, textosDelPago } from './textosDelHistorial.ts';
 
 /**
@@ -203,7 +204,7 @@ describe('sin haber pagado nada en esta visita', () => {
         recienPagado: false,
         ultimo: {
           conceptos: DEUDAS.filter((deuda) => deuda.id === 'pred26'),
-          contribuyente: DATOS_DE_LA_DEMOSTRACION.contribuyente,
+          contribuyente: datosDeLaDemostracion(LA_DEMOSTRACION).contribuyente,
           insoluto: '293.72',
           reajuste: '0.00',
           interes: '0.00',
@@ -239,6 +240,7 @@ describe('sin haber pagado nada en esta visita', () => {
       // Sin plataforma no hay consulta que hacer: el historial se lee igual (issue 27).
       consulta: null,
       amnistia: true,
+      demostracion: LA_DEMOSTRACION,
       historial: () => new Promise((resolver) => (contestar = resolver)),
       unidades: () => Promise.reject(new Error('la fuente no contesto')),
     };
@@ -260,6 +262,7 @@ describe('sin haber pagado nada en esta visita', () => {
       // Sin plataforma no hay consulta que hacer: el historial se lee igual (issue 27).
       consulta: null,
       amnistia: true,
+      demostracion: LA_DEMOSTRACION,
       historial: () => Promise.reject(new Error('la fuente no contesto')),
       unidades: () => Promise.resolve(UNIDADES),
     };

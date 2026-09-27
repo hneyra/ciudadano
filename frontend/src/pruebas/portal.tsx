@@ -12,7 +12,7 @@ import { FuenteActiva, type FuenteDelPortal, hayPlataforma } from '../datos/fuen
 // de produccion lo importe— lo vigila `verificaciones/la-demostracion-no-viaja-al-bundle.test.ts`.
 import { fuenteDeDemostracion } from '../datos/fuenteDeDemostracion.ts';
 import { type Enrutador, crearEnrutador } from '../enrutador.tsx';
-import i18n, { ABRE, CIERRA, IDIOMA_POR_OMISION } from '../i18n/i18n.ts';
+import i18n, { ABRE, CIERRA, IDIOMA_POR_OMISION, sumarLosTextosDeLaFuente } from '../i18n/i18n.ts';
 import { precargarLasPantallas } from '../pasos/pantallas.tsx';
 import { type DecisionesDelRecorrido, estadoInicial } from '../recorrido/recorrido.ts';
 
@@ -238,7 +238,10 @@ export function montarElPortal({ hash = '#/buscar', estado = {}, fuente = fuente
     conPlataforma: hayPlataforma(fuente),
     autenticado: hayPlataforma(fuente) && haySesion(),
     amnistia: fuente.amnistia,
+    demostracion: fuente.demostracion,
   });
+  // Como `montaje.tsx` (issue 58).
+  sumarLosTextosDeLaFuente(fuente);
   const enrutador = crearEnrutador();
   montados.push(enrutador);
   // La MISMA politica que `montaje.tsx` (issue 50): con los valores por omision, el foco volveria a pedir

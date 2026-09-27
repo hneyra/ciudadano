@@ -5,18 +5,8 @@ import { formatearFecha, formatearImporte } from '@kamayuk/formato';
 import { describe, expect, it } from 'vitest';
 
 import { RAIZ } from '../../verificaciones/artboards.ts';
-import {
-  COMPROBANTE,
-  CONTRIBUYENTE,
-  DEUDAS,
-  ENTIDAD,
-  FECHA_DE_CORTE,
-  HISTORIAL,
-  MEDIOS,
-  ORDENANZA,
-  UNIDADES,
-  USUARIO,
-} from './demostracion.ts';
+import { ENTIDAD, FECHA_DE_CORTE, ORDENANZA } from './constantes.ts';
+import { COMPROBANTE, CONTRIBUYENTE, DEUDAS, EJEMPLOS, HISTORIAL, MEDIOS, UNIDADES, USUARIO } from './demostracion.ts';
 
 /**
  * **Los datos de demostracion son la copia literal del artboard**, comprobada campo a campo.
@@ -316,6 +306,19 @@ describe('los literales que la logica del artboard escribe fuera del bloque', ()
       codigo: `Contribuyente ${u.codigo}`,
       correo: u.correo,
     });
+  });
+
+  it('los ejemplos de los campos de documento (lineas 1087 y 340): el codigo y el DNI del contribuyente', () => {
+    const { busqueda, cuenta } = EJEMPLOS;
+    expect(LINEAS[1087 - 1]).toContain(
+      `placeholderBusqueda: s.tipo === 'Código de contribuyente' ? '${busqueda['Código de contribuyente']}' : ` +
+        `(s.tipo === 'DNI' ? '${busqueda.DNI}' : '${busqueda.RUC}'),`,
+    );
+    expect(LINEAS[340 - 1]).toContain(`placeholder="${cuenta}"`);
+    // Y son de la persona de la demostracion, que es lo que los hace dato y no ayuda (issue 58).
+    expect(busqueda['Código de contribuyente']).toBe(CONTRIBUYENTE.codigo);
+    expect(busqueda.DNI).toBe(CONTRIBUYENTE.numeroDeDocumento);
+    expect(cuenta).toBe(CONTRIBUYENTE.numeroDeDocumento);
   });
 
   it('el comprobante (linea 1037), la entidad (1042), la ordenanza (177) y el dia de corte (1338)', () => {

@@ -46,6 +46,7 @@ function fuenteFalsa(cambios: Partial<FuenteDelPortal> = {}): FuenteDelPortal {
   return {
     consulta: vi.fn(() => Promise.resolve(SITUACION_FALSA)),
     amnistia: false,
+    demostracion: null,
     historial: vi.fn(() => Promise.resolve(HISTORIAL.slice(0, 1))),
     unidades: vi.fn(() => Promise.resolve([])),
     ...cambios,

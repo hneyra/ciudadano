@@ -19,7 +19,7 @@ import { AvisoConFilo } from '../../piezas/AvisoConFilo.tsx';
 import { AvisoDeAmnistia, QuePuedeHacerAqui } from '../../piezas/PortadaDelPortal.tsx';
 import { MEDIDAS_DE_CONTROL, Rotulo } from '../../piezas/Rotulo.tsx';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
-import { type TipoDeDocumento, vivas } from '../../recorrido/recorrido.ts';
+import { type TipoDeDocumento, laDemostracion, vivas } from '../../recorrido/recorrido.ts';
 
 /**
  * **Paso 1 · Buscar mi deuda** (`diseno/Ciudadano.dc.html`: plantilla 121-180, `buscar()` 1002-1007 y
@@ -48,8 +48,10 @@ import { type TipoDeDocumento, vivas } from '../../recorrido/recorrido.ts';
  *   `verificaciones/la-paleta-cuadra-con-el-artboard.test.ts`.
  * · **La sombra de la tarjeta** es `--shadow-sombra-1` y no el `rgba(0,0,0,.04)` literal.
  *
- * Los ejemplos del placeholder (`00000025673`, …) son DATO, como el documento de la barra: el mismo
- * numero en cualquier idioma. No pasan por `t()`.
+ * Los ejemplos del placeholder son DATO, como el documento de la barra: el mismo numero en cualquier
+ * idioma, y no pasan por `t()`. Y son de una persona —el codigo y el DNI del contribuyente del
+ * artboard—, asi que llegan con la demostracion (`LaDemostracion.ejemplos`, issue 58): escritos aqui,
+ * viajaban en el paquete de produccion, que tambien trae esta pantalla aunque no la ofrezca.
  *
  * <h2>Esta pantalla es SOLO de demostracion (issue 28)</h2>
  *
@@ -62,13 +64,6 @@ import { type TipoDeDocumento, vivas } from '../../recorrido/recorrido.ts';
 
 const TIPOS: readonly TipoDeDocumento[] = ['Código de contribuyente', 'DNI', 'RUC'];
 
-/** El ejemplo de cada tipo (artboard, linea 1087). */
-const EJEMPLO: Readonly<Record<TipoDeDocumento, string>> = {
-  'Código de contribuyente': '00000025673',
-  DNI: '03593174',
-  RUC: '20525118447',
-};
-
 const esTipo = (valor: string): valor is TipoDeDocumento => TIPOS.some((tipo) => tipo === valor);
 
 interface ValoresDeLaBusqueda {
@@ -80,6 +75,8 @@ export function Buscar() {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
   const idDelError = useId();
+  // El ejemplo de cada tipo (artboard, linea 1087).
+  const ejemplo = laDemostracion(estado).ejemplos.busqueda;
 
   const esquema = useMemo(
     () =>
@@ -185,7 +182,7 @@ export function Buscar() {
                       {...field}
                       inputMode="numeric"
                       autoComplete="off"
-                      placeholder={EJEMPLO[tipo]}
+                      placeholder={ejemplo[tipo]}
                       onChange={(evento) => {
                         field.onChange(evento);
                         form.clearErrors('numero');

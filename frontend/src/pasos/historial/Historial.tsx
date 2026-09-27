@@ -21,7 +21,7 @@ import type { PredioDelPortal, Unidad } from '../../datos/tipos.ts';
 import { AvisoConFilo } from '../../piezas/AvisoConFilo.tsx';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
 import { type PagoSellado, aCobrar, cuentaPendiente, pendientes } from '../../recorrido/recorrido.ts';
-import { rotuloDelMedio } from '../pagar/textosDeLosMedios.ts';
+import { selloDeLaDemostracion } from '../comprobante/sello.ts';
 
 /**
  * **Mis pagos**, con sesion (`diseno/Ciudadano.dc.html`: plantilla 567-671, datos 887-917, logica
@@ -110,6 +110,8 @@ function PagoReciente({ pago }: { readonly pago: PagoSellado }) {
   const { estado, despachar } = useRecorrido();
   const idDelTitulo = useId();
   const simulado = estado.conPlataforma;
+  // Los numeros y el medio, solo en demostracion (issue 58, `sello.ts`).
+  const sello = selloDeLaDemostracion(estado, pago);
 
   return (
     <section
@@ -128,12 +130,12 @@ function PagoReciente({ pago }: { readonly pago: PagoSellado }) {
         <span
           className={cn('mt-[3px] block text-[13.5px] text-pretty', simulado ? 'text-tinta-3' : 'text-ok-tinta')}
         >
-          {simulado
+          {sello === null
             ? t('No se cobró nada, no se envió ningún comprobante y su deuda sigue pendiente.')
             : t('Operación {{operacion}} · {{medio}} · comprobante {{numero}}, enviado a {{destino}}', {
-                operacion: pago.comprobante.operacion,
-                medio: t(rotuloDelMedio(pago.medio)),
-                numero: pago.comprobante.numero,
+                operacion: sello.comprobante.operacion,
+                medio: t(sello.medio),
+                numero: sello.comprobante.numero,
                 destino: pago.destino ?? t('su correo'),
               })}
         </span>
@@ -171,16 +173,18 @@ function PagosRealizados() {
   // se pago, y ahi no se pago nada (issue 28, revision). Lo de esta visita lo dice la banda de
   // arriba, que ademas dice que es simulado.
   const pago = estado.recienPagado && !estado.conPlataforma ? estado.ultimo : null;
+  // Y sus numeros, que solo los hay en demostracion (issue 58, `sello.ts`).
+  const sello = pago === null ? null : selloDeLaDemostracion(estado, pago);
 
   const filas: FilaDePago[] = [
-    ...(pago === null
+    ...(pago === null || sello === null
       ? []
       : [
           {
-            fecha: formatearFecha(pago.comprobante.fecha),
+            fecha: formatearFecha(sello.comprobante.fecha),
             concepto: pago.conceptos.map((deuda) => deuda.concepto).join(' · '),
-            medio: t(rotuloDelMedio(pago.medio)),
-            comprobante: pago.comprobante.numero,
+            medio: t(sello.medio),
+            comprobante: sello.comprobante.numero,
             importe: cifraSinSimbolo(aCobrar(estado, pago)),
             reciente: true,
           },

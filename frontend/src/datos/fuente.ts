@@ -1,7 +1,7 @@
 import { skipToken, useQuery } from '@tanstack/react-query';
 import { createContext, useContext } from 'react';
 
-import type { PagoDelHistorial, SituacionDelServidor, Unidad } from './tipos.ts';
+import type { LaDemostracion, PagoDelHistorial, SituacionDelServidor, Unidad } from './tipos.ts';
 
 /**
  * **De donde lee el portal**, y los ganchos con que lo leen las pantallas.
@@ -51,6 +51,17 @@ export interface FuenteDelPortal {
    * copia al arrancar (`estadoInicial`) y de ella cuelga lo que se cobra (`aCobrar`) y si se nombra.
    */
   readonly amnistia: boolean;
+  /**
+   * **Los datos del artboard, cuando la fuente es la de demostracion** (issue 58); `null` con
+   * plataforma.
+   *
+   * La deuda, el contribuyente, la usuaria, el sello del comprobante, los medios de pago y los
+   * ejemplos de los campos de documento llegan por aqui, y no por un `import` de `demostracion.ts`
+   * en cada pantalla: esos `import` estaticos eran los que metian los datos en el paquete de
+   * produccion aunque la fuente de demostracion se quedara fuera. Sincrono porque ya esta en memoria
+   * —llego con la fuente, por el `import()` de `laFuente.ts`— y el recorrido arranca con ellos.
+   */
+  readonly demostracion: LaDemostracion | null;
   /** Los pagos ya hechos por la cuenta con sesion. */
   historial(): Promise<readonly PagoDelHistorial[]>;
   /** Los predios y vehiculos del contribuyente de la cuenta con sesion. */
@@ -84,6 +95,7 @@ const NADIE: FuenteDelPortal = {
   consulta: null,
   // Nadie dijo que la haya: no se condona nada.
   amnistia: false,
+  demostracion: null,
   historial: () => Promise.reject(new Error(SIN_INYECTAR)),
   unidades: () => Promise.reject(new Error(SIN_INYECTAR)),
 };

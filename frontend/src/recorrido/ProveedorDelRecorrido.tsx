@@ -2,12 +2,13 @@ import { type Dispatch, type ReactNode, createContext, useCallback, useContext, 
 
 import { haySesion } from '../api/claims.ts';
 import { hayPlataforma, useLaFuente, useLaSituacionSinPedir } from '../datos/fuente.ts';
+import type { LaDemostracion } from '../datos/tipos.ts';
 import {
   type AccionDelRecorrido,
-  DATOS_DE_LA_DEMOSTRACION,
   type DatosLeidos,
   type DecisionesDelRecorrido,
   type EstadoDelRecorrido,
+  datosDeLaDemostracion,
   datosDeLaSituacion,
   decisionesDe,
   estadoInicial,
@@ -35,7 +36,7 @@ import {
  *
  * El reductor montado guarda **solo las decisiones** de la persona (`DecisionesDelRecorrido`). Los
  * conceptos y a nombre de quien estan (`DatosLeidos`) se LEEN en cada dibujo: los del artboard en
- * demostracion, y con plataforma lo que la cache de consultas tenga de `GET /portal/situacion`
+ * demostracion —los que aporta la fuente, `FuenteDelPortal.demostracion` (issue 58)—, y con plataforma lo que la cache de consultas tenga de `GET /portal/situacion`
  * (`useLaSituacionSinPedir`, que la sigue sin pedirla). Nada los copia: no hay efecto, ni accion
  * `situacionLeida`, ni un dibujo en que la respuesta ya llego y la lista todavia no.
  *
@@ -68,11 +69,11 @@ function conLoLeido(decisiones: DecisionesDelRecorrido, { accion, datos }: Envio
  * cache no cambie (React Query conserva la referencia si la respuesta repetida es igual), y el
  * `useMemo` el mismo objeto: sin cambio de datos no hay dibujo nuevo, ni un `despachar` nuevo.
  */
-function useLoLeido(conPlataforma: boolean): DatosLeidos {
+function useLoLeido(conPlataforma: boolean, demostracion: LaDemostracion | null): DatosLeidos {
   const situacion = useLaSituacionSinPedir().data;
   return useMemo(
-    () => (conPlataforma ? datosDeLaSituacion(situacion) : DATOS_DE_LA_DEMOSTRACION),
-    [conPlataforma, situacion],
+    () => (conPlataforma ? datosDeLaSituacion(situacion) : datosDeLaDemostracion(demostracion)),
+    [conPlataforma, situacion, demostracion],
   );
 }
 
@@ -91,7 +92,7 @@ const Contexto = createContext<ValorDelRecorrido | null>(null);
 
 export interface ProveedorDelRecorridoProps {
   readonly children: ReactNode;
-  /** Lo que una prueba quiere de partida. Si trae `deudas` o `contribuyente`, se ignoran: se leen. */
+  /** Lo que una prueba quiere de partida. Si trae `deudas`, `contribuyente` o `demostracion`, se ignoran: se leen. */
   readonly inicial?: DecisionesDelRecorrido;
 }
 
@@ -102,11 +103,17 @@ export function ProveedorDelRecorrido({ children, inicial }: ProveedorDelRecorri
     decisionesDe(
       // `haySesion()` solo se pregunta con plataforma: en demostracion no hay ninguna puerta a la que
       // haber entrado, y la sesion del artboard la enciende el paso «Mis datos».
-      dado ?? estadoInicial({ conPlataforma, autenticado: conPlataforma && haySesion(), amnistia: fuente.amnistia }),
+      dado ??
+        estadoInicial({
+          conPlataforma,
+          autenticado: conPlataforma && haySesion(),
+          amnistia: fuente.amnistia,
+          demostracion: fuente.demostracion,
+        }),
     ),
   );
   // El modo, del estado y no de la fuente: es donde vive (`estado.conPlataforma`, issue 28).
-  const datos = useLoLeido(decisiones.conPlataforma);
+  const datos = useLoLeido(decisiones.conPlataforma, fuente.demostracion);
   // Cambia solo si cambia lo leido: en demostracion, nunca; con plataforma, cuando la cache trae una
   // respuesta distinta. Un `despachar` que enviara datos viejos sellaria un pago que ya no se ve.
   const despachar = useCallback((accion: AccionDelRecorrido) => enviar({ accion, datos }), [datos]);

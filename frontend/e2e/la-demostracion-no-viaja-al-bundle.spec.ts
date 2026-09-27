@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 import { expect, test } from '@playwright/test';
 
+import { enQueArchivosEsta } from '../verificaciones/marcas-de-la-demostracion.ts';
+
 /**
  * **La medicion de verdad: sobre el paquete de PRODUCCION que `yarn build` produce** (issue 27).
  *
@@ -24,17 +26,25 @@ import { expect, test } from '@playwright/test';
  * del paquete de demostracion, «no esta en el de produccion» pasaria en verde el dia que el modulo
  * dejara de existir, se renombrara, o el `import()` se cayera por un motivo que no es la bandera.
  *
- * <h2>Lo que este camino NO afirma</h2>
+ * <h2>Y los DATOS del artboard tampoco (issue 58)</h2>
  *
- * Que los datos del artboard no esten en el paquete: hoy si estan, porque el recorrido de pasos
- * sigue siendo el de la demostracion y `src/recorrido/recorrido.ts` los importa. Eso lo cambia el
- * issue 28. Lo que se mide aqui es que **la FUENTE de demostracion** —el objeto que contesta en vez
- * del servidor— no llega al paquete de produccion, que es lo que impide que un portal construido
- * para una municipalidad pueda leer de ella.
+ * Hasta el issue 58 esto solo afirmaba que no viajaba **la fuente**: los datos si, porque ocho
+ * archivos de produccion importaban `src/datos/demostracion.ts` por su cuenta —el reductor para su
+ * estado inicial, la barra para la usuaria, el paso 2 para el contribuyente…—. Ahora los aporta la
+ * fuente, y los dos ultimos caminos lo miden sobre lo construido: **ninguna marca de los datos**
+ * —nombres, documentos, correo, comprobantes, direcciones, fichas, placa, el numero de Yape— en el
+ * paquete de produccion, y **todas** en el del arnes, que es la mitad que demuestra que la busqueda
+ * encuentra lo que busca. Las marcas salen de `demostracion.ts` y no de una lista escrita aqui
+ * (`verificaciones/marcas-de-la-demostracion.ts`).
  *
- * No abre navegador, y es el unico camino de este arnes que no lo hace. Se queda aqui igualmente
- * porque lo que mide es un `vite build`, y `yarn verificar` no construye nada: meterle uno le
- * anadiria trece segundos a la orden que se ejecuta veinte veces al dia.
+ * No abre navegador. Se queda aqui igualmente porque lo que mide es un `vite build`, y
+ * `yarn verificar` no construye nada: meterle uno —aunque fuera en memoria, con `write: false`— le
+ * anadiria diez segundos a la orden que se ejecuta veinte veces al dia (medido el 2026-09-27:
+ * `yarn build`, 9.6 s). Y no hace falta para enterarse pronto: la forma conocida de romperlo, un
+ * `import` estatico de `demostracion.ts` en un archivo de produccion, ya la dice `yarn verificar`
+ * (`verificaciones/la-demostracion-no-viaja-al-bundle.test.ts`). Lo que solo sabe el paquete —una
+ * marca que llega por otro camino: copiada a mano, por el locale, por un modulo de pruebas importado
+ * sin querer— lo dice aqui el arnes, que la CI corre en cada PR.
  */
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
@@ -110,4 +120,35 @@ test('lo que SI queda en produccion es el cliente de la plataforma, con su ruta'
   );
 
   expect(conLaRuta.length, 'el paquete no pide `GET /portal/situacion` desde ningun sitio').toBeGreaterThan(0);
+});
+
+test('LAS MARCAS: el paquete del arnes SI trae todos los datos del artboard', () => {
+  // La mitad que hace valer a la de abajo: si una marca no se encuentra ni donde tiene que estar —un
+  // acento que el minificador escribe como `\u00ed`, un valor que se trocea—, «no esta en produccion»
+  // seria verde sin haber buscado nada.
+  const faltan = enQueArchivosEsta(DEL_ARNES)
+    .filter(({ archivos }) => archivos.length === 0)
+    .map(({ marca }) => marca);
+
+  expect(
+    faltan,
+    'Estas marcas no aparecen en el paquete del arnes, que es la demostracion entera:\n' +
+      `  ${faltan.join('\n  ')}\n\n` +
+      '  Tal como se buscan, no se encontrarian tampoco en el de produccion.',
+  ).toEqual([]);
+});
+
+test('y el paquete de PRODUCCION no trae ninguno: ni un nombre, ni un documento, ni un predio', () => {
+  const encontradas = enQueArchivosEsta(DE_PRODUCCION)
+    .filter(({ archivos }) => archivos.length > 0)
+    .map(({ marca, archivos }) => `«${marca}» en ${archivos.join(', ')}`);
+
+  expect(
+    encontradas,
+    'Los datos del artboard viajan en el paquete de PRODUCCION:\n' +
+      `  ${encontradas.join('\n  ')}\n\n` +
+      '  Los aporta la fuente de demostracion (`LaDemostracion`), y a ella solo se llega por el\n' +
+      '  `import()` de `src/datos/laFuente.ts`. Un archivo de produccion que importe\n' +
+      '  `src/datos/demostracion.ts` —o su locale, `es.demostracion.json`— los mete en el paquete.',
+  ).toEqual([]);
 });

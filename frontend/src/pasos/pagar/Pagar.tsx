@@ -4,13 +4,13 @@ import { type ReactNode, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { pasosConTotal, totalDe } from '../../datos/cuentas.ts';
-import { FECHA_DE_CORTE, MEDIOS } from '../../datos/demostracion.ts';
+import { FECHA_DE_CORTE } from '../../datos/constantes.ts';
 import type { CampoDelMedio, MedioDePago } from '../../datos/tipos.ts';
 import { AvisoDePagoSimulado } from '../../piezas/AvisoDePagoSimulado.tsx';
 import { MEDIDAS_DE_CONTROL, Rotulo } from '../../piezas/Rotulo.tsx';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
-import { aCobrar, cuentaPorPagar, destinoDelComprobante, porPagar } from '../../recorrido/recorrido.ts';
-import { ejemploSeTraduce } from './textosDeLosMedios.ts';
+import { aCobrar, cuentaPorPagar, destinoDelComprobante, laDemostracion, porPagar } from '../../recorrido/recorrido.ts';
+import { ejemploSeTraduce, medioDe } from './textosDeLosMedios.ts';
 
 /**
  * **Paso 4 · Pagar** (`diseno/Ciudadano.dc.html`: plantilla 356-475, `@media` 24-28 y 37-38, medios
@@ -74,13 +74,6 @@ const AUTOCOMPLETAR: Readonly<Record<string, string>> = {
   tVence: 'cc-exp',
   tCvv: 'cc-csc',
 };
-
-/** El medio elegido. `MEDIOS` trae los cuatro ids del tipo (lo mide `demostracion.test.ts`). */
-function medioElegido(id: MedioDePago['id']): MedioDePago {
-  const medio = MEDIOS.find((m) => m.id === id);
-  if (medio === undefined) throw new Error(`MEDIOS no trae el medio «${id}».`);
-  return medio;
-}
 
 /** `Importe` sin su fecha, con la letra que el artboard pide en ese sitio (como en el paso 2). */
 function Cifra({ valor, className }: { readonly valor: ImporteDecimal; readonly className?: string }) {
@@ -546,7 +539,10 @@ function PagarSinMedios() {
 function PagarConLosMedios() {
   const { t } = useTranslation();
   const { estado } = useRecorrido();
-  const medio = medioElegido(estado.medio);
+  // Los cuatro del artboard, que llegan con la demostracion (issue 58): con plataforma no se ofrece
+  // ninguno, y el numero para yapear o los codigos de pago no pueden viajar en ese paquete.
+  const { medios } = laDemostracion(estado);
+  const medio = medioDe(medios, estado.medio);
 
   return (
     <>
@@ -561,7 +557,7 @@ function PagarConLosMedios() {
         data-medios=""
         className="mb-[18px] grid grid-cols-[repeat(auto-fit,minmax(218px,1fr))] gap-3 max-[521px]:grid-cols-[minmax(0,1fr)]"
       >
-        {MEDIOS.map((m) => (
+        {medios.map((m) => (
           <BotonDeMedio key={m.id} medio={m} />
         ))}
       </div>

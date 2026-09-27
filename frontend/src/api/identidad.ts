@@ -59,10 +59,10 @@ function retorno(): string {
  * **A donde se vuelve cuando la ida no llevaba hash**: el primer paso del recorrido.
  *
  * Se escribe, y no se deriva de `RUTA_DEL_PASO` (`src/recorrido/rutas.ts`), a proposito: ese modulo
- * arrastra React, el enrutador y —por `recorrido.ts`— los datos de demostracion, y este archivo lo
+ * arrastra React y el enrutador, y este archivo lo
  * carga `arranque.ts` **antes de montar nada**. Lo que impide que se quede viejo es su prueba, que
  * si puede importarlos: `src/api/identidad.test.ts` exige que esta cadena sea el hash del paso con
- * el que arranca `ESTADO_INICIAL`.
+ * el que arranca `DECISIONES_INICIALES`.
  */
 export const DESTINO_POR_OMISION = '#/buscar';
 

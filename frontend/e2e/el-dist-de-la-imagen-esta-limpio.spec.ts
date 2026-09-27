@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 import { expect, test } from '@playwright/test';
 
+import { enQueArchivosEsta } from '../verificaciones/marcas-de-la-demostracion.ts';
+
 /**
  * **El `dist/` que la imagen publicaria, medido sin Docker** (issue 37).
  *
@@ -75,4 +77,15 @@ test('y lo que queda es un portal: la pagina, las senias, la vuelta del canje y 
     expect(existsSync(join(DE_LA_IMAGEN, archivo)), `falta «${archivo}»`).toBe(true);
   }
   expect(readdirSync(join(DE_LA_IMAGEN, 'assets')).filter((archivo) => archivo.endsWith('.js')).length).toBeGreaterThan(10);
+});
+
+test('y no lleva ni una marca de los datos del artboard (issue 58)', () => {
+  // La misma busqueda que `la-demostracion-no-viaja-al-bundle.spec.ts` hace sobre `yarn build`, aqui
+  // sobre lo que la imagen publicaria. La mitad que demuestra que la busqueda encuentra lo que busca
+  // —todas las marcas en el paquete de demostracion— esta alli.
+  const encontradas = enQueArchivosEsta(DE_LA_IMAGEN)
+    .filter(({ archivos }) => archivos.length > 0)
+    .map(({ marca, archivos }) => `«${marca}» en ${archivos.join(', ')}`);
+
+  expect(encontradas, `La imagen publicaria los datos del artboard:\n  ${encontradas.join('\n  ')}`).toEqual([]);
 });

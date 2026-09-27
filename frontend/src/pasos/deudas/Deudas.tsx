@@ -17,11 +17,20 @@ import { type ReactNode, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { recargoDe, tonoDe, totalDe } from '../../datos/cuentas.ts';
-import { CONTRIBUYENTE, FECHA_DE_CORTE } from '../../datos/demostracion.ts';
+import { FECHA_DE_CORTE } from '../../datos/constantes.ts';
 import { hayPlataforma, useLaFuente } from '../../datos/fuente.ts';
 import type { Deuda, TonoDeInsignia } from '../../datos/tipos.ts';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
-import { cuenta, destinoAlPagar, estaMarcada, inicio, resumen, seleccion, vivasDelArtboard } from '../../recorrido/recorrido.ts';
+import {
+  cuenta,
+  destinoAlPagar,
+  estaMarcada,
+  inicio,
+  laDemostracion,
+  resumen,
+  seleccion,
+  vivasDelArtboard,
+} from '../../recorrido/recorrido.ts';
 import { fechaEnPalabras } from './fechaEnPalabras.ts';
 import { LaConsulta } from './LaConsulta.tsx';
 
@@ -74,8 +83,10 @@ import { LaConsulta } from './LaConsulta.tsx';
  *
  * <h2>De donde sale el contribuyente</h2>
  *
- * De `CONTRIBUYENTE` de `src/datos/demostracion.ts`, como la deuda sale de `DEUDAS` en el reductor:
- * el recorrido trabaja sobre los datos de la demostracion y la busqueda no guarda otra situacion.
+ * De la demostracion que aporta la fuente (`LaDemostracion.contribuyente`, issue 58), como la deuda
+ * sale de ella en el reductor: el recorrido trabaja sobre los datos de la demostracion y la busqueda
+ * no guarda otra situacion. Hasta el issue 58 se importaba de `demostracion.ts`, y con eso viajaba en
+ * el paquete de produccion.
  */
 
 /** El color de la linea del vencimiento, por el tono del estado (artboard, linea 1140). */
@@ -102,7 +113,7 @@ function Cifra({ valor, className }: { readonly valor: ImporteDecimal; readonly 
 function QuienEs() {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
-  const { nombre, codigo, tipoDeDocumento, numeroDeDocumento, predios, vehiculos } = CONTRIBUYENTE;
+  const { nombre, codigo, tipoDeDocumento, numeroDeDocumento, predios, vehiculos } = laDemostracion(estado).contribuyente;
 
   return (
     <div className="flex flex-wrap items-center gap-4 border border-linea bg-superficie px-5 py-4">

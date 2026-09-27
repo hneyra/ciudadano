@@ -9,15 +9,17 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 /**
- * **La fuente de demostracion es SOLO de desarrollo, y se puede comprobar sin construir** (issue 27).
+ * **La demostracion —la fuente y sus DATOS— es SOLO de desarrollo, y se puede comprobar sin construir**
+ * (issues 27 y 58).
  *
  * Portada de `rentas/frontend/verificaciones/la-siembra-es-solo-de-desarrollo.test.ts` (rentas#114).
  *
  * <h2>Que vigila, y por que estatico</h2>
  *
  * La medicion de verdad es sobre el `dist/`, y la hace `e2e/la-demostracion-no-viaja-al-bundle.spec.ts`
- * contra el bundle construido. Esta guarda vigila **las dos formas conocidas de romperlo**, y lo hace
- * en `yarn verificar`, que es donde se entera quien escribe el cambio:
+ * contra el bundle construido: ni la fuente, ni una sola marca de los datos del artboard (issue 58).
+ * Esta guarda vigila **las formas conocidas de romperlo**, y lo hace en `yarn verificar`, que es donde
+ * se entera quien escribe el cambio:
  *
  *   · **leer la bandera en tiempo de ejecucion.** Con la condicion detras de una funcion —o de
  *     `configuracion()`, o de `globalThis`— Rollup no puede plegarla, el `import()` dinamico se queda
@@ -25,22 +27,24 @@ import { describe, expect, it } from 'vitest';
  *     Medina» dentro frente a 193 592 sin ella;
  *   · **importar la fuente de demostracion estaticamente.** Un `import { fuenteDeDemostracion } from …`
  *     en cualquier archivo de produccion mete el modulo en el paquete pase lo que pase con la
- *     bandera, y no hay condicion que lo salve.
+ *     bandera, y no hay condicion que lo salve;
+ *   · **importar sus DATOS estaticamente** (issue 58): un `import { USUARIO } from …/demostracion.ts`
+ *     —o de su locale, `es.demostracion.json`— hace lo mismo con el nombre, los documentos, el correo,
+ *     los comprobantes y los predios del artboard, aunque la fuente se quede fuera.
  *
- * Las dos salen en verde en `yarn dev`, que es lo que las hace peligrosas: quien las escribe ve su
+ * Las tres salen en verde en `yarn dev`, que es lo que las hace peligrosas: quien las escribe ve su
  * pantalla funcionando igual.
  *
- * <h2>Lo que esta guarda NO afirma, y hay que decirlo entero</h2>
+ * <h2>Lo que cambio el issue 58</h2>
  *
- * **Que los datos del artboard no esten en el paquete.** Hoy SI estan: el recorrido de pasos sigue
- * siendo el de la demostracion —lo cambia el issue 28— y `src/recorrido/recorrido.ts` lee `DEUDAS` de
- * forma estatica, con lo que `src/datos/demostracion.ts` entra en el bundle por ahi, no por la fuente.
- * Lo que esta entrega saca del paquete de produccion es **la fuente**: el objeto que contesta en vez
- * del servidor. Con el fuera, un bundle de produccion no tiene forma de leer de la demostracion
- * aunque alguien encienda la bandera al construir.
- *
- * Y para que eso no crezca en silencio, {@link ALCANZAN_LA_DEMOSTRACION} fija **quienes** la alcanzan
- * hoy: el dia que uno mas la importe, esta guarda lo dice y hay que decidirlo a proposito.
+ * Hasta el issue 58 esta cabecera decia por escrito que los datos del artboard SI viajaban: ocho
+ * archivos de produccion importaban `src/datos/demostracion.ts` por su cuenta —el reductor para su
+ * estado inicial, la barra para la usuaria, el paso 2 para el contribuyente, «Pagar» para los medios,
+ * los dos modulos de textos para derivar el locale…—, y con ellos los datos entraban en el paquete por
+ * ahi, no por la fuente. Ahora los aporta la fuente (`FuenteDelPortal.demostracion`) y los recibe
+ * todo lo demas; lo que del artboard no es de nadie —la entidad, la ordenanza, el dia de corte— vive
+ * en `src/datos/constantes.ts`, que si viaja. {@link ALCANZAN_LA_DEMOSTRACION} queda en un solo
+ * archivo: la propia fuente de demostracion.
  */
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
@@ -66,37 +70,28 @@ const ELECCION = 'src/datos/laFuente.ts';
 const ANDAMIAJE = 'src/pruebas/portal.tsx';
 
 /**
- * Los archivos de produccion que hoy alcanzan `src/datos/demostracion.ts` —los DATOS, no la fuente—.
+ * Los archivos de produccion que alcanzan `src/datos/demostracion.ts` —los DATOS, no la fuente— y la
+ * parte del locale que los traduce, `src/i18n/locales/es.demostracion.json`. **Solo uno: la fuente de
+ * demostracion**, a la que se llega por el `import()` plegable de `laFuente.ts` (issue 58).
  *
- * Son los del recorrido de la demostracion, que sigue viviendo en el paquete: el portal construido
- * con la bandera encendida ES ese recorrido. Escritos aqui **para que crecer la lista sea una
- * decision**: sin esto, un import mas pasaria sin que nada lo dijera y el «no viaja al bundle» del
- * titulo se iria quedando cada vez menos cierto.
+ * Escritos aqui **para que crecer la lista sea una decision**: un archivo de produccion mas que los
+ * importe mete los datos en el paquete, y en `yarn dev` se ve todo igual.
  *
- * <h2>Lo que el issue 28 movio, y por que la lista no menguo</h2>
+ * <h2>Lo que el issue 58 saco de la lista, y a donde fue cada uno</h2>
  *
- * · `src/pasos/buscar/Buscar.tsx` **sale**: lo unico que sacaba de la demostracion era `ORDENANZA`,
- *   el aviso de la amnistia, y eso se mudo a `src/piezas/PortadaDelPortal.tsx`, que las dos puertas
- *   de entrada comparten (el paso 1 de demostracion y el «Entrar» con plataforma).
- * · `src/piezas/PortadaDelPortal.tsx` **entra** por lo mismo.
- * · `src/recorrido/recorrido.ts` **se queda**, y ahora tambien por `CONTRIBUYENTE`: el estado del
- *   recorrido arranca con la deuda y el contribuyente del artboard, y con plataforma los sustituye
- *   `situacionLeida`. Sacar los datos del paquete pide que el recorrido no tenga estado inicial de
- *   demostracion, que es otra entrega.
- *
- * El neto es cero: uno entra, uno sale.
+ * · `src/recorrido/recorrido.ts`: la deuda y el contribuyente de partida, el sello y el correo de la
+ *   cuenta, de `DatosLeidos.demostracion` (lo pone el proveedor, de la fuente).
+ * · `src/marco/Barra.tsx`, `src/pasos/deudas/Deudas.tsx`, `src/pasos/pagar/Pagar.tsx`: la usuaria, el
+ *   contribuyente y los medios, de `laDemostracion(estado)`.
+ * · `src/pasos/comprobante/Comprobante.tsx` y `src/piezas/PortadaDelPortal.tsx`: solo querian la
+ *   ordenanza, que no es de nadie y vive en `src/datos/constantes.ts`.
+ * · `src/pasos/pagar/textosDeLosMedios.ts` y `src/pasos/historial/textosDelHistorial.ts`: derivan las
+ *   claves del locale de los datos que se les dan, y quien se los da es la prueba del locale.
+ * · `src/pasos/buscar/Buscar.tsx` e `src/pasos/identificar/Identificar.tsx` no la importaban, pero
+ *   ESCRIBIAN el codigo y el DNI del contribuyente como ejemplo: ahora son `LaDemostracion.ejemplos`.
+ *   Eso no lo ve esta guarda —no es un `import`—; lo vio la del paquete construido.
  */
-const ALCANZAN_LA_DEMOSTRACION: readonly string[] = [
-  DEMOSTRACION,
-  'src/marco/Barra.tsx',
-  'src/pasos/comprobante/Comprobante.tsx',
-  'src/pasos/deudas/Deudas.tsx',
-  'src/pasos/historial/textosDelHistorial.ts',
-  'src/pasos/pagar/Pagar.tsx',
-  'src/pasos/pagar/textosDeLosMedios.ts',
-  'src/piezas/PortadaDelPortal.tsx',
-  'src/recorrido/recorrido.ts',
-];
+const ALCANZAN_LA_DEMOSTRACION: readonly string[] = [DEMOSTRACION];
 
 /**
  * **Lo que un archivo IMPORTA**, y no lo que nombra.
@@ -259,18 +254,28 @@ describe('AC1 — la bandera esta declarada, y dice lo mismo en los tres sitios 
   });
 });
 
-describe('AC1 — los DATOS del artboard: quienes los alcanzan hoy, y no uno mas', () => {
-  it('la lista es exactamente la del recorrido de la demostracion, y no uno mas', () => {
-    const alcanzan = deProduccion
-      .filter((ruta) => importa(ruta, /(^|\/)demostracion\.ts$/))
-      .sort((a, b) => a.localeCompare(b, 'es'));
+describe('los DATOS del artboard: solo los alcanza la fuente de demostracion (issue 58)', () => {
+  it.each([
+    ['src/datos/demostracion.ts', /(^|\/)demostracion\.ts$/],
+    ['src/i18n/locales/es.demostracion.json', /(^|\/)es\.demostracion\.json$/],
+  ])('`%s` solo lo importa la fuente de demostracion', (datos, patron) => {
+    expect(existsSync(join(FRONTEND, datos)), `falta «${datos}»`).toBe(true);
+    const alcanzan = deProduccion.filter((ruta) => importa(ruta, patron)).sort((a, b) => a.localeCompare(b, 'es'));
 
     expect(
       alcanzan,
-      'Cambio quien alcanza `src/datos/demostracion.ts` desde produccion.\n' +
-        '  Los datos del artboard estan en el paquete por estos archivos, y no por la fuente. Si la\n' +
-        '  lista CRECE, hay que decidirlo a proposito; si MENGUA, se actualiza aqui y se cuenta en\n' +
-        '  el PR.',
+      `Cambio quien alcanza \`${datos}\` desde produccion.\n` +
+        '  Un archivo de produccion que importe los datos del artboard los mete en el paquete, pase lo\n' +
+        '  que pase con la bandera: el nombre, los documentos, el correo, los comprobantes, los predios.\n' +
+        '  Se reciben de la fuente (`FuenteDelPortal.demostracion`, o `laDemostracion(estado)` en una\n' +
+        '  pantalla de la demostracion); lo que no es de nadie esta en `src/datos/constantes.ts`.',
     ).toEqual([...ALCANZAN_LA_DEMOSTRACION].sort((a, b) => a.localeCompare(b, 'es')));
+  });
+
+  it('y las marcas con que se busca en el paquete tampoco las importa nadie de produccion', () => {
+    // `verificaciones/marcas-de-la-demostracion.ts` importa los datos para sacar de ellos lo que buscar;
+    // desde `src/` meteria en el paquete justo lo que busca.
+    const culpables = deProduccion.filter((ruta) => importa(ruta, /marcas-de-la-demostracion/));
+    expect(culpables).toEqual([]);
   });
 });

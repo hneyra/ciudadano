@@ -9,7 +9,7 @@ import { crearClienteDeConsultas } from './datos/consultas.ts';
 import { FuenteActiva, type FuenteDelPortal, hayPlataforma } from './datos/fuente.ts';
 import { laFuente } from './datos/laFuente.ts';
 import { crearEnrutador } from './enrutador.tsx';
-import i18n from './i18n/i18n.ts';
+import i18n, { sumarLosTextosDeLaFuente } from './i18n/i18n.ts';
 
 /**
  * **El portal, como trozo aparte** (issue 56): lo que hasta entonces era el cuerpo de `main.tsx`.
@@ -82,14 +82,16 @@ export function montar(raiz: HTMLElement): Promise<void> {
   }
 
   return laFuente()
-    .then((fuente) =>
-      arrancar(() => dibujar(fuente, <Aplicacion enrutador={enrutador} />), {
+    .then((fuente) => {
+      // Lo que dicen los datos de la demostracion llega con ella, no en el locale de siempre (issue 58).
+      sumarLosTextosDeLaFuente(fuente);
+      return arrancar(() => dibujar(fuente, <Aplicacion enrutador={enrutador} />), {
         // De la fuente, que es el dato, y no del entorno otra vez: en demostracion no se le pregunta
         // nada a ningun emisor (issue 35).
         conPlataforma: hayPlataforma(fuente),
         esperando: () => dibujar(fuente, <ComprobandoLaSesion />),
-      }),
-    )
+      });
+    })
     .catch((error: unknown) => {
       // React suelta la raiz antes de que `src/inicio.ts` escriba en ella su aviso: dos duenos del
       // mismo nodo es un `removeChild` que revienta en el siguiente render (issue 56).

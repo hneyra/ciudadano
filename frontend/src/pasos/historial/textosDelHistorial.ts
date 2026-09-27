@@ -1,4 +1,3 @@
-import { HISTORIAL, UNIDADES } from '../../datos/demostracion.ts';
 import type { PagoDelHistorial, Unidad } from '../../datos/tipos.ts';
 
 /**
@@ -6,7 +5,8 @@ import type { PagoDelHistorial, Unidad } from '../../datos/tipos.ts';
  * (issue 10). Es el mismo mecanismo que `src/pasos/pagar/textosDeLosMedios.ts` (issue 8).
  *
  * Los textos viven en `HISTORIAL` y `UNIDADES` (`src/datos/demostracion.ts`, copia literal del
- * artboard) y la pantalla los pasa por `t()` con una variable. `i18next-cli` no sigue variables, asi que
+ * artboard, que la fuente de demostracion devuelve por `historial()` y `unidades()`) y la pantalla los
+ * pasa por `t()` con una variable. `i18next-cli` no sigue variables, asi que
  * el inventario del locale no los escribe a mano: los DERIVA de aqui. Y la pantalla no traduce otra
  * lista: `Historial.test.tsx` recorre la pagina en el idioma `marcado` y exige que CADA texto de estas
  * funciones llegue marcado al DOM, y que nada fuera del dato llegue sin marcar.
@@ -26,7 +26,13 @@ export function textosDeLaUnidad(unidad: Unidad): readonly string[] {
   return [unidad.titulo, unidad.detalle, unidad.baseEtiqueta, ...unidad.datos, unidad.origen];
 }
 
-/** Todas las claves de los pagos y las unidades, sin repetidos. Las lee `el-locale-esta-completo.test.ts`. */
-export function clavesDelHistorial(): readonly string[] {
-  return [...new Set([...HISTORIAL.flatMap(textosDelPago), ...UNIDADES.flatMap(textosDeLaUnidad)])];
+/**
+ * Todas las claves de esos pagos y esas unidades, sin repetidos. Las lee `el-locale-esta-completo.test.ts`
+ * con los de la demostracion, para la parte del locale que viaja con ellos (`es.demostracion.json`).
+ *
+ * Se reciben, y no se importan (issue 58): un `import` de `demostracion.ts` aqui metia las direcciones,
+ * las fichas catastrales y la placa del artboard en el paquete de produccion.
+ */
+export function clavesDelHistorial(pagos: readonly PagoDelHistorial[], unidades: readonly Unidad[]): readonly string[] {
+  return [...new Set([...pagos.flatMap(textosDelPago), ...unidades.flatMap(textosDeLaUnidad)])];
 }

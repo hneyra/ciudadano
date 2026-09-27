@@ -15,11 +15,11 @@ import { useTranslation } from 'react-i18next';
 
 import escudo from '../../../diseno/escudo-catacaos.png';
 import { cifraSinSimbolo } from '../../datos/cuentas.ts';
-import { ORDENANZA } from '../../datos/demostracion.ts';
+import { ORDENANZA } from '../../datos/constantes.ts';
 import { AvisoDePagoSimulado } from '../../piezas/AvisoDePagoSimulado.tsx';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
 import { type PagoSellado, aCobrar, aCobrarDe, vivas } from '../../recorrido/recorrido.ts';
-import { rotuloDelMedio } from '../pagar/textosDeLosMedios.ts';
+import { type SelloDeLaDemostracion, selloDeLaDemostracion } from './sello.ts';
 
 /**
  * **Paso 5 · Comprobante** (`diseno/Ciudadano.dc.html`: plantilla 477-565, `@media` 29-44, `print`
@@ -88,12 +88,6 @@ function Meta({ rotulo, children }: { readonly rotulo: string; readonly children
   );
 }
 
-/** El rotulo con que se dice el medio del sello, traducido (los textos de `MEDIOS` son del locale). */
-function useRotuloDelMedio(pago: PagoSellado): string {
-  const { t } = useTranslation();
-  return t(rotuloDelMedio(pago.medio));
-}
-
 /**
  * **Con plataforma, la banda no dice que se pago** (issue 28, revision).
  *
@@ -128,11 +122,14 @@ function BandaSimulada({ pago }: { readonly pago: PagoSellado }) {
   );
 }
 
-/** La banda verde de exito, que no se imprime (lineas 480-489 y 1276-1279). */
-function BandaDeExito({ pago }: { readonly pago: PagoSellado }) {
+/**
+ * La banda verde de exito, que no se imprime (lineas 480-489 y 1276-1279). Solo en demostracion, y
+ * por eso pide el sello: dice con que se pago, y eso solo lo sabe la demostracion (issue 58).
+ */
+function BandaDeExito({ pago, sello }: { readonly pago: PagoSellado; readonly sello: SelloDeLaDemostracion }) {
   const { t } = useTranslation();
   const { estado } = useRecorrido();
-  const medio = useRotuloDelMedio(pago);
+  const medio = t(sello.medio);
 
   return (
     <div
@@ -180,8 +177,8 @@ function Recibo({ pago }: { readonly pago: PagoSellado }) {
   const { t } = useTranslation();
   const { estado } = useRecorrido();
   const idDelTitulo = useId();
-  const medio = useRotuloDelMedio(pago);
-  const { comprobante } = pago;
+  // Los numeros y el medio, solo en demostracion: con plataforma no hay sello (issue 58, `sello.ts`).
+  const sello = selloDeLaDemostracion(estado, pago);
   // Del sello, como las filas (issue 50): a nombre de quien estaba la deuda AL PAGAR.
   const quien = pago.contribuyente;
   const simulado = estado.conPlataforma;
@@ -213,8 +210,8 @@ function Recibo({ pago }: { readonly pago: PagoSellado }) {
           <h2 id={idDelTitulo} className="m-0 text-[13px] font-normal text-tinta-3">
             {simulado ? t('Comprobante de ejemplo') : t('Constancia de pago')}
           </h2>
-          {simulado ? null : (
-            <span className="mt-[2px] block text-[17px] font-bold text-azul tabular-nums">{comprobante.numero}</span>
+          {sello === null ? null : (
+            <span className="mt-[2px] block text-[17px] font-bold text-azul tabular-nums">{sello.comprobante.numero}</span>
           )}
         </div>
       </div>
@@ -227,11 +224,11 @@ function Recibo({ pago }: { readonly pago: PagoSellado }) {
           Con plataforma no hay operacion, ni fecha de pago, ni medio: **no se pago**. Las tres del
           artboard son numeros de utileria, y en un recibo se leen como el registro de un hecho.
         */}
-        {simulado ? null : <Meta rotulo={t('Número de operación')}>{comprobante.operacion}</Meta>}
-        {simulado ? null : (
-          <Meta rotulo={t('Fecha y hora')}>{`${formatearFecha(comprobante.fecha)} · ${comprobante.hora}`}</Meta>
+        {sello === null ? null : <Meta rotulo={t('Número de operación')}>{sello.comprobante.operacion}</Meta>}
+        {sello === null ? null : (
+          <Meta rotulo={t('Fecha y hora')}>{`${formatearFecha(sello.comprobante.fecha)} · ${sello.comprobante.hora}`}</Meta>
         )}
-        {simulado ? null : <Meta rotulo={t('Medio de pago')}>{medio}</Meta>}
+        {sello === null ? null : <Meta rotulo={t('Medio de pago')}>{t(sello.medio)}</Meta>}
         {/*
           Quien es sale del RECORRIDO y no de `CONTRIBUYENTE` (issue 28): en demostracion son los
           mismos dos valores del artboard, y con plataforma los que dijo el servidor. Escritos aqui,
@@ -318,6 +315,7 @@ const BOTON_DE_ACCION = 'min-h-[46px] py-0 text-[15.5px] max-[701px]:w-full';
 function Acciones({ pago }: { readonly pago: PagoSellado }) {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
+  const sello = selloDeLaDemostracion(estado, pago);
 
   return (
     <div
@@ -330,11 +328,11 @@ function Acciones({ pago }: { readonly pago: PagoSellado }) {
         artboard es utileria. «Imprimir» si se queda, y el aviso de pago simulado NO lleva
         `data-noprint`: lo que salga en el papel lleva escrito que es una demostracion.
       */}
-      {estado.conPlataforma ? null : (
+      {sello === null ? null : (
         <Boton
           type="button"
           variante="primario"
-          onClick={() => avisar(t('Se descargaría el comprobante {{numero}} en PDF.', { numero: pago.comprobante.numero }))}
+          onClick={() => avisar(t('Se descargaría el comprobante {{numero}} en PDF.', { numero: sello.comprobante.numero }))}
           className={cn(BOTON_DE_ACCION, 'px-6')}
         >
           {t('Descargar comprobante')}
@@ -415,6 +413,9 @@ export function Comprobante() {
   // Sin sello no se llega aqui por ninguna accion (`confirmarPago` es quien pasa al comprobante); solo
   // un estado inicial escrito a mano. No hay recibo que dibujar con otra cosa que el sello.
   if (pago === null) return null;
+  // Con plataforma no hay sello de la demostracion (`sello.ts`), y con demostracion siempre lo hay:
+  // es la misma pregunta que `conPlataforma`, contestada con el dato que la banda verde necesita.
+  const sello = selloDeLaDemostracion(estado, pago);
 
   return (
     <div>
@@ -423,7 +424,7 @@ export function Comprobante() {
         arriba del todo y antes de la banda de exito, que es la que dice «Su pago se registró».
       */}
       {estado.conPlataforma ? <AvisoDePagoSimulado /> : null}
-      {estado.conPlataforma ? <BandaSimulada pago={pago} /> : <BandaDeExito pago={pago} />}
+      {sello === null ? <BandaSimulada pago={pago} /> : <BandaDeExito pago={pago} sello={sello} />}
       <Recibo pago={pago} />
       <Acciones pago={pago} />
       {estado.autenticado ? null : <Invitacion pago={pago} />}

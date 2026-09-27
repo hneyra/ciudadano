@@ -1,9 +1,10 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import { COMPROBANTE, CONTRIBUYENTE, DEUDAS, USUARIO } from '../datos/demostracion.ts';
+import { LA_DEMOSTRACION } from '../datos/fuenteDeDemostracion.ts';
 import {
   type AccionDelRecorrido,
-  ESTADO_INICIAL,
+  DECISIONES_INICIALES,
   type EstadoDelRecorrido,
   PASOS_DE_LA_DEMOSTRACION,
   cuenta,
@@ -11,6 +12,7 @@ import {
   cuentaPorPagar,
   destinoAlEntrar,
   destinoAlPagar,
+  estadoInicial,
   hayQuePagar,
   inicio,
   pasoAlcanzable,
@@ -35,6 +37,18 @@ import {
  *     veh24    614.00 / 182.44 / 96.00
  */
 
+/**
+ * El estado con que se abre el portal en demostracion, como lo calcula `ProveedorDelRecorrido`: con
+ * lo que aporta la fuente de demostracion (issue 58). Hasta el issue 58 era una constante del reductor,
+ * escrita sobre `DEUDAS` importado de `demostracion.ts`.
+ */
+const ESTADO_INICIAL = estadoInicial({
+  conPlataforma: false,
+  autenticado: false,
+  amnistia: true,
+  demostracion: LA_DEMOSTRACION,
+});
+
 /** Aplica una lista de acciones desde un estado. */
 const tras = (acciones: readonly AccionDelRecorrido[], desde: EstadoDelRecorrido = ESTADO_INICIAL) =>
   acciones.reduce(recorrido, desde);
@@ -56,6 +70,8 @@ describe('el estado inicial', () => {
         codigo: CONTRIBUYENTE.codigo,
         documento: `${CONTRIBUYENTE.tipoDeDocumento} ${CONTRIBUYENTE.numeroDeDocumento}`,
       },
+      // No es del artboard: lo que aporta la fuente de demostracion (issue 58).
+      demostracion: LA_DEMOSTRACION,
       tipoDeDocumento: 'Código de contribuyente',
       numero: '',
       marcadas: { pred26: true, arb26: true, pred24: true, veh24: true },
@@ -77,6 +93,26 @@ describe('el estado inicial', () => {
     // Si `demostracion.ts` gana o pierde un concepto, lo marcado por omision tiene que decidirse otra
     // vez: el artboard los marca todos.
     expect(Object.keys(ESTADO_INICIAL.marcadas)).toEqual(ids(DEUDAS));
+  });
+
+  it('y los datos los aporta la FUENTE, no un `import` del reductor (issue 58)', () => {
+    // Con otra demostracion, otros conceptos, otra persona y otras marcas: el reductor no sabe de
+    // ningun dato del artboard por su cuenta. Antes arrancaba siempre con `DEUDAS` y `CONTRIBUYENTE`,
+    // y con ellos los metia en el paquete de produccion.
+    const otra = {
+      ...LA_DEMOSTRACION,
+      deudas: DEUDAS.slice(0, 1).map((deuda) => ({ ...deuda, id: 'otra' })),
+      contribuyente: { ...CONTRIBUYENTE, nombre: 'Otra Persona' },
+    };
+    const conOtra = estadoInicial({ conPlataforma: false, autenticado: false, amnistia: true, demostracion: otra });
+    expect(ids(conOtra.deudas)).toEqual(['otra']);
+    expect(conOtra.marcadas).toStrictEqual({ otra: true });
+    expect(conOtra.contribuyente?.nombre).toBe('Otra Persona');
+    expect(conOtra.demostracion).toBe(otra);
+
+    // Y sin demostracion, nada que marcar ni que pagar —y nada de nadie—.
+    const sin = estadoInicial({ conPlataforma: false, autenticado: false, amnistia: true, demostracion: null });
+    expect([sin.deudas, sin.contribuyente, sin.demostracion, sin.marcadas]).toStrictEqual([[], null, null, {}]);
   });
 });
 
@@ -372,7 +408,7 @@ describe('a donde lleva cada cosa', () => {
     expect(cerrada.valores).toEqual({});
     expect(cerrada.correo).toBe('');
     expect(cerrada.numero).toBe('');
-    expect(cerrada.tipoDeDocumento).toBe(ESTADO_INICIAL.tipoDeDocumento);
+    expect(cerrada.tipoDeDocumento).toBe(DECISIONES_INICIALES.tipoDeDocumento);
     expect(cerrada.marcadas).toEqual({});
     expect(cerrada.abierta).toBeNull();
   });

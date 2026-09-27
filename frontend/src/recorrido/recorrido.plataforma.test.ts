@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import { DEUDAS } from '../datos/demostracion.ts';
+import { LA_DEMOSTRACION } from '../datos/fuenteDeDemostracion.ts';
 import type { DeudaDelServidor, QuienDebe, SituacionDelServidor } from '../datos/tipos.ts';
 import {
-  ESTADO_INICIAL,
   PASOS_CON_PLATAFORMA,
   PASOS_DE_LA_DEMOSTRACION,
   SIN_DATOS,
@@ -71,11 +71,19 @@ function delServidor(id: string, insoluto: string): DeudaDelServidor {
 
 const QUIEN: QuienDebe = { nombre: 'Rufina Medina Medina', codigo: '00000025673', documento: 'DNI 03593174' };
 
+/** El estado inicial de demostracion, con lo que aporta la fuente (issue 58). */
+const ESTADO_INICIAL = estadoInicial({
+  conPlataforma: false,
+  autenticado: false,
+  amnistia: true,
+  demostracion: LA_DEMOSTRACION,
+});
+
 /** Aplica una lista de acciones desde el estado inicial de demostracion. */
 const tras = (acciones: readonly Parameters<typeof recorrido>[1][]) => acciones.reduce(recorrido, ESTADO_INICIAL);
 
-const conSesion = estadoInicial({ conPlataforma: true, autenticado: true, amnistia: false });
-const sinSesion = estadoInicial({ conPlataforma: true, autenticado: false, amnistia: false });
+const conSesion = estadoInicial({ conPlataforma: true, autenticado: true, amnistia: false, demostracion: null });
+const sinSesion = estadoInicial({ conPlataforma: true, autenticado: false, amnistia: false, demostracion: null });
 
 /**
  * Con plataforma, sesion y dos conceptos leidos: el estado desde el que se puede pagar.
@@ -295,7 +303,7 @@ describe('issue 49 — la amnistia sale de la FUENTE, y con plataforma no hay ni
 
   it('el estado la lleva desde el arranque: la fuente dice si hay, y la de la plataforma dice que no', () => {
     expect(conSesion.amnistia).toBe(false);
-    expect(estadoInicial({ conPlataforma: true, autenticado: true, amnistia: true }).amnistia).toBe(true);
+    expect(estadoInicial({ conPlataforma: true, autenticado: true, amnistia: true, demostracion: null }).amnistia).toBe(true);
     // En demostracion, la del artboard (la Ordenanza 012-2026-MPS).
     expect(ESTADO_INICIAL.amnistia).toBe(true);
   });

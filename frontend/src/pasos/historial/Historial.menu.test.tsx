@@ -3,6 +3,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { HISTORIAL, UNIDADES } from '../../datos/demostracion.ts';
 import type { FuenteDelPortal } from '../../datos/fuente.ts';
+import { LA_DEMOSTRACION } from '../../datos/fuenteDeDemostracion.ts';
 import {
   limpiarElPortal,
   montarElPortal,
@@ -96,6 +97,7 @@ describe('el menu de la sesion lleva al historial', () => {
       // Sin plataforma no hay consulta que hacer: el historial se lee igual (issue 27).
       consulta: null,
       amnistia: true,
+      demostracion: LA_DEMOSTRACION,
       historial: () => new Promise((resolver) => (contestar = resolver)),
       unidades: () => Promise.resolve(UNIDADES),
     };
