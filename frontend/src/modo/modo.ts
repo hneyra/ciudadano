@@ -143,12 +143,18 @@ export interface PoliticaDeLaSesion {
    * sesión» y «Cerrar sesión» van a la puerta, quien entro sale del token y al arrancar se le pregunta
    * al emisor en silencio (issue 35)—. No: la del artboard, que la abre el paso «Mis datos» y la
    * cierra el reductor, y la persona es la usuaria de los datos de ejemplo.
+   *
+   * De ella depende `traeElCorreo`: ver alli.
    */
   readonly laAbreUnEmisor: boolean;
   /**
    * ¿Quien entra trae un correo al que enviar el comprobante? (`destinoDelComprobante`). La cuenta del
    * artboard si; el realm del ciudadano pone el documento y ni el correo ni el codigo
    * (`src/api/claims.ts`), y poner el del artboard escribiria el buzon de otra persona.
+   *
+   * **Depende de**: `laAbreUnEmisor` en `false` —el correo es el de la cuenta de los datos de ejemplo,
+   * y un emisor no manda ninguno—. Y el correo lo aporta la FUENTE (`LaDemostracion.usuario`): sin el,
+   * `destinoDelComprobante` cae en el correo escrito en vez de reventar. Lo mide `modo.test.ts`.
    */
   readonly traeElCorreo: boolean;
 }
@@ -170,6 +176,8 @@ export interface PoliticaDelContenido {
    * finales (pidiendo, el peldano de la escalera, no se pudo consultar, sin registros, sin deuda), y el
    * paso 2 y «Lo que queda pendiente» se los preguntan a la consulta. No: cuatro conceptos que ya estan
    * en memoria, con cuotas, vencimiento, estado y desglose.
+   *
+   * De ella depende `publicaLasUnidades`: ver alli.
    */
   readonly laDeudaSeConsulta: boolean;
   /**
@@ -183,6 +191,10 @@ export interface PoliticaDelContenido {
    * ¿Se publican los predios y vehiculos con la base de su tributo (el autovaluo, los metros de
    * frontis)? Si no, «De dónde sale lo que paga» ensena los predios que trae la consulta, sin cifra y
    * sin vehiculos (issue 28).
+   *
+   * **Depende de**: `laDeudaSeConsulta` en `true` cuando vale `false` —«De dónde sale lo que paga»
+   * sin unidades publicadas lee los predios de la consulta (`DeDondeSaleDeLaConsulta`), y sin consulta
+   * no hay predios que leer—. Lo mide `modo.test.ts`.
    */
   readonly publicaLasUnidades: boolean;
   /** ¿Lo que se ve son datos de ejemplo? El pie lo dice (issue 49). */

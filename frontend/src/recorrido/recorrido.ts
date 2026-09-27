@@ -528,9 +528,13 @@ export function inicio(estado: EstadoDelRecorrido): Paso {
  * del artboard escribiria el buzon de otra persona debajo del pago de esta.
  */
 export function destinoDelComprobante(estado: EstadoDelRecorrido): string | null {
-  // El de la cuenta del artboard, que llega con la demostracion (issue 58).
-  if (estado.autenticado && estado.politica.sesion.traeElCorreo) {
-    return laDemostracion(estado).usuario.correo;
+  // El de la cuenta, que llega con los datos de la demostracion (issue 58). Se lee el DATO y no se
+  // exige (`laDemostracion` revienta sin el): una politica que diga que la sesion trae el correo con
+  // una fuente que no lo aporte cae en el correo escrito, en vez de tumbar el paso 4 (revision del
+  // PR #71). En demostracion el dato esta siempre, y el resultado es el de antes.
+  const deLaCuenta = estado.demostracion?.usuario.correo;
+  if (estado.autenticado && estado.politica.sesion.traeElCorreo && deLaCuenta !== undefined) {
+    return deLaCuenta;
   }
   const correo = estado.correo.trim();
   return correo === '' ? null : correo;

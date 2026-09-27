@@ -27,6 +27,17 @@ import { RAIZ } from './artboards.ts';
  * «pieza» y dejar la guarda verde. Las lineas se cuentan como `wc -l`, comentarios incluidos: la
  * cabecera de cada pantalla es parte de lo que hay que leer.
  *
+ * <h2>Lo que NO mide, y por que</h2>
+ *
+ * Solo `src/pasos/` y `src/piezas/`, que es donde viven las pantallas. Fuera quedan archivos que hoy
+ * pasan del tope y no son pantallas (medido en el issue 60): `src/recorrido/recorrido.ts` (el
+ * reductor, 694), `src/datos/*` (el adaptador, 341; los tipos, 378; los datos del artboard copiados
+ * literalmente, 390), `src/modo/modo.ts` (la politica, 315, que se lee entera o no se entiende) y
+ * `src/marco/Barra.tsx` (el marco, no un paso, 324). Y por
+ * lo mismo se esquiva: un `vista.ts` o una pieza mudados fuera de estos dos directorios dejan de
+ * contarse. Eso ya no es partir una pantalla, sino esconderla; si ocurre, la salida es sumar el
+ * directorio aqui, no mover el archivo.
+ *
  * <h2>Las excepciones</h2>
  *
  * Se escriben en `EXCEPCIONES`, con su porque, y **caducan solas**: una excepcion de un archivo que
