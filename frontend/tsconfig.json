@@ -12,6 +12,7 @@
     "puerto-del-arnes.mjs",
     "trozos.ts",
     "eslint.prohibiciones.mjs",
+    "rutasDeMuestra.mjs",
     "vitest.setup.ts",
     "*.config.ts"
   ],

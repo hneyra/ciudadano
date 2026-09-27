@@ -230,9 +230,23 @@ describe('la libreria se clona en el SHA fijado, no en la punta de `main`', () =
       // La misma orden que escribe el workflow: leer el archivo YA CLONADO (el checkout de este
       // repositorio va primero) y exponerlo como salida del paso, para que el checkout de la
       // libreria —que viene despues— lo use en `ref:`.
-      expect(trabajo).toMatch(
-        /^\s*run:\s*echo "sha=\$\(cat ciudadano\/KAMAYUK_LIB_SHA\)" >> "\$GITHUB_OUTPUT"\s*$/m,
-      );
+      expect(trabajo).toMatch(/^\s*sha="\$\(cat ciudadano\/KAMAYUK_LIB_SHA\)"\s*$/m);
+    },
+  );
+
+  it.each(Object.entries(bloques))(
+    'y el trabajo `%s` VALIDA ese SHA antes de exponerlo, en vez de dejarlo pasar vacio',
+    (_nombre, trabajo) => {
+      // Ronda 1 del PR #65: `cat` sobre un archivo ausente o vacio no hace fallar la asignacion
+      // —`sha="$(cat …)"` sale con `rc=0` igual, con `sha` vacio, porque bash no propaga el fallo
+      // de un `$(...)` a menos que algo lo mire aparte— y el paso de arriba escribia esa cadena
+      // vacia como salida igual: un `ref:` vacio en el checkout de la libreria clona la PUNTA de
+      // `main` sin decirlo, el silencio exacto que este issue queria quitar. Sin esta linea, esa
+      // rotura pasaba el centinela de arriba (que solo mira que el archivo `KAMAYUK_LIB_SHA`
+      // exista en el REPOSITORIO) y solo se notaba mas tarde, con la libreria ya clonada.
+      expect(trabajo).toMatch(/^\s*if\s*!\s*\[\[\s*"\$sha"\s*=~\s*\^\[0-9a-f\]\{40\}\$\s*\]\];\s*then\s*$/m);
+      expect(trabajo).toMatch(/^\s*exit 1\s*$/m);
+      expect(trabajo).toMatch(/^\s*echo "sha=\$sha" >> "\$GITHUB_OUTPUT"\s*$/m);
     },
   );
 

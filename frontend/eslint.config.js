@@ -7,6 +7,7 @@ import tseslint from 'typescript-eslint';
 import vitest from '@vitest/eslint-plugin';
 
 import { PROHIBICIONES } from './eslint.prohibiciones.mjs';
+import { ARCHIVO_RESERVADO_EN_DATOS, DIRECTORIO_DE_MUESTRAS } from './rutasDeMuestra.mjs';
 
 /**
  * Reglas de ESLint del frontend de `ciudadano`, portadas de `rentas/frontend/eslint.config.js`.
@@ -100,25 +101,18 @@ export default tseslint.config(
        * `e2e/`, y unos pocos archivos de la raiz); los `*.config.ts` no lo necesitan porque
        * `ignores` de arriba no los linta.
        *
-       * `allowDefaultProject` — sin el, `yarn verificar` se rompe (medido): `reglas-de-eslint.test.ts`
-       * y `los-datos-no-cuentan-a-mano.test.ts` juzgan sus muestras con `eslint.lintText`, con la
-       * RUTA de un archivo que no existe en el disco —«como si viviera en `src/pantallas/`», dice
-       * su cabecera— para que la regla se evalue en el sitio donde tiene que aplicar de verdad. Sin
-       * un proyecto que lo reclame, el «project service» de `typescript-eslint` no PARSEA el
-       * archivo: «Parsing error: … was not found by the project service», y la prohibicion que la
-       * muestra venia a demostrar nunca llega a evaluarse. `src/pantallas/` no existe como
-       * directorio real —es solo el sitio donde estas pruebas juzgan—, y `src/datos/calentamiento.ts`
-       * y `src/datos/recibos.ts` son archivos inventados de la segunda (su precalentamiento y su
-       * prueba del `fetch` exceptuado). El tope se sube porque son mas de las 8 rutas que trae por
-       * omision (nueve muestras mas unas pocas sinteticas por archivo de prueba).
+       * `allowDefaultProject` — sin el, `yarn verificar` se rompe (medido): sin un proyecto que
+       * las reclame, el «project service» de `typescript-eslint` no PARSEA las rutas sinteticas de
+       * `DIRECTORIO_DE_MUESTRAS` y `ARCHIVO_RESERVADO_EN_DATOS` (`rutasDeMuestra.mjs`, con el
+       * porque del nombre reservado y de por que viven en un archivo APARTE de este): «Parsing
+       * error: … was not found by the project service», y la prohibicion que la muestra venia a
+       * demostrar nunca llega a evaluarse. El tope se sube porque son mas de las 8 rutas que trae
+       * por omision (nueve muestras mas unas pocas sinteticas por archivo de prueba, todas bajo
+       * `DIRECTORIO_DE_MUESTRAS`).
        */
       parserOptions: {
         projectService: {
-          allowDefaultProject: [
-            'src/pantallas/*',
-            'src/datos/calentamiento.ts',
-            'src/datos/recibos.ts',
-          ],
+          allowDefaultProject: [`${DIRECTORIO_DE_MUESTRAS}/*`, ARCHIVO_RESERVADO_EN_DATOS],
           maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 40,
         },
         tsconfigRootDir: import.meta.dirname,

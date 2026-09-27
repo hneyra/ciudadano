@@ -145,11 +145,16 @@ colgantes. Lo dicen, nombrando el `git clone`, `eslint.prohibiciones.mjs` (prime
 raíz de este repositorio, guarda el commit de `kamayuk-lib` contra el que la CI verifica y mide el
 arnés: sin `ref`, una corrida en verde no dice contra qué commit de la librería salió verde, y un
 cambio allá puede romper esta CI sin tocar este repositorio. Los DOS trabajos de
-`.github/workflows/frontend.yml` leen ese archivo en un paso propio (`echo "sha=$(cat
-ciudadano/KAMAYUK_LIB_SHA)" >> "$GITHUB_OUTPUT"`) y lo pasan como `ref:` al checkout de la
-librería. **Para subir de versión**: escribir el SHA nuevo en `KAMAYUK_LIB_SHA` (una sola línea,
-sin más) y abrir PR; `verificaciones/andamiaje.test.ts` sale rojo si el workflow vuelve a clonar sin
-`ref`, o si el archivo deja de ser un SHA de 40 caracteres.
+`.github/workflows/frontend.yml` leen ese archivo en un paso propio y lo pasan como `ref:` al
+checkout de la librería. **Ese paso VALIDA antes de escribir la salida** (revisión de la ronda 1
+del PR #65): `cat` sobre un archivo ausente o vacío no hace fallar la asignación —`sha="$(cat
+…)"` sale con `rc=0` igual, con `sha` vacío, porque bash no propaga el fallo de un `$(...)` a
+menos que algo lo mire aparte—, y un `ref:` vacío clona la punta de `main` **sin decirlo**: el
+silencio exacto que el issue quería quitar. La expresión regular exige cuarenta caracteres
+hexadecimales; sin ellos, el paso falla ahí, con `exit 1` y el valor recibido en el mensaje, antes
+de clonar nada. **Para subir de versión**: escribir el SHA nuevo en `KAMAYUK_LIB_SHA` (una sola
+línea, sin más) y abrir PR; `verificaciones/andamiaje.test.ts` sale rojo si algún trabajo vuelve a
+clonar sin `ref` o sin esa validación, o si el archivo deja de ser un SHA de 40 caracteres.
 
 ## Stack
 
@@ -201,6 +206,22 @@ corre después de que Vitest ya dio la prueba por buena—; `@vitest/eslint-plug
 `playwright/no-skipped-test`) sobre `e2e/*.spec.ts`: un `it.only`/`test.only` olvidado deja `yarn
 lint` en rojo antes de construir nada. Y `playwright.config.ts` lleva `forbidOnly:
 !!process.env.CI`, que además para la CORRIDA del arnés en CI si algo se le escapó a ESLint.
+
+`parserOptions.projectService` con tipos no puede parsear un archivo que no existe en el disco, y
+dos guardas anteriores a este issue (`reglas-de-eslint.test.ts`, `los-datos-no-cuentan-a-mano.test.ts`)
+lintan sus muestras con `eslint.lintText` en rutas sintéticas —«como si vivieran» en el árbol real—
+para que la prohibición se evalúe en el sitio donde tiene que aplicar de verdad.
+`parserOptions.projectService.allowDefaultProject` las exceptúa, y esas rutas viven en
+`rutasDeMuestra.mjs`, con el nombre reservado `__no_existe_de_verdad__` (`DIRECTORIO_DE_MUESTRAS`,
+`ARCHIVO_RESERVADO_EN_DATOS`): nadie escribe así un archivo de producción, así que un archivo real
+futuro no puede caer en el mismo `allowDefaultProject` y perder su chequeo de tipos **en silencio**
+(revisión de la ronda 1 del PR #65). Ese archivo vive APARTE de `eslint.config.js` y no dentro:
+`eslint.config.js` referencia objetos de complementos sin tipos completos (`eslint-plugin-jsx-a11y`),
+y las pruebas que importaban esas constantes DESDE el config arrastraban ese archivo al grafo que
+`tsc` compila con `checkJs: true` —`yarn typecheck` salía en rojo—; `rutasDeMuestra.mjs` no importa
+nada, así que no arrastra a nadie. `verificaciones/las-rutas-de-muestra-no-existen.test.ts` comprueba
+que esas dos rutas NO existen en el disco, importando las mismas constantes que `eslint.config.js`
+usa en `allowDefaultProject`.
 
 ## Reglas que no se negocian
 
@@ -467,3 +488,7 @@ ejecuta, y se anota el rojo exacto que sale.
 | `@typescript-eslint/no-floating-promises` (#55) | `void navegar(…)` de `src/enrutador.tsx` vuelto a `navegar(…)` (sin `void`) | `yarn lint`: «30:22  error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises». `useNavigate()` de `react-router` devuelve `void \| Promise<void>`: sin el `void` explícito, cada redirección del enrutador era una promesa flotante |
 | `@typescript-eslint/no-misused-promises` (#55) | un manejador `async` pasado directo a `onClick` (`onClick={alHacerClic}` con `alHacerClic` `async`) | `yarn lint`: «5:26  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises» |
 | `andamiaje.test.ts`, el SHA fijado de `kamayuk-lib` (#55) | la línea `ref: ${{ steps.sha-de-kamayuk-lib.outputs.sha }}` quitada del checkout del trabajo `verificar` en `.github/workflows/frontend.yml` | «expected '  verificar:\n    …' not to match /^\s*ref:\s*\$\{\{\s*steps\.sha-de-kamayuk-lib…/» — 1 de las 2 filas de `it.each` (una por trabajo) sale roja, la del trabajo tocado; la del trabajo `arnes`, que seguía con su `ref:`, sigue verde |
+| El paso que lee `KAMAYUK_LIB_SHA` VALIDA antes de escribir la salida (#55, revisión de la ronda 1 del PR #65) | El paso VIEJO (`echo "sha=$(cat ciudadano/KAMAYUK_LIB_SHA)" >> "$GITHUB_OUTPUT"`), corrido a mano con el archivo AUSENTE y con uno VACÍO | `cat: …No such file or directory` en el log, pero **`rc=0`** y `$GITHUB_OUTPUT` con `sha=` (vacío): `actions/checkout` con `ref: ''` clona la punta de `main` **sin decirlo**, el silencio exacto que el issue quería quitar. El centinela de `andamiaje.test.ts` (que solo mira que `KAMAYUK_LIB_SHA` exista en el repositorio) seguía verde: no se nota hasta que la librería ya está clonada |
+| El paso NUEVO, con la misma rotura (#55, ronda 1) | El paso validado (`sha="$(cat …)"` + `if ! [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then exit 1; fi`), corrido a mano con el archivo AUSENTE, VACÍO y MAL FORMADO (`esto-no-es-un-sha`) | Los tres casos: `rc=1` y «KAMAYUK_LIB_SHA no es un SHA de 40 caracteres hexadecimales: «»» (los dos primeros) o «…: «esto-no-es-un-sha»» (el tercero); `$GITHUB_OUTPUT` queda vacío — el paso para ANTES de clonar nada. Con el SHA de verdad, `rc=0` y `sha=2e078e4c65041037d10c4ed8e74c6f1ef087cfec` |
+| `andamiaje.test.ts`, la validación del SHA (#55, ronda 1) | El paso del trabajo `verificar` vuelto al `echo` VIEJO sin validar (el `arnes` se deja con la validación) | 2 de 34 pruebas en rojo, las dos del trabajo `verificar`: «el trabajo \`verificar\` VALIDA ese SHA…» no encuentra `if ! [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then` en el bloque, y la de «lee \`KAMAYUK_LIB_SHA\`…» tampoco encuentra `sha="$(cat ciudadano/KAMAYUK_LIB_SHA)"` (la línea vieja usa `echo "sha=$(cat …)"` directo, sin la asignación intermedia); las 2 del trabajo `arnes` siguen verdes |
+| `las-rutas-de-muestra-no-existen.test.ts` (#55, revisión de la ronda 1 del PR #65) | Un archivo real creado a mano en `src/__no_existe_de_verdad__/algo.ts` y otro en `src/datos/__no_existe_de_verdad__.ts` (las rutas que `eslint.config.js` exceptúa en `allowDefaultProject`, vía `rutasDeMuestra.mjs`) | Las 2 pruebas de existencia en rojo: «expected true to be false» en las dos, con el mensaje completo nombrando la ruta que «empezó a existir de verdad» y advirtiendo que un archivo real con ese nombre perdería el chequeo de tipos en silencio. Antes de esta guarda, `src/pantallas/*`, `src/datos/recibos.ts` y `src/datos/calentamiento.ts` eran nombres corrientes que un archivo real futuro podía ocupar sin que nada lo dijera; el nombre reservado `__no_existe_de_verdad__` hace la colisión casi imposible, y esta prueba es lo que la hace IMPOSIBLE sin aviso |

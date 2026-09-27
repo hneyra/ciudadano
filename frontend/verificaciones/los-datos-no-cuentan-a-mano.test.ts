@@ -4,16 +4,17 @@ import { ESLint } from 'eslint';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { PROHIBICIONES } from '../eslint.prohibiciones.mjs';
+import { ARCHIVO_RESERVADO_EN_DATOS } from '../rutasDeMuestra.mjs';
 import { RAIZ } from './artboards.ts';
 
 /**
  * **`src/datos/` cumple las prohibiciones de importes, y las prohibiciones muerden ahi** (issue 3).
  *
- * `reglas-de-eslint.test.ts` ya demuestra que cada prohibicion caza su muestra, pero la juzga como
- * si viviera en `src/pantallas/`. Las cuentas del portal viven en `src/datos/`, y es justo el
- * directorio donde uno esperaria una excepcion —«aqui es donde se suma»—. Esta prueba lo mira en
- * su sitio: lo que hay hoy pasa limpio, y un `a.insoluto + a.interes` escrito en esa misma ruta
- * sale rojo con el mensaje de la libreria.
+ * `reglas-de-eslint.test.ts` ya demuestra que cada prohibicion caza su muestra, pero la juzga en
+ * una ruta reservada que no existe de verdad. Las cuentas del portal viven en `src/datos/`, y es
+ * justo el directorio donde uno esperaria una excepcion —«aqui es donde se suma»—. Esta prueba lo
+ * mira en su sitio: lo que hay hoy pasa limpio, y un `a.insoluto + a.interes` escrito en esa misma
+ * ruta sale rojo con el mensaje de la libreria.
  *
  * Y comprueba lo otro que el issue pide de esos archivos: que `cuentas.ts`, `demostracion.ts` y
  * `tipos.ts` no traen React. Sin React se pueden usar desde una prueba de Node, desde el arnes o
@@ -50,8 +51,13 @@ async function mensajesEn(codigo: string, ruta: string): Promise<string[]> {
 }
 
 // El arranque en frio de ESLint no cabe en los 5 s de una prueba (rentas#36).
+//
+// `ARCHIVO_RESERVADO_EN_DATOS` (de `rutasDeMuestra.mjs`, y no escrito aqui) es el nombre RESERVADO
+// que `allowDefaultProject` exceptua DENTRO de `src/datos/`: un archivo real futuro no puede
+// llamarse asi por accidente, asi que no pierde su chequeo de tipos en silencio (revision del PR
+// #65, ronda 1).
 beforeAll(async () => {
-  await eslint.lintText('export const listo = 1;\n', { filePath: join(DATOS, 'calentamiento.ts') });
+  await eslint.lintText('export const listo = 1;\n', { filePath: join(RAIZ, ARCHIVO_RESERVADO_EN_DATOS) });
 }, 60_000);
 
 describe('lo que hay en src/datos/ pasa ESLint limpio', () => {
