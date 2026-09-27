@@ -51,7 +51,6 @@ const EXCEPCIONES: Readonly<Record<string, string>> = {
   'src/pasos/comprobante/Comprobante.tsx': PARTIENDOSE,
   'src/pasos/historial/Historial.tsx': PARTIENDOSE,
   'src/pasos/identificar/Identificar.tsx': PARTIENDOSE,
-  'src/pasos/pagar/Pagar.tsx': PARTIENDOSE,
 };
 
 /** Los `.ts`/`.tsx` de produccion de un directorio, con su ruta relativa al frontend. */
