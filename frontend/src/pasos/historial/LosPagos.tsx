@@ -125,7 +125,13 @@ export function PagosRealizados() {
           </AvisoConFilo>
         )
       ) : null}
-      <Tabla className="min-w-[760px]">
+      {/* El marco desplaza la tabla por debajo de 760 px (issue 62). Con plataforma no hay pagos, y sin un
+          boton dentro el teclado no llegaba a desplazarlo (axe, `scrollable-region-focusable`): entra en
+          el tabulador como region con nombre, distinto del de la seccion. */}
+      <Tabla
+        className="min-w-[760px]"
+        marco={{ tabIndex: 0, role: 'region', 'aria-label': t('Tabla de los pagos realizados') }}
+      >
         <TablaCabecera>
           <tr>
             {columnas.map((columna) => (
