@@ -48,6 +48,9 @@ export function BotonDeConfirmar({
       className={cn(
         // El verde del artboard es `--ok-tinta`; su hover (`#326032`) no es token: se oscurece el mismo.
         'min-h-[48px] px-7 py-0 text-[16px] bg-ok-tinta hover:bg-ok-tinta hover:brightness-90',
+        // `Boton` no parte el texto (`whitespace-nowrap`), y «Simular el pago: no se cobra nada» mide
+        // 356 px: a 320 se salia de la pagina (issue 62). Parte solo cuando no cabe.
+        'max-w-full whitespace-normal',
         botonApagado({ apagado: nada }),
         nada && 'hover:brightness-100',
       )}

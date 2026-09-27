@@ -289,15 +289,35 @@ test.describe('el recorrido con plataforma', () => {
     await expect(barra.getByRole('button', { name: 'Iniciar sesión' })).toHaveCount(0);
   });
 
-  test('a 400 px se ve igual de bien, y sin desplazar la pagina', async ({ page }) => {
-    await page.setViewportSize({ width: 400, height: 900 });
-    await backendFalso(page);
-    await abrirConPlataforma(page);
-    await seVeBien(page, 'entrar a 400 px');
+  // A 400 y a 320 px (issue 62), en cada paso: a 320 el boton «Simular el pago: no se cobra nada», sin
+  // poder partirse, se salia 36 px de la pagina.
+  for (const ancho of [400, 320] as const) {
+    test(`a ${ancho} px se ve igual de bien en cada paso, y sin desplazar la pagina`, async ({ page }) => {
+      await page.setViewportSize({ width: ancho, height: 900 });
+      await backendFalso(page);
+      await abrirConPlataforma(page);
+      await seVeBien(page, `entrar a ${ancho} px`);
 
-    await entrarYLlegarALaDeuda(page);
-    await seVeBien(page, 'elegir qué pago con plataforma a 400 px');
-  });
+      await entrarYLlegarALaDeuda(page);
+      await seVeBien(page, `elegir qué pago con plataforma a ${ancho} px`);
+      await principal(page).getByRole('button', { name: 'Ver el detalle de Impuesto predial 2024' }).click();
+      await seVeBien(page, `elegir qué pago con plataforma a ${ancho} px, con el detalle abierto`);
+
+      await principal(page).getByRole('button', { name: 'Pagar todo' }).click();
+      await expect(page.getByRole('heading', { level: 1, name: 'Todavía no se puede pagar en línea' })).toBeVisible();
+      await seVeBien(page, `pagar con plataforma a ${ancho} px`);
+
+      await principal(page).getByRole('button', { name: 'Simular el pago: no se cobra nada' }).click();
+      await expect(page.getByRole('heading', { level: 1, name: 'Así se vería su comprobante' })).toBeVisible();
+      await seVeBien(page, `el comprobante con plataforma a ${ancho} px`);
+
+      await page.getByRole('banner').getByRole('button', { name: /Rufina Medina Medina/ }).click();
+      await page.getByRole('menuitem', { name: 'Mis pagos' }).click();
+      await expect(page.getByRole('heading', { level: 1, name: 'Mis pagos' })).toBeVisible();
+      await expect(principal(page).getByText('Impuesto predial 2024')).toBeVisible();
+      await seVeBien(page, `mis pagos con plataforma a ${ancho} px`);
+    });
+  }
 
   test('recargar NO echa: con la sesion del emisor viva, se sigue dentro sin pulsar nada (issue 35)', async ({ page }) => {
     const backend = await backendFalso(page);

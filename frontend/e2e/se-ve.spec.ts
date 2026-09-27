@@ -42,7 +42,12 @@ import {
  */
 test.use({ colorScheme: 'light' });
 
-const ANCHURAS = [1180, 400] as const;
+/**
+ * 1180 (el artboard), 400 (un telefono) y **320** (issue 62): el telefono mas estrecho que WCAG 1.4.10
+ * pide sin desplazamiento de lado. A 320 «Mis datos» se salia 14 px —su rejilla pedia columnas de al
+ * menos 316 px en un hueco de 288— y con plataforma el boton «Simular el pago» 36 px.
+ */
+const ANCHURAS = [1180, 400, 320] as const;
 
 /** Abre el detalle de un concepto: su tabla lleva un ancho minimo de 560 a 640 px. */
 async function abrirElDetalle(pagina: Page, concepto: string): Promise<void> {
