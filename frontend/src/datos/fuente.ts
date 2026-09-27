@@ -15,7 +15,7 @@ import type { PagoDelHistorial, SituacionDelServidor, Unidad } from './tipos.ts'
  * <h2>Una sola fuente activa, inyectable</h2>
  *
  * `FuenteActiva` es un contexto de React; quien elige su valor es `src/datos/laFuente.ts`, desde
- * `main.tsx`, segun la bandera de construccion (issue 27). Una prueba pone la suya con
+ * `montaje.tsx`, segun la bandera de construccion (issue 27). Una prueba pone la suya con
  * `<FuenteActiva value={falsa}>`. No hay un modulo global que se sustituya con `vi.mock`, que es
  * justo lo que dejaria a dos pruebas pisandose la fuente.
  *
@@ -73,12 +73,12 @@ export function hayPlataforma(fuente: FuenteDelPortal): boolean {
  *
  * Antes lo era la de demostracion, y no puede seguir siendolo: un valor por omision es un `import`
  * estatico, y un `import` estatico de la demostracion la mete en el paquete de produccion pase lo
- * que pase con la bandera. Lo que se pone en su sitio no calla: `main.tsx` inyecta siempre la que
+ * que pase con la bandera. Lo que se pone en su sitio no calla: `montaje.tsx` inyecta siempre la que
  * `laFuente.ts` elige, y las pruebas, la suya (`src/pruebas/portal.tsx`).
  */
 const SIN_INYECTAR =
   'Nadie inyecto una fuente en `FuenteActiva`. La elige `src/datos/laFuente.ts` y la pone ' +
-  '`main.tsx`; en una prueba, `montarElPortal({ fuente })`.';
+  '`montaje.tsx`; en una prueba, `montarElPortal({ fuente })`.';
 
 const NADIE: FuenteDelPortal = {
   consulta: null,

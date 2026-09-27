@@ -20,7 +20,7 @@ import { limpiarElPortal, montarElPortal, plazosDelPortal } from './pruebas/port
  *     como peticion. Se espia el metodo de la identidad.
  *
  * La fuente NO se escribe aqui: se pide a `laFuente()`, o sea a la misma eleccion que hace
- * `main.tsx`. Con una fuente de demostracion puesta a mano, esta prueba seguiria verde el dia que la
+ * `montaje.tsx`. Con una fuente de demostracion puesta a mano, esta prueba seguiria verde el dia que la
  * eleccion se invirtiera.
  */
 

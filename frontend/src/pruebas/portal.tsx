@@ -155,7 +155,7 @@ export interface ComoMontar {
    * en silencio. Con este tipo, sembrarlo no compila.
    */
   readonly estado?: Partial<DecisionesDelRecorrido>;
-  /** De donde leen las pantallas (issue 10). Por omision, la de demostracion, como en `main.tsx`. */
+  /** De donde leen las pantallas (issue 10). Por omision, la de demostracion, como en `montaje.tsx`. */
   readonly fuente?: FuenteDelPortal;
 }
 
@@ -222,7 +222,7 @@ function remendarResizeObserver(): void {
 }
 
 /**
- * El portal, con su propio cliente de consultas (`main.tsx` pone uno; la prueba, el suyo). Uno NUEVO en
+ * El portal, con su propio cliente de consultas (`montaje.tsx` pone uno; la prueba, el suyo). Uno NUEVO en
  * cada montaje: con uno compartido, los pagos que una prueba leyo llegarian ya leidos a la siguiente, y
  * «mientras llegan» y «si fallan» no se podrian medir.
  */
@@ -241,7 +241,7 @@ export function montarElPortal({ hash = '#/buscar', estado = {}, fuente = fuente
   });
   const enrutador = crearEnrutador();
   montados.push(enrutador);
-  // La MISMA politica que `main.tsx` (issue 50): con los valores por omision, el foco volveria a pedir
+  // La MISMA politica que `montaje.tsx` (issue 50): con los valores por omision, el foco volveria a pedir
   // la situacion y la prueba mediria otro portal.
   const consultas = crearClienteDeConsultas();
   const utilidades = render(

@@ -76,7 +76,7 @@ export const RUTAS: RouteObject[] = [
 ];
 
 /**
- * El enrutador del portal. Se crea FUERA del render, como el cliente de consultas de `main.tsx`: dentro,
+ * El enrutador del portal. Se crea FUERA del render, como el cliente de consultas de `montaje.tsx`: dentro,
  * `StrictMode` lo crearia dos veces, cada uno escuchando el hash por su cuenta. Las pruebas crean el
  * suyo y lo `dispose()`an al acabar.
  */

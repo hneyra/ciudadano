@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { clavesDeLaEscalera } from '../src/api/escalera.ts';
-import { clavesDelSilencio } from '../src/api/silencio.ts';
+import { clavesDelEmisor } from '../src/api/emisor.ts';
 import { clavesDeLaUnidad } from '../src/datos/deLaSituacion.ts';
 import { clavesDelHistorial } from '../src/pasos/historial/textosDelHistorial.ts';
 import { clavesDeLosMedios } from '../src/pasos/pagar/textosDeLosMedios.ts';
@@ -436,9 +436,9 @@ const LITERALES = [
   // peldano solo se sabe en ejecucion—, asi que `i18next-cli` no los ve y escribirlos aqui a mano
   // dejaria el olvido sin rojo.
   ...clavesDeLaEscalera(),
-  // Lo que el canje silencioso (issue 35) puede llegar a decir, derivado de `TEXTOS_DEL_SILENCIO`.
+  // Lo que la vuelta del emisor —la normal y la silenciosa (issues 35 y 56)— puede llegar a decir, derivado de `TEXTOS_DEL_EMISOR`.
   // La pantalla lo traduce con una variable —el motivo solo se sabe en ejecucion—.
-  ...clavesDelSilencio(),
+  ...clavesDelEmisor(),
 ];
 
 /** Lo que tiene que decir cada forma plural, con el mecanismo de `rentas`. */

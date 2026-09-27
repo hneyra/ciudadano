@@ -36,7 +36,7 @@ import { fuenteDeLaPlataforma } from './fuenteDeLaPlataforma.ts';
  * La fuente de este arranque.
  *
  * Asincrona porque la de demostracion llega por `import()`, que es lo unico que Rollup puede
- * plegar. Se llama UNA vez, en `main.tsx`, antes de montar: lo que se inyecta en `FuenteActiva` no
+ * plegar. Se llama UNA vez, en `montaje.tsx`, antes de montar: lo que se inyecta en `FuenteActiva` no
  * cambia dentro de la vida de la pagina, porque la bandera es de construccion y no de ejecucion.
  */
 export async function laFuente(): Promise<FuenteDelPortal> {

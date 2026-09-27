@@ -1,5 +1,13 @@
 import type { ConfiguracionDeIdentidad, Identidad } from '@kamayuk/sesion';
 
+import {
+  type FalloDelEmisor,
+  type NoEntro,
+  TEXTOS_DEL_EMISOR,
+  fallo,
+  leerElError,
+  texto,
+} from './emisor.ts';
 import { configuracionDeLaPuerta, identidad } from './identidad.ts';
 
 /**
@@ -46,88 +54,11 @@ import { configuracionDeLaPuerta, identidad } from './identidad.ts';
  * Refrescar el token a mitad de sesion, y cerrar la del emisor: fuera del issue.
  */
 
-/**
- * **Un texto que la PANTALLA traduce**: la clave es el castellano, como en todo el portal, y los
- * valores son sus huecos (revision del PR #45).
- *
- * Aqui no se traduce porque este archivo corre antes de montar y no arrastra React ni i18next (ver
- * `src/arranque.ts`); la pantalla hace `t(clave, valores)`. Que cada clave este en el locale lo
- * exige `verificaciones/el-locale-esta-completo.test.ts` por `clavesDelSilencio()`: `i18next-cli`
- * no ve un `t()` con una variable.
- */
-export interface TextoDelSilencio {
-  readonly clave: string;
-  readonly valores?: Readonly<Record<string, string>>;
-}
-
 /** Lo que paso al preguntar. */
 export type Silencio =
   | { readonly estado: 'identificado' }
-  | { readonly estado: 'anonimo' }
-  | FalloDelSilencio;
-
-/** Por que no se pudo saber si habia sesion, dicho para la pantalla. */
-export interface FalloDelSilencio {
-  readonly estado: 'fallo';
-  readonly motivo: TextoDelSilencio;
-  readonly detalle: TextoDelSilencio;
-}
-
-/**
- * **Todo lo que el canje silencioso puede llegar a decir en pantalla**, en castellano y con sus
- * tildes: son textos del portal, no palabras del emisor (que solo entran por `{{descripcion}}`).
- *
- * Hablan del «sistema de identidad», como la frase de la pantalla que los recibe, y no del
- * «emisor»: quien los lee es un contribuyente, no quien opera Keycloak.
- */
-export const TEXTOS_DEL_SILENCIO = {
-  noContesto: 'El sistema de identidad no contestó',
-  noContestoDetalle:
-    'Le preguntamos si ya había entrado y no contestó en {{segundos}} s. Puede estar apagado o no ser alcanzable desde este equipo.',
-  canjeNoLlego: 'La petición del canje no llegó a completarse. El sistema de identidad puede estar apagado o no ser alcanzable desde este equipo.',
-  rechazo: 'El sistema de identidad rechazó el canje',
-  rechazoDetalle: 'La petición del canje volvió con {{estado}}. Suele ser la dirección de retorno o el cliente.',
-  sinToken: 'El sistema de identidad no devolvió ningún token',
-  sinTokenDetalle: 'La respuesta del canje no trae «access_token».',
-  sinCodigo: 'La respuesta no cuadra con la pregunta',
-  sinCodigoDetalle: 'Volvió sin código y sin error.',
-  contesto: 'Contestó «{{error}}».',
-  contestoConDescripcion: 'Contestó «{{error}}»: {{descripcion}}',
-  accesoDenegado: 'No se completó la entrada',
-  alcance: 'El alcance que se pide no existe en el sistema de identidad',
-  cliente: 'El sistema de identidad no reconoce a este portal',
-  problema: 'El sistema de identidad tuvo un problema',
-  noDejo: 'El sistema de identidad no dejó entrar',
-  inesperado: 'No se pudo preguntar al sistema de identidad',
-  inesperadoDetalle: 'Algo falló al preparar la pregunta: {{mensaje}}',
-} as const;
-
-/** Las claves de `TEXTOS_DEL_SILENCIO`, para el inventario del locale. */
-export function clavesDelSilencio(): readonly string[] {
-  return [...new Set(Object.values(TEXTOS_DEL_SILENCIO))];
-}
-
-const texto = (clave: string, valores?: Readonly<Record<string, string>>): TextoDelSilencio =>
-  valores === undefined ? { clave } : { clave, valores };
-
-const fallo = (motivo: TextoDelSilencio, detalle: TextoDelSilencio): FalloDelSilencio => ({
-  estado: 'fallo',
-  motivo,
-  detalle,
-});
-
-/**
- * **Lo que se dice si preguntar REVIENTA** —`crypto.subtle` que lanza, un `appendChild` que falla,
- * un `id_token` que no se deja leer— en vez de contestar (revision del PR #45).
- *
- * Lo usa `arrancar()` en su `catch`: sin el, la excepcion saltaba el `montar()` y la pagina se
- * quedaba en blanco, que es lo que el issue prohibe y lo que la libreria cerro en su canje
- * (`rentas#112`).
- */
-export function falloInesperado(error: unknown): FalloDelSilencio {
-  const mensaje = error instanceof Error ? error.message || error.name : String(error);
-  return fallo(texto(TEXTOS_DEL_SILENCIO.inesperado), texto(TEXTOS_DEL_SILENCIO.inesperadoDetalle, { mensaje }));
-}
+  | NoEntro
+  | FalloDelEmisor;
 
 /**
  * **La pagina de vuelta del marco**, relativa a la raiz de la aplicacion: `public/silencio.html`.
@@ -149,38 +80,6 @@ export const PAGINA_DE_VUELTA = 'silencio.html';
  */
 export const ESPERA_DEL_EMISOR = 8_000;
 
-/**
- * **Los cuatro errores que dicen «no hay sesion»**, y no «algo fue mal» (OIDC Core §3.1.2.6).
- *
- * Con `prompt=none` el emisor contesta asi en vez de ensenar el formulario, el consentimiento o el
- * selector de cuenta. Ninguno es una averia: quien mira no habia entrado, y el portal se monta
- * anonimo para que decida si entra. Cualquier OTRO error si lo es, y se cuenta.
- */
-const NO_HAY_SESION: ReadonlySet<string> = new Set([
-  'login_required',
-  'interaction_required',
-  'consent_required',
-  'account_selection_required',
-]);
-
-/** Los motivos que la libreria da a un `?error=` del emisor, dichos para un contribuyente. */
-function motivoDelEmisor(error: string): TextoDelSilencio {
-  switch (error) {
-    case 'access_denied':
-      return texto(TEXTOS_DEL_SILENCIO.accesoDenegado);
-    case 'invalid_scope':
-      return texto(TEXTOS_DEL_SILENCIO.alcance);
-    case 'unauthorized_client':
-    case 'invalid_client':
-      return texto(TEXTOS_DEL_SILENCIO.cliente);
-    case 'temporarily_unavailable':
-    case 'server_error':
-      return texto(TEXTOS_DEL_SILENCIO.problema);
-    default:
-      return texto(TEXTOS_DEL_SILENCIO.noDejo);
-  }
-}
-
 function base64url(bytes: Uint8Array): string {
   let texto = '';
   bytes.forEach((b) => (texto += String.fromCharCode(b)));
@@ -199,10 +98,10 @@ async function reto(verificador: string): Promise<string> {
   return base64url(new Uint8Array(resumen));
 }
 
-const NO_CONTESTO = (espera: number): FalloDelSilencio =>
+const NO_CONTESTO = (espera: number): FalloDelEmisor =>
   fallo(
-    texto(TEXTOS_DEL_SILENCIO.noContesto),
-    texto(TEXTOS_DEL_SILENCIO.noContestoDetalle, { segundos: String(espera / 1000) }),
+    texto(TEXTOS_DEL_EMISOR.noContesto),
+    texto(TEXTOS_DEL_EMISOR.noContestoDetalle, { segundos: String(espera / 1000) }),
   );
 
 /**
@@ -310,17 +209,17 @@ export function crearSilencio({ configuracion, identidad, espera = ESPERA_DEL_EM
     } catch {
       return plazo.aborted
         ? NO_CONTESTO(espera)
-        : fallo(texto(TEXTOS_DEL_SILENCIO.noContesto), texto(TEXTOS_DEL_SILENCIO.canjeNoLlego));
+        : fallo(texto(TEXTOS_DEL_EMISOR.noContesto), texto(TEXTOS_DEL_EMISOR.canjeNoLlego));
     }
     if (!respuesta.ok) {
       return fallo(
-        texto(TEXTOS_DEL_SILENCIO.rechazo),
-        texto(TEXTOS_DEL_SILENCIO.rechazoDetalle, { estado: String(respuesta.status) }),
+        texto(TEXTOS_DEL_EMISOR.rechazo),
+        texto(TEXTOS_DEL_EMISOR.rechazoDetalle, { estado: String(respuesta.status) }),
       );
     }
     const cuerpo = (await respuesta.json().catch(() => ({}))) as { access_token?: string; id_token?: string };
     if (cuerpo.access_token === undefined) {
-      return fallo(texto(TEXTOS_DEL_SILENCIO.sinToken), texto(TEXTOS_DEL_SILENCIO.sinTokenDetalle));
+      return fallo(texto(TEXTOS_DEL_EMISOR.sinToken), texto(TEXTOS_DEL_EMISOR.sinTokenDetalle));
     }
     identidad.fijarToken(cuerpo.access_token, cuerpo.id_token ?? null);
     return { estado: 'identificado' };
@@ -356,19 +255,12 @@ export function crearSilencio({ configuracion, identidad, espera = ESPERA_DEL_EM
 
     const contestacion = new URLSearchParams(busqueda);
     const error = contestacion.get('error');
-    if (error !== null) {
-      if (NO_HAY_SESION.has(error)) return { estado: 'anonimo' };
-      const descripcion = contestacion.get('error_description');
-      return fallo(
-        motivoDelEmisor(error),
-        descripcion === null
-          ? texto(TEXTOS_DEL_SILENCIO.contesto, { error })
-          : texto(TEXTOS_DEL_SILENCIO.contestoConDescripcion, { error, descripcion }),
-      );
-    }
+    // La misma traduccion que la vuelta normal (issue 56): `login_required` y sus parientes —y
+    // `access_denied`— montan anonimo; cualquier otro error es un fallo que se cuenta.
+    if (error !== null) return leerElError(error, contestacion.get('error_description'));
     const codigo = contestacion.get('code');
     if (codigo === null) {
-      return fallo(texto(TEXTOS_DEL_SILENCIO.sinCodigo), texto(TEXTOS_DEL_SILENCIO.sinCodigoDetalle));
+      return fallo(texto(TEXTOS_DEL_EMISOR.sinCodigo), texto(TEXTOS_DEL_EMISOR.sinCodigoDetalle));
     }
     return canjear(codigo, verificador, plazo);
   }

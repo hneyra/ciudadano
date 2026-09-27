@@ -1,8 +1,7 @@
 import { screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { FalloDelSilencio } from './api/silencio.ts';
-import type { VueltaFallida } from './arranque.ts';
+import type { FalloDelEmisor } from './api/emisor.ts';
 
 /**
  * **La pantalla de «no se pudo abrir su sesion»** (issue 13).
@@ -17,14 +16,19 @@ import type { VueltaFallida } from './arranque.ts';
  * de verdad.
  */
 
-const LA_FALLA: VueltaFallida = {
-  motivo: 'El emisor no dejo entrar',
-  detalle: 'El usuario cancelo la entrada.',
+/** Un `?error=server_error` con su descripcion, tal como lo deja `leerElError()` (issue 56). */
+const LA_FALLA: FalloDelEmisor = {
+  estado: 'fallo',
+  motivo: { clave: 'El sistema de identidad tuvo un problema' },
+  detalle: {
+    clave: 'Contestó «{{error}}»: {{descripcion}}',
+    valores: { error: 'server_error', descripcion: 'Unexpected error when authenticating' },
+  },
 };
 
-let fallaDeLaVuelta: VueltaFallida | null = null;
+let fallaDeLaVuelta: FalloDelEmisor | null = null;
 
-let fallaDeLaPregunta: FalloDelSilencio | null = null;
+let fallaDeLaPregunta: FalloDelEmisor | null = null;
 
 vi.mock('./arranque.ts', () => ({
   vueltaFallida: () => fallaDeLaVuelta,
@@ -70,11 +74,12 @@ describe('con vuelta fallida, se explica y NO se monta el recorrido', () => {
     montar();
 
     expect(screen.getByText('No se pudo abrir su sesión')).toBeInTheDocument();
-    // El motivo y el detalle van TAL CUAL: sin ellos el aviso diria «algo fallo» y habria que
-    // mirar la consola del navegador de quien lo sufrio.
+    // Lo que dijo el emisor llega: sin ello el aviso diria «algo fallo» y habria que mirar la
+    // consola del navegador de quien lo sufrio. Pero dentro de frases del portal (issue 56).
     expect(
       screen.getByText(
-        'Volvimos del sistema de identidad sin poder entrar: El emisor no dejo entrar. El usuario cancelo la entrada.',
+        'Volvimos del sistema de identidad sin poder entrar: El sistema de identidad tuvo un problema. ' +
+          'Contestó «server_error»: Unexpected error when authenticating',
       ),
     ).toBeInTheDocument();
     expect(screen.getByText(/ventanilla de la municipalidad/)).toBeInTheDocument();
@@ -98,16 +103,19 @@ describe('con vuelta fallida, se explica y NO se monta el recorrido', () => {
     expect(document.documentElement.getAttribute('data-tema')).toBe('clasico');
   });
 
-  it('y los tres textos pasan por `t()`', async () => {
+  it('y los tres textos pasan por `t()`, y el motivo y el detalle TAMBIEN (issue 56)', async () => {
     await i18n.changeLanguage(IDIOMA_MARCADO);
 
     montar();
 
     expect(screen.getByText(marcado('No se pudo abrir su sesión'))).toBeInTheDocument();
+    // Hasta el issue 56 el motivo y el detalle entraban como valores sin traducir: la frase salia
+    // marcada por fuera y con «El emisor no dejo entrar» en crudo por dentro.
     expect(
       screen.getByText(
         marcado(
-          'Volvimos del sistema de identidad sin poder entrar: El emisor no dejo entrar. El usuario cancelo la entrada.',
+          `Volvimos del sistema de identidad sin poder entrar: ${marcado('El sistema de identidad tuvo un problema')}. ` +
+            marcado('Contestó «server_error»: Unexpected error when authenticating'),
         ),
       ),
     ).toBeInTheDocument();
@@ -123,7 +131,7 @@ describe('con vuelta fallida, se explica y NO se monta el recorrido', () => {
 
 describe('con la pregunta silenciosa fallida (issue 35), la variante que no dice «Volvimos»', () => {
   // Revision del PR #45: quien recarga no fue al sistema de identidad ni volvio de el.
-  const LA_PREGUNTA: FalloDelSilencio = {
+  const LA_PREGUNTA: FalloDelEmisor = {
     estado: 'fallo',
     motivo: { clave: 'El sistema de identidad no contestó' },
     detalle: {

@@ -2,8 +2,8 @@ import { ProveedorDeTema, type ConfiguracionDeTema } from '@kamayuk/ui';
 import { useTranslation } from 'react-i18next';
 import { RouterProvider } from 'react-router-dom';
 
-import type { FalloDelSilencio } from './api/silencio.ts';
-import { preguntaFallida, vueltaFallida, type VueltaFallida } from './arranque.ts';
+import type { FalloDelEmisor } from './api/emisor.ts';
+import { preguntaFallida, vueltaFallida } from './arranque.ts';
 import type { Enrutador } from './enrutador.tsx';
 import { ProveedorDelRecorrido } from './recorrido/ProveedorDelRecorrido.tsx';
 import type { DecisionesDelRecorrido } from './recorrido/recorrido.ts';
@@ -41,18 +41,20 @@ const TEMA: ConfiguracionDeTema = {
  * nada que ver con lo que paso—, asi que lo unico que quedaria seria la pantalla de siempre, como
  * si nadie hubiera intentado entrar.
  *
- * Los dos datos del emisor —`motivo` y `detalle`— van tal cual, que es lo que hace falta para
- * arreglarlo: sin ellos el aviso diria «algo fallo» y habria que mirar la consola del navegador de
- * quien lo sufrio.
+ * El motivo y el detalle son **claves del portal** (`TEXTOS_DEL_EMISOR`, `src/api/emisor.ts`) y se
+ * traducen aqui, con sus huecos (issue 56). Hasta entonces iban tal cual los escribia
+ * `@kamayuk/sesion` —«El emisor no dejo entrar», sin tildes, sin `t()` y en palabras de quien opera
+ * Keycloak—, mientras el canje silencioso decia el mismo error con otras. Lo que el emisor dijo
+ * (`error`, `error_description`) sigue llegando, pero como hueco de una frase del portal.
  */
-function LaPuertaNoContesto({ falla }: { readonly falla: VueltaFallida }) {
+function LaPuertaNoContesto({ falla }: { readonly falla: FalloDelEmisor }) {
   const { t } = useTranslation();
 
   return (
     <AvisoDeLaSesion>
       {t('Volvimos del sistema de identidad sin poder entrar: {{motivo}}. {{detalle}}', {
-        motivo: falla.motivo,
-        detalle: falla.detalle,
+        motivo: t(falla.motivo.clave, falla.motivo.valores),
+        detalle: t(falla.detalle.clave, falla.detalle.valores),
       })}
     </AvisoDeLaSesion>
   );
@@ -65,10 +67,10 @@ function LaPuertaNoContesto({ falla }: { readonly falla: VueltaFallida }) {
  * Quien recarga no ha ido al emisor ni ha vuelto de el: el portal le pregunto por detras, desde un
  * marco oculto, y ese marco a veces ni vuelve (el tope). «Volvimos del sistema de identidad…» seria
  * afirmarle algo que no ocurrio, que es lo que el repositorio no hace en ninguna pantalla. Esta
- * frase dice lo que si paso. El motivo y el detalle son claves del portal (`TEXTOS_DEL_SILENCIO`),
+ * frase dice lo que si paso. El motivo y el detalle son claves del portal (`TEXTOS_DEL_EMISOR`),
  * y se traducen aqui con sus huecos.
  */
-function LaPreguntaNoSalio({ falla }: { readonly falla: FalloDelSilencio }) {
+function LaPreguntaNoSalio({ falla }: { readonly falla: FalloDelEmisor }) {
   const { t } = useTranslation();
 
   return (
@@ -103,7 +105,7 @@ function AvisoDeLaSesion({ children }: { readonly children: string }) {
 /**
  * **La espera mientras se le pregunta al emisor si ya se habia entrado** (issue 35).
  *
- * La dibuja `main.tsx` cuando el canje silencioso tarda mas que `UMBRAL_DE_ESPERA`
+ * La dibuja `montaje.tsx` cuando el canje silencioso tarda mas que `UMBRAL_DE_ESPERA`
  * (`src/arranque.ts`): el issue pide que, mientras tanto, el portal diga que esta consultando, y no
  * que se quede en blanco ni que salte a la puerta. Cuando la pregunta termina, el portal se monta
  * encima, en la misma raiz.
@@ -138,7 +140,7 @@ export function ComprobandoLaSesion() {
  * · **El recorrido va por encima del enrutador** (issue 4): cambiar de ruta no lo desmonta, asi que
  *   ir de `#/pagar` a `#/deudas` y volver no pierde lo marcado ni lo pagado.
  * · **El enrutador llega hecho**, como el cliente de consultas: se crea una vez fuera del render
- *   (`main.tsx`), y cada prueba crea el suyo (`crearEnrutador`, en `src/enrutador.tsx`).
+ *   (`montaje.tsx`), y cada prueba crea el suyo (`crearEnrutador`, en `src/enrutador.tsx`).
  *
  * La barra, la franja y el pie son `src/marco/`; cada paso, su pantalla en `src/pasos/`.
  * `inicial` es para las pruebas: empezar con sesion o en un paso dado sin recorrerlo entero.
@@ -155,7 +157,7 @@ export interface AplicacionProps {
 }
 
 export function Aplicacion({ enrutador, inicial }: AplicacionProps) {
-  // Se lee aqui y no en `main.tsx` porque el montaje no lleva argumentos a proposito: ver
+  // Se lee aqui y no en `montaje.tsx` porque el montaje no lleva argumentos a proposito: ver
   // `src/arranque.ts`. Al llegar aqui la pasada de arranque ya termino, asi que el valor esta fijo.
   const falla = vueltaFallida();
   const pregunta = preguntaFallida();
