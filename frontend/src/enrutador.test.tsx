@@ -120,6 +120,38 @@ describe('atras y adelante del navegador', () => {
     expect(within(franja).getByRole('button', { name: 'Mis datos' })).toHaveAttribute('aria-current', 'step');
   });
 
+  /**
+   * **La URL es la del navegador, no la del ultimo dibujo** (issue 61, medido en `yarn verificar` con
+   * la maquina cargada). El enrutador escribe la historia en el acto pero avisa a React dentro de una
+   * transicion; un clic que llega en medio se dibuja con la ruta VIEJA. Aqui se provoca a proposito:
+   * se da el correo, se espera a que el navegador este en `#/pagar` SIN dejar que React dibuje la
+   * transicion, y se pulsa «Mis datos» en la franja. Con el efecto leyendo la ruta del dibujo, veia
+   * `/identificar`, no navegaba, y la transicion atrasada devolvia el recorrido a pagar.
+   */
+  it('un clic que llega antes de que el enrutador dibuje su navegacion no se pierde', async () => {
+    montarElPortal({ hash: '#/identificar', estado: { paso: 'identificar', numero: '00000025673' } });
+    const correo = within(within(screen.getByRole('main')).getByRole('region', { name: 'Solo con mi correo' }));
+    fireEvent.change(correo.getByRole('textbox', { name: 'Correo electrónico' }), { target: { value: 'maria@example.com' } });
+
+    fireEvent.click(correo.getByRole('button', { name: 'Continuar al pago' }));
+    // Se mira el navegador a cada vuelta —casi siempre microtareas; una tarea cada diez, que es lo que
+    // tarda el envio del formulario— y se pulsa EN CUANTO la historia dice `#/pagar`, antes de que
+    // React dibuje la transicion del enrutador. Sin la ruta del navegador en el efecto, rojo 3 de 3.
+    for (let i = 0; i < 200 && window.location.hash !== '#/pagar'; i++) {
+      await (i % 10 === 9 ? new Promise((r) => setTimeout(r, 0)) : Promise.resolve());
+    }
+    expect(window.location.hash).toBe('#/pagar');
+    fireEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: 'Mis datos' }));
+    // Y ahora si, que llegue todo lo atrasado.
+    await moverElHistorial(() => {});
+
+    expect(window.location.hash).toBe('#/identificar');
+    expect(within(screen.getByRole('navigation')).getByRole('button', { name: 'Mis datos' })).toHaveAttribute(
+      'aria-current',
+      'step',
+    );
+  });
+
   it('recorrido hasta pagar, atras y adelante pasan por cada paso alcanzado, y el recorrido los sigue', async () => {
     montarElPortal({ hash: '#/buscar' });
     const principal = () => screen.getByRole('main');

@@ -35,6 +35,16 @@ import { type Paso, TODOS_LOS_PASOS, pasoAlcanzable, ultimoAlcanzable } from './
  * pantalla en blanco. Un solo `useRef` recuerda el ultimo paso visto, para saber cual de los dos
  * cambio: sin el, en el dibujo intermedio —estado ya en `deudas`, URL todavia en `buscar`— la URL
  * «mandaria» y deshacia la accion.
+ *
+ * <h2>La URL es la del navegador, no la del ultimo dibujo</h2>
+ *
+ * El enrutador cambia la historia del navegador en el acto, pero avisa a React **dentro de una
+ * transicion** (`startTransition`, en `RouterProvider`): un clic que llega entre las dos cosas se
+ * dibuja con la ruta VIEJA. Medido con «Mis datos» → «Continuar al pago» → la franja otra vez en «Mis
+ * datos» (`Identificar.test.tsx`, con la maquina cargada): el efecto veia `/identificar` —la ruta del
+ * dibujo— cuando el navegador ya estaba en `#/pagar`, no navegaba, y cuando la transicion llegaba con
+ * `/pagar` la URL «mandaba» y devolvia el recorrido a pagar. Por eso el efecto lee la ruta del
+ * navegador (`rutaDelNavegador`), y `useLocation` solo lo despierta cuando cambia.
  */
 
 /** La ruta de cada paso. */
@@ -53,6 +63,14 @@ export function pasoDeLaRuta(ruta: string): Paso | null {
   return TODOS_LOS_PASOS.find((paso) => RUTA_DEL_PASO[paso] === ruta) ?? null;
 }
 
+/**
+ * La ruta que el navegador tiene AHORA, del hash (`createHashRouter` no lleva `basename`). Ver «La URL
+ * es la del navegador» en la cabecera.
+ */
+function rutaDelNavegador(): string {
+  return window.location.hash.replace(/^#/, '').split(/[?#]/)[0] || '/';
+}
+
 /** **La URL y el paso del recorrido, de acuerdo.** Se monta una vez, en el marco. Ver la cabecera. */
 export function useLaUrlYElPaso(): void {
   const { estado, despachar } = useRecorrido();
@@ -63,7 +81,7 @@ export function useLaUrlYElPaso(): void {
   useEffect(() => {
     // `navegar` puede devolver una promesa (issue 55): aqui no hace falta esperarla, y se marca `void`
     // a proposito y no por descuido.
-    const enLaUrl = pasoDeLaRuta(pathname);
+    const enLaUrl = pasoDeLaRuta(rutaDelNavegador());
 
     // 1. Cambio el paso: la URL lo sigue.
     if (pasoVisto.current !== estado.paso) {
