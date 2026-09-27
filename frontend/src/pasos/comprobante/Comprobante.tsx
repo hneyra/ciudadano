@@ -18,7 +18,7 @@ import { cifraSinSimbolo } from '../../datos/cuentas.ts';
 import { ORDENANZA } from '../../datos/constantes.ts';
 import { AvisoDePagoSimulado } from '../../piezas/AvisoDePagoSimulado.tsx';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
-import { type PagoSellado, aCobrar, aCobrarDe, vivas } from '../../recorrido/recorrido.ts';
+import { type PagoRegistrado, type PagoSellado, aCobrar, aCobrarDe, esSimulado, vivas } from '../../recorrido/recorrido.ts';
 import { type SelloDeLaDemostracion, selloDeLaDemostracion } from './sello.ts';
 
 /**
@@ -126,7 +126,7 @@ function BandaSimulada({ pago }: { readonly pago: PagoSellado }) {
  * La banda verde de exito, que no se imprime (lineas 480-489 y 1276-1279). Solo en demostracion, y
  * por eso pide el sello: dice con que se pago, y eso solo lo sabe la demostracion (issue 58).
  */
-function BandaDeExito({ pago, sello }: { readonly pago: PagoSellado; readonly sello: SelloDeLaDemostracion }) {
+function BandaDeExito({ pago, sello }: { readonly pago: PagoRegistrado; readonly sello: SelloDeLaDemostracion }) {
   const { t } = useTranslation();
   const { estado } = useRecorrido();
   const medio = t(sello.medio);
@@ -177,11 +177,13 @@ function Recibo({ pago }: { readonly pago: PagoSellado }) {
   const { t } = useTranslation();
   const { estado } = useRecorrido();
   const idDelTitulo = useId();
-  // Los numeros y el medio, solo en demostracion: con plataforma no hay sello (issue 58, `sello.ts`).
-  const sello = selloDeLaDemostracion(estado, pago);
+  // Los numeros, el medio y el destino, solo de un pago registrado: uno simulado no los tiene (issue
+  // 59, `PagoSimulado`). Una sola pregunta, al pago; todo lo demas cuelga de su respuesta.
+  const registrado = esSimulado(pago) ? null : pago;
+  const sello = registrado === null ? null : selloDeLaDemostracion(estado, registrado);
+  const simulado = registrado === null;
   // Del sello, como las filas (issue 50): a nombre de quien estaba la deuda AL PAGAR.
   const quien = pago.contribuyente;
-  const simulado = estado.conPlataforma;
 
   const columnas = [
     { rotulo: t('Concepto'), cifra: false },
@@ -238,7 +240,7 @@ function Recibo({ pago }: { readonly pago: PagoSellado }) {
         {quien === null ? null : <Meta rotulo={t('Contribuyente')}>{quien.nombre}</Meta>}
         {quien?.codigo == null ? null : <Meta rotulo={t('Código')}>{quien.codigo}</Meta>}
         {/* «Enviado a» afirma que se envio. Con plataforma no se envio nada a ningun sitio. */}
-        {simulado ? null : <Meta rotulo={t('Enviado a')}>{pago.destino ?? t('su correo')}</Meta>}
+        {registrado === null ? null : <Meta rotulo={t('Enviado a')}>{registrado.destino ?? t('su correo')}</Meta>}
       </dl>
 
       <Tabla className="min-w-[660px] max-[701px]:min-w-0">
@@ -315,7 +317,6 @@ const BOTON_DE_ACCION = 'min-h-[46px] py-0 text-[15.5px] max-[701px]:w-full';
 function Acciones({ pago }: { readonly pago: PagoSellado }) {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
-  const sello = selloDeLaDemostracion(estado, pago);
 
   return (
     <div
@@ -328,11 +329,11 @@ function Acciones({ pago }: { readonly pago: PagoSellado }) {
         artboard es utileria. «Imprimir» si se queda, y el aviso de pago simulado NO lleva
         `data-noprint`: lo que salga en el papel lleva escrito que es una demostracion.
       */}
-      {sello === null ? null : (
+      {esSimulado(pago) ? null : (
         <Boton
           type="button"
           variante="primario"
-          onClick={() => avisar(t('Se descargaría el comprobante {{numero}} en PDF.', { numero: sello.comprobante.numero }))}
+          onClick={() => avisar(t('Se descargaría el comprobante {{numero}} en PDF.', { numero: pago.comprobante.numero }))}
           className={cn(BOTON_DE_ACCION, 'px-6')}
         >
           {t('Descargar comprobante')}
@@ -375,7 +376,10 @@ function Acciones({ pago }: { readonly pago: PagoSellado }) {
   );
 }
 
-/** Sin sesion: guardar el pago en una cuenta; no se imprime (lineas 546-552). */
+/**
+ * Sin sesion: guardar el pago en una cuenta; no se imprime (lineas 546-552). El correo es el destino
+ * del pago registrado; uno simulado no se envio a ningun sitio, y se dice «su correo».
+ */
 function Invitacion({ pago }: { readonly pago: PagoSellado }) {
   const { t } = useTranslation();
   const { despachar } = useRecorrido();
@@ -393,7 +397,7 @@ function Invitacion({ pago }: { readonly pago: PagoSellado }) {
       <p className="mt-[6px] mb-3 max-w-[70ch] text-[14px] leading-[1.6] text-pretty text-tinta-2">
         {t(
           'Si crea una cuenta con {{correo}}, este comprobante y los anteriores quedan guardados: no tendrá que volver a buscarlos.',
-          { correo: pago.destino ?? t('su correo') },
+          { correo: (esSimulado(pago) ? null : pago.destino) ?? t('su correo') },
         )}
       </p>
       <Boton
@@ -413,18 +417,25 @@ export function Comprobante() {
   // Sin sello no se llega aqui por ninguna accion (`confirmarPago` es quien pasa al comprobante); solo
   // un estado inicial escrito a mano. No hay recibo que dibujar con otra cosa que el sello.
   if (pago === null) return null;
-  // Con plataforma no hay sello de la demostracion (`sello.ts`), y con demostracion siempre lo hay:
-  // es la misma pregunta que `conPlataforma`, contestada con el dato que la banda verde necesita.
-  const sello = selloDeLaDemostracion(estado, pago);
 
   return (
     <div>
       {/*
-        Con plataforma, este recibo NO acredita ningun pago: no hay cobro detras (issue 28). Va
-        arriba del todo y antes de la banda de exito, que es la que dice «Su pago se registró».
+        Un pago simulado NO acredita ningun pago: no hay cobro detras (issue 28). El aviso va arriba
+        del todo, y la banda no dice «Su pago se registró». **El aviso y la banda cuelgan de la MISMA
+        pregunta** (issue 59): hasta entonces la banda se elegia por el sello y el aviso por el modo,
+        y en demostracion con un sello nulo salia un recibo con banda simulada y sin aviso. Ahora un
+        pago registrado siempre tiene sello —lo dice su tipo— y el reductor sella uno u otro segun
+        la politica del modo (`pagoSimulado`).
       */}
-      {estado.conPlataforma ? <AvisoDePagoSimulado /> : null}
-      {sello === null ? <BandaSimulada pago={pago} /> : <BandaDeExito pago={pago} sello={sello} />}
+      {esSimulado(pago) ? (
+        <>
+          <AvisoDePagoSimulado />
+          <BandaSimulada pago={pago} />
+        </>
+      ) : (
+        <BandaDeExito pago={pago} sello={selloDeLaDemostracion(estado, pago)} />
+      )}
       <Recibo pago={pago} />
       <Acciones pago={pago} />
       {estado.autenticado ? null : <Invitacion pago={pago} />}

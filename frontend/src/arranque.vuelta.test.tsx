@@ -35,7 +35,7 @@ async function volverCon(busqueda: string, hash = '#/deudas'): Promise<void> {
   const silencio = { intentar: vi.fn(() => Promise.resolve({ estado: 'identificado' } as const)) };
 
   await arrancar(() => montarElPortal({ hash, fuente: crearFuenteDeLaPlataforma(CALLADO) }), {
-    conPlataforma: true,
+    conEmisor: true,
     silencio,
   });
   expect(silencio.intentar, 'se pregunto en silencio a quien volvia del emisor').not.toHaveBeenCalled();

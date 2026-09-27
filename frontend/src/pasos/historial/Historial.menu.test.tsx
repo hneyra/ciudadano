@@ -95,7 +95,7 @@ describe('el menu de la sesion lleva al historial', () => {
     let contestar: (valor: typeof HISTORIAL) => void = () => {};
     const lenta: FuenteDelPortal = {
       // Sin plataforma no hay consulta que hacer: el historial se lee igual (issue 27).
-      consulta: null,
+      modo: 'demostracion',
       amnistia: true,
       demostracion: LA_DEMOSTRACION,
       historial: () => new Promise((resolver) => (contestar = resolver)),

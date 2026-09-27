@@ -9,6 +9,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { identidad } from './api/identidad.ts';
 import type { SituacionDelContrato } from './datos/contrato.ts';
 import { crearFuenteDeLaPlataforma } from './datos/fuenteDeLaPlataforma.ts';
+import { CON_PLATAFORMA } from './modo/modo.ts';
 import { FRASES_QUE_AFIRMAN, laDice, nombreDe } from './pruebas/frasesQueAfirman.ts';
 import { limpiarElPortal, montarElPortal, plazosDelPortal, remendarJsdomParaElMenu } from './pruebas/portal.tsx';
 import {
@@ -172,8 +173,8 @@ const VISITADOS = new Set<Paso>();
  * prueba de este archivo sale roja hasta que `recorrer` la visite.
  */
 function alcanzablesConPlataforma(): readonly Paso[] {
-  const sinSesion = estadoInicial({ conPlataforma: true, autenticado: false, amnistia: false, demostracion: null });
-  const conSesion = estadoInicial({ conPlataforma: true, autenticado: true, amnistia: false, demostracion: null });
+  const sinSesion = estadoInicial({ en: CON_PLATAFORMA, autenticado: false, amnistia: false });
+  const conSesion = estadoInicial({ en: CON_PLATAFORMA, autenticado: true, amnistia: false });
   const alFinal = { ...conSesion, paso: pasosNumerados(conSesion).at(-1) ?? conSesion.paso };
   return TODOS_LOS_PASOS.filter(
     (paso) => pasoAlcanzable(sinSesion, paso) || pasoAlcanzable(alFinal, paso),

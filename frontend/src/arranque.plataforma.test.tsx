@@ -58,7 +58,7 @@ async function recargarCon(contestacion: Contestacion, hash = '#/deudas') {
   const silencio = crearSilencio({ configuracion: configuracionDeLaPuerta(), identidad, espera: 50 });
 
   await arrancar(() => montarElPortal({ hash, fuente: crearFuenteDeLaPlataforma(CALLADO) }), {
-    conPlataforma: true,
+    conEmisor: true,
     silencio,
   });
   return emisor;
@@ -124,7 +124,7 @@ describe('recargar con plataforma', () => {
     const silencio = { intentar: () => Promise.reject(new Error('digest no disponible')) };
 
     await arrancar(() => montarElPortal({ hash: '#/deudas', fuente: crearFuenteDeLaPlataforma(CALLADO) }), {
-      conPlataforma: true,
+      conEmisor: true,
       silencio,
     });
 

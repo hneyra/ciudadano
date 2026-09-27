@@ -3,7 +3,7 @@ import type { Cliente } from '@kamayuk/api';
 import { cliente as elCliente } from '../api/cliente.ts';
 import { RUTA_DE_LA_SITUACION, leerLaSituacion } from './contrato.ts';
 import { deLaSituacion } from './deLaSituacion.ts';
-import type { FuenteDelPortal } from './fuente.ts';
+import type { FuenteConPlataforma } from './fuente.ts';
 import type { PagoDelHistorial, SituacionDelServidor, Unidad } from './tipos.ts';
 
 /**
@@ -58,8 +58,11 @@ function noPublicado<T>(): Promise<T> {
 }
 
 /** La fuente que habla con la plataforma, con el cliente que se le de. */
-export function crearFuenteDeLaPlataforma(cliente: Cliente): FuenteDelPortal {
+export function crearFuenteDeLaPlataforma(cliente: Cliente): FuenteConPlataforma {
   return {
+    // Los datos de la persona los trae la consulta; los del artboard no viajan en este paquete (issue
+    // 58), y desde el issue 59 una `FuenteConPlataforma` no tiene donde ponerlos.
+    modo: 'plataforma',
     consulta: async (): Promise<SituacionDelServidor> =>
       // `unknown` y no el tipo del contrato: lo que trae el cable no tiene forma hasta que
       // `leerLaSituacion` la comprueba (issue 34). El adaptador solo ve lo que paso la frontera.
@@ -68,12 +71,10 @@ export function crearFuenteDeLaPlataforma(cliente: Cliente): FuenteDelPortal {
     // de verdad seria aplicarle el descuento de una ordenanza del artboard. El dia que el contrato
     // la traiga, sale de la respuesta y no de aqui.
     amnistia: false,
-    // Los datos de la persona los trae la consulta; los del artboard no viajan en este paquete (issue 58).
-    demostracion: null,
     historial: (): Promise<readonly PagoDelHistorial[]> => noPublicado(),
     unidades: (): Promise<readonly Unidad[]> => noPublicado(),
   };
 }
 
 /** La de verdad, con el cliente del portal. La elige `laFuente.ts` cuando hay plataforma. */
-export const fuenteDeLaPlataforma: FuenteDelPortal = crearFuenteDeLaPlataforma(elCliente);
+export const fuenteDeLaPlataforma: FuenteConPlataforma = crearFuenteDeLaPlataforma(elCliente);

@@ -4,8 +4,9 @@ import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { HISTORIAL } from './demostracion.ts';
-import type { FuenteDelPortal } from './fuente.ts';
-import { FuenteActiva, LLAVES, hayPlataforma, useHistorial, useLaSituacion, useUnidades } from './fuente.ts';
+import type { FuenteConPlataforma, FuenteDelPortal } from './fuente.ts';
+import { FuenteActiva, LLAVES, useHistorial, useLaSituacion, useUnidades } from './fuente.ts';
+import { POLITICA_CON_PLATAFORMA, POLITICA_DE_LA_DEMOSTRACION, politicaDe } from '../modo/modo.ts';
 import { fuenteDeDemostracion } from './fuenteDeDemostracion.ts';
 import type { SituacionDelServidor } from './tipos.ts';
 
@@ -42,11 +43,11 @@ const SITUACION_FALSA: SituacionDelServidor = {
   deudas: [],
 };
 
-function fuenteFalsa(cambios: Partial<FuenteDelPortal> = {}): FuenteDelPortal {
+function fuenteFalsa(cambios: Partial<FuenteConPlataforma> = {}): FuenteConPlataforma {
   return {
+    modo: 'plataforma',
     consulta: vi.fn(() => Promise.resolve(SITUACION_FALSA)),
     amnistia: false,
-    demostracion: null,
     historial: vi.fn(() => Promise.resolve(HISTORIAL.slice(0, 1))),
     unidades: vi.fn(() => Promise.resolve([])),
     ...cambios,
@@ -91,10 +92,12 @@ describe('useLaSituacion', () => {
   });
 });
 
-describe('hayPlataforma', () => {
-  it('lo dice la fuente, y no el entorno: con consulta si, sin consulta no', () => {
-    expect(hayPlataforma(fuenteFalsa())).toBe(true);
-    expect(hayPlataforma(fuenteDeDemostracion)).toBe(false);
+describe('el modo de la fuente', () => {
+  // Hasta el issue 59, `hayPlataforma(fuente)`: con consulta si, sin consulta no. Ahora la fuente ES un
+  // modo, y lo que se le pregunta es su politica.
+  it('lo dice la fuente, y no el entorno: la de la plataforma tiene la suya, la de demostracion la suya', () => {
+    expect(politicaDe(fuenteFalsa())).toBe(POLITICA_CON_PLATAFORMA);
+    expect(politicaDe(fuenteDeDemostracion)).toBe(POLITICA_DE_LA_DEMOSTRACION);
   });
 });
 

@@ -2,11 +2,13 @@ import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import { COMPROBANTE, CONTRIBUYENTE, DEUDAS, USUARIO } from '../datos/demostracion.ts';
 import { LA_DEMOSTRACION } from '../datos/fuenteDeDemostracion.ts';
+import { type Modo, POLITICA_DE_LA_DEMOSTRACION, enDemostracion } from '../modo/modo.ts';
 import {
   type AccionDelRecorrido,
   DECISIONES_INICIALES,
   type EstadoDelRecorrido,
   PASOS_DE_LA_DEMOSTRACION,
+  type PagoRegistrado,
   cuenta,
   cuentaPendiente,
   cuentaPorPagar,
@@ -43,10 +45,9 @@ import {
  * escrita sobre `DEUDAS` importado de `demostracion.ts`.
  */
 const ESTADO_INICIAL = estadoInicial({
-  conPlataforma: false,
+  en: enDemostracion(LA_DEMOSTRACION),
   autenticado: false,
   amnistia: true,
-  demostracion: LA_DEMOSTRACION,
 });
 
 /** Aplica una lista de acciones desde un estado. */
@@ -60,8 +61,9 @@ describe('el estado inicial', () => {
     expect(ESTADO_INICIAL).toStrictEqual({
       paso: 'buscar',
       // No son del artboard: los pone el issue 28, y en demostracion valen lo de siempre —los datos
-      // del artboard, y ninguna plataforma detras—.
-      conPlataforma: false,
+      // del artboard, y ninguna plataforma detras—. Desde el issue 59, la POLITICA de la demostracion
+      // en vez del booleano `conPlataforma: false`: es lo que el estado lleva del modo.
+      politica: POLITICA_DE_LA_DEMOSTRACION,
       // Tampoco: lo pone el issue 49. La amnistia del artboard, la de su Ordenanza.
       amnistia: true,
       deudas: DEUDAS,
@@ -104,15 +106,18 @@ describe('el estado inicial', () => {
       deudas: DEUDAS.slice(0, 1).map((deuda) => ({ ...deuda, id: 'otra' })),
       contribuyente: { ...CONTRIBUYENTE, nombre: 'Otra Persona' },
     };
-    const conOtra = estadoInicial({ conPlataforma: false, autenticado: false, amnistia: true, demostracion: otra });
+    const conOtra = estadoInicial({ en: enDemostracion(otra), autenticado: false, amnistia: true });
     expect(ids(conOtra.deudas)).toEqual(['otra']);
     expect(conOtra.marcadas).toStrictEqual({ otra: true });
     expect(conOtra.contribuyente?.nombre).toBe('Otra Persona');
     expect(conOtra.demostracion).toBe(otra);
 
-    // Y sin demostracion, nada que marcar ni que pagar —y nada de nadie—.
-    const sin = estadoInicial({ conPlataforma: false, autenticado: false, amnistia: true, demostracion: null });
-    expect([sin.deudas, sin.contribuyente, sin.demostracion, sin.marcadas]).toStrictEqual([[], null, null, {}]);
+    // Y una demostracion SIN datos ya no se puede pedir (issue 59): hasta entonces arrancaba con
+    // nada que marcar ni que pagar, y la primera pantalla de la demostracion reventaba en
+    // `laDemostracion(estado)`. Es el estado que el tipo del modo deja fuera.
+    // @ts-expect-error — un modo de demostracion sin `demostracion` no es un `Modo`.
+    const sinDatos: Modo = { modo: 'demostracion' };
+    expect(sinDatos).toBeDefined();
   });
 });
 
@@ -166,7 +171,7 @@ describe('confirmarPago', () => {
 
   it('con sesion, el destino es el correo de la cuenta', () => {
     const conSesion = tras([{ tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '1' }, { tipo: 'entrar' }, { tipo: 'confirmarPago' }]);
-    expect(conSesion.ultimo?.destino).toBe(USUARIO.correo);
+    expect((conSesion.ultimo as PagoRegistrado | null)?.destino).toBe(USUARIO.correo);
     expect(conSesion.ultimo?.conAmnistia).toBe('3149.92');
   });
 

@@ -8,8 +8,16 @@ import { FECHA_DE_CORTE } from '../../datos/constantes.ts';
 import type { CampoDelMedio, MedioDePago } from '../../datos/tipos.ts';
 import { AvisoDePagoSimulado } from '../../piezas/AvisoDePagoSimulado.tsx';
 import { MEDIDAS_DE_CONTROL, Rotulo } from '../../piezas/Rotulo.tsx';
+import { useModo } from '../../modo/useModo.ts';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
-import { aCobrar, cuentaPorPagar, destinoDelComprobante, laDemostracion, porPagar } from '../../recorrido/recorrido.ts';
+import {
+  aCobrar,
+  cuentaPorPagar,
+  destinoDelComprobante,
+  dondeSeElige,
+  laDemostracion,
+  porPagar,
+} from '../../recorrido/recorrido.ts';
 import { ejemploSeTraduce, medioDe } from './textosDeLosMedios.ts';
 
 /**
@@ -247,6 +255,7 @@ function Bancos({ medio }: { readonly medio: MedioDePago }) {
 function useConfirmarElPago(): { readonly nada: boolean; readonly confirmar: () => void } {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
+  const { pagoSimulado } = useModo();
   const nada = porPagar(estado).length === 0;
 
   return {
@@ -258,10 +267,9 @@ function useConfirmarElPago(): { readonly nada: boolean; readonly confirmar: () 
       }
       // El destino se lee ANTES de despachar: es el que el reductor sella en `ultimo`.
       const destino = destinoDelComprobante(estado) ?? t('su correo');
-      const conPlataforma = estado.conPlataforma;
       despachar({ tipo: 'confirmarPago' });
       avisar(
-        conPlataforma
+        pagoSimulado
           ? t('Pago simulado. No se cobró nada y su deuda no ha cambiado.')
           : t('Pago registrado. Le enviamos el comprobante a {{destino}}.', { destino }),
       );
@@ -362,6 +370,9 @@ function Total({
 function Resumen() {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
+  // El reajuste solo lo trae la deuda de la consulta; el comprobante solo se envia si el pago no es
+  // simulado. Lo decide el modo (issue 59).
+  const { deuda, pagoSimulado } = useModo();
   const idDelTitulo = useId();
   const conceptos = porPagar(estado);
   const lo = cuentaPorPagar(estado);
@@ -405,7 +416,7 @@ function Resumen() {
               El reajuste solo lo trae el servidor (issue 26); el artboard no lo tiene y su resumen
               son tres filas. Sin esta fila, con plataforma las filas no sumaban el total.
             */}
-            {estado.conPlataforma ? (
+            {deuda === 'de-la-consulta' ? (
               <Total rotulo={t('Reajuste')} className="border-t border-linea-2 py-[9px]">
                 <Cifra valor={lo.reajuste} />
               </Total>
@@ -449,22 +460,19 @@ function Resumen() {
           igual que haya un aviso al lado.
         */}
         <p className="m-0 text-[12.5px] leading-[1.55] text-pretty text-tinta-3">
-          {estado.conPlataforma
+          {pagoSimulado
             ? t('Aquí no se envía ningún comprobante: el portal todavía no cobra en línea.')
             : t('El comprobante se enviará a {{destino}}.', { destino })}
         </p>
         <Boton
           type="button"
           variante="fantasma"
-          onClick={() =>
-            // Con plataforma `buscar` no existe: se vuelve siempre a elegir que pago.
-            despachar({ tipo: 'irA', paso: !estado.conPlataforma && estado.numero === '' ? 'buscar' : 'deudas' })
-          }
+          onClick={() => despachar({ tipo: 'irA', paso: dondeSeElige(estado) })}
           className="mt-[10px] min-h-0 p-0 text-[13.5px] underline hover:bg-transparent print:hidden"
         >
           {conceptos.length > 0
             ? t('Cambiar lo que voy a pagar')
-            : !estado.conPlataforma && estado.numero === ''
+            : dondeSeElige(estado) === 'buscar'
               ? t('Buscar mi deuda')
               : t('Elegir qué pago')}
         </Boton>
@@ -575,14 +583,14 @@ function PagarConLosMedios() {
  * derecha si es el mismo, porque lo que se deberia pagar se cuenta igual.
  */
 export function Pagar() {
-  const { estado } = useRecorrido();
+  const { pagoSimulado } = useModo();
 
   return (
     <div
       data-pagar=""
       className="grid grid-cols-[minmax(0,1fr)_minmax(0,320px)] items-start gap-[18px] max-[821px]:grid-cols-[minmax(0,1fr)]"
     >
-      <div className="min-w-0">{estado.conPlataforma ? <PagarSinMedios /> : <PagarConLosMedios />}</div>
+      <div className="min-w-0">{pagoSimulado ? <PagarSinMedios /> : <PagarConLosMedios />}</div>
 
       <Resumen />
     </div>

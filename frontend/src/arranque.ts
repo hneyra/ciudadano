@@ -104,10 +104,11 @@ export const UMBRAL_DE_ESPERA = 300;
 /** Lo que `arrancar()` necesita saber del arranque, ademas de como montar. */
 export interface ComoArrancar {
   /**
-   * Si el portal lee de la plataforma (`hayPlataforma(fuente)`, en `montaje.tsx`). En demostracion no
-   * hay emisor al que preguntar, y **no se le pregunta**: ni una peticion, ni un marco.
+   * Si la sesion es la de un emisor (la politica del modo, `sesion: 'del-emisor'`, en `montaje.tsx`;
+   * hasta el issue 59 era `conPlataforma`). En demostracion no hay emisor al que preguntar, y **no se
+   * le pregunta**: ni una peticion, ni un marco.
    */
-  readonly conPlataforma: boolean;
+  readonly conEmisor: boolean;
   /** Dibuja la espera, si la pregunta tarda mas de `UMBRAL_DE_ESPERA`. */
   readonly esperando?: () => void;
   /**
@@ -120,7 +121,7 @@ export interface ComoArrancar {
 /**
  * **Si hay que preguntarle al emisor en silencio.** Solo cuando TODO esto es cierto:
  *
- *   · hay plataforma: en demostracion no hay emisor;
+ *   · hay emisor: en demostracion no lo hay;
  *   · no se volvia del emisor: si se volvio, o hay token ya, o hay una vuelta fallida que explicar,
  *     o la persona acaba de decir que no (`access_denied`, issue 56) y preguntarle otra vez seria
  *     no hacerle caso;
@@ -129,11 +130,11 @@ export interface ComoArrancar {
  *   · y **no se acaba de salir**: quien cerro sesion y recarga no puede encontrarse dentro otra vez
  *     sin teclear nada. La marca es la de `@kamayuk/sesion`, que `salir()` pone y `entrar()` quita.
  *
- * `conPlataforma` va primero a proposito: en demostracion no se llega a preguntar nada a la puerta.
+ * `conEmisor` va primero a proposito: en demostracion no se llega a preguntar nada a la puerta.
  */
-function hayQuePreguntar(conPlataforma: boolean, volvio: boolean): boolean {
+function hayQuePreguntar(conEmisor: boolean, volvio: boolean): boolean {
   return (
-    conPlataforma &&
+    conEmisor &&
     !volvio &&
     identidad.token() === null &&
     identidad.hayPuerta() &&
@@ -199,14 +200,14 @@ async function canjear(): Promise<boolean> {
  */
 export async function arrancar(
   montar: () => void,
-  { conPlataforma, esperando = () => undefined, silencio = silencioDelPortal }: ComoArrancar,
+  { conEmisor, esperando = () => undefined, silencio = silencioDelPortal }: ComoArrancar,
 ): Promise<void> {
   laVuelta = null;
   laPregunta = null;
 
   const volvio = await canjear();
 
-  if (hayQuePreguntar(conPlataforma, volvio)) {
+  if (hayQuePreguntar(conEmisor, volvio)) {
     const espera = setTimeout(esperando, UMBRAL_DE_ESPERA);
     let respuesta: Silencio;
     try {

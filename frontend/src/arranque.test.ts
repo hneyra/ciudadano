@@ -20,7 +20,7 @@ import { emisorFalso, marcosEnLaPagina, sinSesion } from './pruebas/emisorFalso.
  */
 
 /** El arranque de `yarn dev` y de las pruebas: sin plataforma, y por tanto sin emisor al que preguntar. */
-const EN_DEMOSTRACION = { conPlataforma: false } as const;
+const EN_DEMOSTRACION = { conEmisor: false } as const;
 
 /** Un canje silencioso que contesta lo que se le diga, cuando se le diga. */
 function silencioQueContesta(resultado: Silencio, tarda = 0) {
@@ -31,7 +31,7 @@ function silencioQueContesta(resultado: Silencio, tarda = 0) {
   };
 }
 
-const CON_PLATAFORMA = { conPlataforma: true } as const;
+const CON_PLATAFORMA = { conEmisor: true } as const;
 
 /** Deja la barra de direcciones con lo que traeria una vuelta del emisor. */
 function laBarraDice(busqueda: string): void {

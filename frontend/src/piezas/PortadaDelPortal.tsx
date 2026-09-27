@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { ORDENANZA } from '../datos/constantes.ts';
 import { TRAZOS_DEL_ARTBOARD, type TrazoDelArtboard } from '../pasos/buscar/trazos.ts';
+import { useModo } from '../modo/useModo.ts';
 import { useRecorrido } from '../recorrido/ProveedorDelRecorrido.tsx';
 import { AvisoConFilo } from './AvisoConFilo.tsx';
 
@@ -66,9 +67,10 @@ export function QuePuedeHacerAqui() {
   const { t } = useTranslation();
   const idDeCapacidades = useId();
 
-  const { estado } = useRecorrido();
-
-  const capacidades: readonly Capacidad[] = estado.conPlataforma
+  // Que ofrece la portada lo decide el modo (issue 59): las del artboard, o lo que el portal con
+  // plataforma hace de verdad.
+  const capacidades: readonly Capacidad[] =
+    useModo().capacidades === 'las-de-la-plataforma'
     ? [
         {
           titulo: t('Ver lo que debe'),
