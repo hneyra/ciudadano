@@ -239,6 +239,11 @@ export function montarElPortal({ hash = '#/buscar', estado = {}, fuente = fuente
   // Una prueba que empieza a mitad del recorrido (`paso: 'pagar'`) sin decir su progreso lo da por
   // RECORRIDO hasta ahi, por el camino (issue 61): es lo que queria decir antes, cuando lo alcanzable
   // era «hasta el actual». Una prueba que necesite otro progreso lo escribe en `estado.alcanzado`.
+  //
+  // **Es una SUPOSICION, no una medida** (revision del PR #72): lo que se mida sobre esa partida mide
+  // `alcanzadoHasta`, no el reductor. Lo que dependa del progreso —la franja, atras y adelante— se
+  // prueba llegando con las pantallas o con las acciones (`FranjaDePasos.test.tsx`,
+  // `enrutador.test.tsx`, `recorrido.progreso.test.ts`).
   const partida = { ...base, ...estado };
   const alcanzado = estado.alcanzado ?? alcanzadoHasta(partida, partida.paso);
   // Como `montaje.tsx` (issue 58).

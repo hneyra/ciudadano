@@ -88,7 +88,7 @@ function DeudasDeLaDemostracion() {
         <Boton
           type="button"
           className="min-h-[40px] flex-[0_0_auto] px-4 py-0 text-[14px]"
-          onClick={() => despachar({ tipo: 'irAlInicio' })}
+          onClick={() => despachar({ tipo: 'noSoyYo' })}
         >
           {t('No soy yo')}
         </Boton>

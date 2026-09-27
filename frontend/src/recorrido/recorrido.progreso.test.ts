@@ -199,6 +199,43 @@ describe('el progreso: `alcanzado`', () => {
   });
 });
 
+describe('revision del PR #72', () => {
+  const CORREO: AccionDelRecorrido = { tipo: 'continuarConCorreo', correo: 'a@example.com', avisarVencimiento: true };
+
+  it('«No soy yo» olvida lo buscado y el progreso: ni la franja ni Adelante vuelven a la deuda de otro', () => {
+    const enPagar = tras([BUSCAR, { tipo: 'confirmarEleccion' }, CORREO]);
+    const noSoy = tras([{ tipo: 'irA', paso: 'deudas' }, { tipo: 'noSoyYo' }], enPagar);
+    expect([noSoy.paso, noSoy.numero]).toEqual(['buscar', '']);
+    expect(abiertos(noSoy)).toEqual(['buscar']);
+    expect(hechos(noSoy)).toEqual([]);
+    // La marca de la barra, en cambio, es solo ir al inicio: no olvida nada.
+    expect(abiertos(recorrido(enPagar, { tipo: 'irAlInicio' }))).toEqual(['buscar', 'deudas', 'identificar', 'pagar']);
+  });
+
+  it('quitar todo lo elegido revoca pagar, y elegir ya no esta hecho; volver a marcar no lo devuelve', () => {
+    const enPagar = tras([BUSCAR, { tipo: 'confirmarEleccion' }, CORREO]);
+    const sinNada = tras([{ tipo: 'irA', paso: 'deudas' }, { tipo: 'marcarTodo' }], enPagar);
+    expect(abiertos(sinNada)).toEqual(['buscar', 'deudas', 'identificar']);
+    expect(sinNada.alcanzado.deudas).toBe('abierto');
+    expect(recorrido(sinNada, { tipo: 'irA', paso: 'pagar' })).toBe(sinNada);
+
+    const otraVez = recorrido(sinNada, { tipo: 'alternar', id: 'pred26' });
+    expect(pasoAlcanzable(otraVez, 'pagar')).toBe(false);
+    // A pagar se vuelve confirmando la eleccion.
+    expect(recorrido(otraVez, { tipo: 'confirmarEleccion' }).paso).toBe('identificar');
+  });
+
+  it('cada transicion solo desde su paso: dar el correo, entrar y pagar fuera de el no hacen nada', () => {
+    const enDeudas = tras([BUSCAR]);
+    expect(recorrido(enDeudas, CORREO)).toBe(enDeudas);
+    expect(recorrido(enDeudas, { tipo: 'entrar' })).toBe(enDeudas);
+    expect(recorrido(enDeudas, { tipo: 'confirmarPago' })).toBe(enDeudas);
+    const enMisDatos = recorrido(enDeudas, { tipo: 'confirmarEleccion' });
+    expect(recorrido(enMisDatos, { tipo: 'confirmarPago' })).toBe(enMisDatos);
+    expect(recorrido(enMisDatos, CORREO).paso).toBe('pagar');
+  });
+});
+
 describe('`alcanzadoHasta`: el progreso de quien llego a un paso por el camino', () => {
   it('todo lo anterior hecho, el paso abierto; el comprobante no se guarda (lo abre el sello)', () => {
     expect(alcanzadoHasta(EN_DEMOSTRACION, 'pagar')).toStrictEqual({

@@ -85,11 +85,37 @@ describe('la franja de pasos', () => {
     expect(window.location.hash).toBe('#/identificar');
   });
 
+  /**
+   * Por el camino de verdad, con las pantallas (revision del PR #72): empezar en `paso: 'pagar'` mediria
+   * `alcanzadoHasta`, que es lo que `montarElPortal` supone para esa partida, y no el reductor.
+   */
   it('y recorrido por el camino, marca hechos justo los que se dejaron atras', async () => {
-    montarElPortal({ hash: '#/pagar', estado: { paso: 'pagar' } });
+    montarElPortal({ hash: '#/buscar' });
+    const principal = () => within(screen.getByRole('main'));
+
+    fireEvent.change(principal().getByRole('textbox', { name: 'Código de contribuyente' }), {
+      target: { value: '00000025673' },
+    });
+    fireEvent.click(principal().getByRole('button', { name: 'Buscar mi deuda' }));
+    fireEvent.click(await principal().findByRole('button', { name: 'Pagar todo' }));
+    const correo = within(await principal().findByRole('region', { name: 'Solo con mi correo' }));
+    fireEvent.change(correo.getByRole('textbox', { name: 'Correo electrónico' }), { target: { value: 'maria@example.com' } });
+    fireEvent.click(correo.getByRole('button', { name: 'Continuar al pago' }));
     await waitFor(() => expect(window.location.hash).toBe('#/pagar'));
 
     expect(pasosHechos()).toEqual(['Buscar mi deuda', 'Elegir qué pago', 'Mis datos']);
+  });
+
+  /** «No soy yo» (revision del PR #72): la deuda de otra persona no queda a un clic en la franja. */
+  it('tras «No soy yo», «Elegir qué pago» ya no se abre', async () => {
+    montarElPortal({ hash: '#/deudas', estado: { paso: 'deudas', numero: '00000025673' } });
+
+    fireEvent.click(within(screen.getByRole('main')).getByRole('button', { name: 'No soy yo' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/buscar'));
+    fireEvent.click(within(franja()).getByRole('button', { name: 'Elegir qué pago' }));
+
+    expect(await screen.findByText('Complete primero los pasos anteriores.')).toBeInTheDocument();
+    expect(window.location.hash).toBe('#/buscar');
   });
 
   it('no aparece en el historial', async () => {

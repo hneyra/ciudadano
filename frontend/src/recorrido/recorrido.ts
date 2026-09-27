@@ -101,7 +101,7 @@ import type { DatosLeidos } from './leido.ts';
  *
  *   · **Cada transicion es una accion con nombre** que dice lo que la persona hizo —`buscar`,
  *     `confirmarEleccion`, `continuarConCorreo`, `entrar`, `confirmarPago`, `volverAElegir`,
- *     `irAlInicio`, `identificarse`, `pagarLoPendiente`, `verMisPagos`, `verElComprobante`,
+ *     `irAlInicio`, `noSoyYo`, `identificarse`, `pagarLoPendiente`, `verMisPagos`, `verElComprobante`,
  *     `consultarOtra`, `cerrarSesion`…—, y **el destino lo decide este reductor**, con la guarda de lo
  *     que su destino exige (sesion, un sello, algo marcado). Ninguna pantalla lleva un paso en la
  *     mano (`verificaciones/ninguna-pantalla-decide-el-paso.test.ts`).
@@ -384,8 +384,14 @@ export type AccionDelRecorrido =
   | { readonly tipo: 'confirmarEleccion' }
   /** «Cambiar lo que voy a pagar» del paso 4: a donde se elige (`dondeSeElige`). */
   | { readonly tipo: 'volverAElegir' }
-  /** La marca de la barra y «No soy yo» (artboard, `irInicio`, 1175): a `inicio`. */
+  /** La marca de la barra (artboard, `irInicio`, 1175): a `inicio`. */
   | { readonly tipo: 'irAlInicio' }
+  /**
+   * «No soy yo» del paso 2 (el artboard le da el mismo `irInicio`): a `inicio`, y **olvidando lo que se
+   * busco y el progreso** (revision del PR #72). Con `irAlInicio` a secas la franja y el boton Adelante
+   * volvian a «Elegir qué pago» con la deuda de quien la persona acababa de decir que no era.
+   */
+  | { readonly tipo: 'noSoyYo' }
   /**
    * «Iniciar sesión» de la barra en demostracion, y «Crear mi cuenta» del comprobante: a «Mis datos»,
    * que es donde se entra. Solo sin sesion y si el recorrido tiene ese paso: con plataforma se entra
@@ -703,6 +709,32 @@ function avanzar(estado: EstadoDelRecorrido, desde: PasoDelProgreso | null, a: P
 }
 
 /**
+ * **El progreso de vuelta al principio** («Consultar otra deuda», «No soy yo»): el primer paso abierto,
+ * y nada de lo que se eligio. Con sesion se conserva «Mis datos», como tras una busqueda.
+ */
+function desdeElPrincipio(estado: EstadoDelRecorrido): Alcanzado {
+  const misDatos = estado.alcanzado.identificar;
+  return {
+    ...alcanzadoHasta(estado, primerPaso(estado)),
+    ...(estado.autenticado && misDatos !== undefined ? { identificar: misDatos } : {}),
+  };
+}
+
+/**
+ * **El progreso con la eleccion como quedo** (revision del PR #72): si al marcar o desmarcar ya no
+ * queda nada elegido, «Elegir qué pago» deja de estar hecho y pagar deja de estar alcanzado —la franja
+ * y el boton Adelante llevaban a un «No hay nada que pagar.»—. «Mis datos» no depende de lo elegido
+ * (el correo o la sesion siguen valiendo) y se queda. Volver a marcar no devuelve nada: a pagar se
+ * vuelve confirmando la eleccion.
+ */
+function conLaEleccion(estado: EstadoDelRecorrido): EstadoDelRecorrido {
+  const { alcanzado } = estado;
+  if (seleccion(estado).length > 0 || (alcanzado.pagar === undefined && alcanzado.deudas !== 'hecho')) return estado;
+  const { pagar: _pagar, ...sinPagar } = alcanzado;
+  return { ...estado, alcanzado: { ...sinPagar, ...(alcanzado.deudas === undefined ? {} : { deudas: 'abierto' }) } };
+}
+
+/**
  * **El progreso tras una busqueda**: buscar hecho y elegir abierto, y nada de lo que venia despues
  * —otra busqueda es otra eleccion, y pagar lo de antes sin volver a elegir seria pagar a ciegas—. Con
  * sesion se conserva «Mis datos»: la sesion es la identificacion, y no depende de lo que se busco.
@@ -760,23 +792,25 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
       return estado.ultimo !== null && estado.paso !== 'comprobante' ? { ...estado, paso: 'comprobante' } : estado;
 
     case 'alternar':
-      return {
+      return conLaEleccion({
         ...estado,
         marcadas: { ...estado.marcadas, [accion.id]: !estaMarcada(estado, accion.id) },
-      };
+      });
 
     case 'marcarTodo': {
       // Sobre la deuda viva, como el artboard: si todo lo vivo esta marcado se quita todo, y si no,
       // se marca todo. Lo pagado sale de `marcadas`.
       const viva = vivas(estado);
       const todo = seleccion(estado).length === viva.length;
-      return { ...estado, marcadas: Object.fromEntries(viva.map((deuda) => [deuda.id, !todo])) };
+      return conLaEleccion({ ...estado, marcadas: Object.fromEntries(viva.map((deuda) => [deuda.id, !todo])) });
     }
 
     case 'abrirDetalle':
       return { ...estado, abierta: estado.abierta === accion.id ? null : accion.id };
 
     case 'continuarConCorreo':
+      // Cada transicion, desde SU paso (revision del PR #72): «Continuar al pago» es de «Mis datos».
+      if (estado.paso !== 'identificar') return estado;
       return {
         ...avanzar(estado, 'identificar', 'pagar'),
         correo: accion.correo,
@@ -784,6 +818,7 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
       };
 
     case 'entrar':
+      if (estado.paso !== 'identificar') return estado;
       // `destinoAlEntrar` sobre `estado`, que aun no tiene sesion: ver su comentario.
       return { ...avanzar(estado, 'identificar', destinoAlEntrar(estado)), autenticado: true };
 
@@ -794,6 +829,7 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
       return { ...estado, valores: { ...estado.valores, [accion.clave]: accion.valor } };
 
     case 'confirmarPago': {
+      if (estado.paso !== 'pagar') return estado;
       // `porPagar` y no `seleccion`: sin busqueda, lo marcado por omision no es un pago (issue 8).
       const pagado = porPagar(estado);
       // Sin nada que pagar no se sella nada. El aviso «No hay nada que pagar.» es de la pantalla.
@@ -865,7 +901,10 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
 
     case 'consultarOtra':
       // Otra consulta empieza la eleccion de cero; el comprobante sellado sigue a mano (lo abre el sello).
-      return { ...estado, paso: primerPaso(estado), numero: '', alcanzado: alcanzadoHasta(estado, primerPaso(estado)) };
+      return { ...estado, paso: primerPaso(estado), numero: '', alcanzado: desdeElPrincipio(estado) };
+
+    case 'noSoyYo':
+      return { ...estado, paso: inicio(estado), numero: '', alcanzado: desdeElPrincipio(estado) };
 
     case 'verPrediosYVehiculos':
       return estado.autenticado ? { ...estado, paso: 'historial', enfocarUnidades: true } : estado;

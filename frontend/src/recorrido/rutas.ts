@@ -51,7 +51,14 @@ import { type Paso, TODOS_LOS_PASOS, pasoAlcanzable, ultimoAlcanzable } from './
  * nadie: el navegador queda en `#/entrar` y el enrutador en `/`, la raiz, que no dibuja nada. Medido
  * con el arnes (`recorrido-con-plataforma.spec.ts`, cancelar en el formulario): `main` vacio. Por eso,
  * cuando lo que el enrutador dibuja no es lo que el navegador dice, se le pone al dia REEMPLAZANDO: la
- * historia no gana ninguna entrada que la persona no haya dado.
+ * historia no gana ninguna entrada que la persona no haya dado. (Desde la revision del PR #72 el
+ * enrutador se crea DESPUES del canje, en `montaje.tsx`, y el caso del emisor ya no llega aqui; la
+ * linea se queda para cualquier otro `replaceState`.)
+ *
+ * Mientras una transicion del enrutador esta pendiente, el efecto puede correr mas de una vez con la
+ * misma URL del navegador y pedir la misma redireccion con `replace` dos veces: es idempotente —la
+ * segunda reemplaza la entrada por si misma— y no hay bucle, porque cada vuelta compara contra la URL
+ * del navegador, que ya es la de destino.
  */
 
 /** La ruta de cada paso. */

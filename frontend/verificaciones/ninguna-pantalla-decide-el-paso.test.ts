@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { archivoDeMuestra, archivosDelPortal } from './lecturas-del-modo.ts';
-import { PERMITIDOS, despachosDeIrA, esPermitido } from './navegacion-libre.ts';
+import { PERMITIDOS, esPermitido, navegaciones } from './navegacion-libre.ts';
 
 /**
  * **Ninguna pantalla decide el paso siguiente** (issue 61, tercer criterio).
@@ -29,16 +29,16 @@ import { PERMITIDOS, despachosDeIrA, esPermitido } from './navegacion-libre.ts';
  * reductor: `src/recorrido/recorrido.progreso.test.ts`.
  */
 
-const MUESTRA = 'verificaciones/navegacion-libre/muestra.ts';
+const MUESTRA = 'verificaciones/navegacion-libre/muestra.tsx';
 
 const archivos = archivosDelPortal();
-const delPortal = archivos.flatMap(({ ruta, archivo }) => despachosDeIrA(ruta, archivo));
-const deLaMuestra = despachosDeIrA(MUESTRA, archivoDeMuestra(MUESTRA).archivo);
+const delPortal = archivos.flatMap(({ ruta, archivo }) => navegaciones(ruta, archivo));
+const deLaMuestra = navegaciones(MUESTRA, archivoDeMuestra(MUESTRA).archivo);
 
-/** Las lineas de la muestra marcadas con `// senala`: las que la guarda tiene que encontrar. */
+/** Las lineas de la muestra marcadas con `senala` (tras `//`, o en un comentario de JSX): las que la guarda tiene que encontrar. */
 function lineasMarcadas(): number[] {
   const fuente = readFileSync(archivoDeMuestra(MUESTRA).archivo, 'utf8');
-  return fuente.split('\n').flatMap((linea, i) => (/\/\/ senala\b/.test(linea) ? [i + 1] : []));
+  return fuente.split('\n').flatMap((linea, i) => (/(\/\/|\/\*) senala\b/.test(linea) ? [i + 1] : []));
 }
 
 describe('ninguna pantalla decide el paso siguiente', () => {
@@ -50,23 +50,25 @@ describe('ninguna pantalla decide el paso siguiente', () => {
     expect(rutas.filter((r) => r.startsWith('src/pruebas/') || /\.test\.tsx?$/.test(r))).toEqual([]);
   });
 
-  it('fuera de la franja y de la URL, nadie despacha `irA`', () => {
-    const fuera = delPortal.filter((s) => !esPermitido(s.ruta)).map((s) => `  ${s.ruta}:${String(s.linea)}`);
+  it('fuera de la franja y de la URL, nadie despacha `irA` ni navega', () => {
+    const fuera = delPortal.filter((s) => !esPermitido(s)).map((s) => `  ${s.ruta}:${String(s.linea)} ${s.forma}`);
     expect(
       fuera,
-      `Hay ${String(fuera.length)} despachos de \`irA\` fuera de la navegacion libre:\n${fuera.join('\n')}\n\n` +
-        '  Una pantalla no decide a que paso se va: despacha la accion con nombre de lo que la persona\n' +
-        '  hizo (`confirmarEleccion`, `volverAElegir`, `irAlInicio`…) y el reductor decide el destino.\n' +
-        '  Si hace falta una transicion nueva, es un caso nuevo de `AccionDelRecorrido`.',
+      `Hay ${String(fuera.length)} sitios que mueven el recorrido de paso por su cuenta:\n${fuera.join('\n')}\n\n` +
+        '  Una pantalla no decide a que paso se va —ni con `irA`, ni navegando, ni con un enlace a la\n' +
+        '  ruta de un paso—: despacha la accion con nombre de lo que la persona hizo (`confirmarEleccion`,\n' +
+        '  `volverAElegir`, `noSoyYo`…) y el reductor decide el destino. Si hace falta una transicion\n' +
+        '  nueva, es un caso nuevo de `AccionDelRecorrido`.',
     ).toEqual([]);
   });
 
-  it('y los permitidos la usan de verdad: una excepcion que nadie necesita se quita', () => {
-    const usados = new Set(delPortal.filter((s) => esPermitido(s.ruta)).map((s) => s.ruta));
-    expect([...usados].sort()).toEqual(Object.keys(PERMITIDOS).sort());
+  it('y los permitidos usan cada forma que se les permite: una excepcion que nadie necesita se quita', () => {
+    const usadas = new Set(delPortal.filter(esPermitido).map((s) => `${s.ruta} ${s.forma}`));
+    const permitidas = Object.entries(PERMITIDOS).flatMap(([ruta, formas]) => formas.map((forma) => `${ruta} ${forma}`));
+    expect([...usadas].sort()).toEqual(permitidas.sort());
   });
 
   it('y la guarda ve cada forma de la muestra, y ninguna de las que solo se le parecen', () => {
-    expect(deLaMuestra.map((s) => s.linea)).toEqual(lineasMarcadas());
+    expect([...new Set(deLaMuestra.map((s) => s.linea))]).toEqual(lineasMarcadas());
   });
 });

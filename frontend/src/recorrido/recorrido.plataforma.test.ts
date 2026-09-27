@@ -182,7 +182,7 @@ describe('AC1 — a donde llevan las acciones con plataforma', () => {
     // El realm del ciudadano pone `tipo_documento` y `numero_documento`, y ni correo ni codigo.
     expect(destinoDelComprobante(conSesion)).toBeNull();
     // En demostracion, el del artboard, como siempre.
-    expect(destinoDelComprobante(recorrido(ESTADO_INICIAL, { tipo: 'entrar' }))).toBe('maria.castillo@example.com');
+    expect(destinoDelComprobante({ ...ESTADO_INICIAL, autenticado: true })).toBe('maria.castillo@example.com');
   });
 });
 
@@ -262,7 +262,7 @@ describe('lo leido: los conceptos del servidor son los del recorrido (issues 28 
   });
 
   it('issue 50 — el sello no cuelga de la lista: otra respuesta despues no le quita ni le cambia filas', () => {
-    const pagado = recorrido(conDeuda, { tipo: 'confirmarPago' });
+    const pagado = recorrido(recorrido(conDeuda, { tipo: 'confirmarEleccion' }), { tipo: 'confirmarPago' });
     const otraRespuesta = conLeido(pagado, [delServidor('predial-2023', '40.00')]);
 
     expect(otraRespuesta.ultimo).toBe(pagado.ultimo);
@@ -284,6 +284,7 @@ describe('lo leido: los conceptos del servidor son los del recorrido (issues 28 
   it('EL OTRO SENTIDO: en demostracion pagar SI descuenta la deuda, como el artboard', () => {
     const pagado = tras([
       { tipo: 'buscar', tipoDeDocumento: 'DNI', numero: '03593174' },
+      { tipo: 'confirmarEleccion' },
       { tipo: 'continuarConCorreo', correo: 'maria@example.com', avisarVencimiento: false },
       { tipo: 'confirmarPago' },
     ]);
@@ -316,7 +317,7 @@ describe('issue 49 — la amnistia sale de la FUENTE, y con plataforma no hay ni
     expect(aCobrar(leida, cuentaPorPagar(leida))).toBe('1842.60');
     expect(aCobrarDe(leida, conInteres)).toBe('1842.60');
 
-    const sellado = recorrido(leida, { tipo: 'confirmarPago' });
+    const sellado = recorrido(recorrido(leida, { tipo: 'confirmarEleccion' }), { tipo: 'confirmarPago' });
     expect(sellado.ultimo).not.toBeNull();
     expect(aCobrar(sellado, sellado.ultimo!)).toBe('1842.60');
   });
