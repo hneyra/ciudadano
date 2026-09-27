@@ -48,7 +48,6 @@ const DIRECTORIOS = ['src/pasos', 'src/piezas'] as const;
 const PARTIENDOSE = 'Se parte en el issue 60, en este mismo PR: la excepcion caduca sola cuando baje del tope.';
 
 const EXCEPCIONES: Readonly<Record<string, string>> = {
-  'src/pasos/comprobante/Comprobante.tsx': PARTIENDOSE,
   'src/pasos/identificar/Identificar.tsx': PARTIENDOSE,
 };
 

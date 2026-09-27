@@ -1,25 +1,9 @@
-import { formatearFecha, formatearImporte } from '@kamayuk/formato';
-import {
-  Boton,
-  Tabla,
-  TablaCabecera,
-  TablaCelda,
-  TablaCuerpo,
-  TablaFila,
-  TablaRotulo,
-  avisar,
-  cn,
-} from '@kamayuk/ui';
-import { type ReactNode, useId } from 'react';
-import { useTranslation } from 'react-i18next';
-
-import escudo from '../../../diseno/escudo-catacaos.png';
-import { cifraSinSimbolo } from '../../datos/cuentas.ts';
-import { ORDENANZA } from '../../datos/constantes.ts';
 import { AvisoDePagoSimulado } from '../../piezas/AvisoDePagoSimulado.tsx';
 import { useRecorrido } from '../../recorrido/ProveedorDelRecorrido.tsx';
-import { type PagoRegistrado, type PagoSellado, aCobrar, aCobrarDe, esSimulado, vivas } from '../../recorrido/recorrido.ts';
-import { type SelloDeLaDemostracion, selloDeLaDemostracion } from './sello.ts';
+import { esSimulado } from '../../recorrido/recorrido.ts';
+import { Acciones, Invitacion } from './Acciones.tsx';
+import { BandaDeExito, BandaSimulada } from './Bandas.tsx';
+import { Recibo } from './Recibo.tsx';
 
 /**
  * **Paso 5 · Comprobante** (`diseno/Ciudadano.dc.html`: plantilla 477-565, `@media` 29-44, `print`
@@ -47,15 +31,12 @@ import { type SelloDeLaDemostracion, selloDeLaDemostracion } from './sello.ts';
  * total, los del sello, por `aCobrar`. **Con plataforma no hay amnistia** (issue 49): cada fila y el
  * total son el saldo entero, y la fila del interes condonado no se dibuja.
  *
- * <h2>Las piezas, y lo que se les ajusta</h2>
+ * <h2>Como esta partido (issue 60)</h2>
  *
- * · **`Tabla`** y compania para los conceptos, con el `min-width: 660px` del artboard (sin minimo a
- *   ≤ 700 px) y sus rellenos de 18/14/12 px. Los rotulos, la cabecera del producto (como en el paso 2).
- *   El pie no es pieza de la libreria: es un `<tfoot>` con un `th scope="row"` que ocupa las tres
- *   primeras columnas, donde el artboard pinta tres celdas y dos vacias.
- * · **`Boton`** para las acciones: «Descargar comprobante» y «Ver mis pagos» primarios —el `ACERO` de
- *   la linea 1285 es `--azul`, fila `ACERO` de la tabla de la paleta—, el resto secundarios.
- * · **El escudo** es el mismo recurso que la barra (`diseno/escudo-catacaos.png`).
+ * · **`vista.ts`**, el modelo de vista: lo que dicen las bandas y el recibo entero, como funciones
+ *   puras del estado y del sello (probadas en `vista.test.ts`).
+ * · **`Bandas.tsx`** (la de exito y la simulada), **`Recibo.tsx`** y **`Acciones.tsx`** (las acciones
+ *   y la invitacion), cada una con las piezas de `@kamayuk/ui` que usa y lo que se les ajusta.
  *
  * <h2>Lo que se aparta del artboard, y por que</h2>
  *
@@ -66,350 +47,6 @@ import { type SelloDeLaDemostracion, selloDeLaDemostracion } from './sello.ts';
  *   emite como `width < 701px`, que es el `max-width: 700px` del artboard (como `Barra.tsx`).
  * · Los colores que no son token, con su porque, en `verificaciones/la-paleta-cuadra-con-el-artboard.test.ts`.
  */
-
-/**
- * A ≤ 700 px la tabla pierde su minimo y parte; a ≤ 520 px, menos relleno (29-44). Los rotulos van por
- * aqui; las celdas, por `CELDA_DEL_RECIBO`, que ademas bajan a 13 px como en el artboard. Los rotulos
- * no: `TablaRotulo` ya pinta 11.5 px, y subirlos a 13 px en versalitas espaciadas los hacia el ancho
- * minimo de cada columna: a 400 px la tabla media 384 px en un marco de 362 (medido). Con 11.5 px mide
- * 371, lo que piden «municipales», «habitación» y «1,854.60»; el artboard, 366. Lo que sobra se desplaza
- * dentro del marco de `Tabla`, no la pagina.
- */
-const ROTULO_DEL_RECIBO = 'px-[18px] max-[701px]:px-[14px] max-[701px]:whitespace-normal max-[521px]:px-3';
-const CELDA_DEL_RECIBO = `${ROTULO_DEL_RECIBO} max-[521px]:text-[13px]`;
-
-/** Una celda de la meta (lineas 497-502 y 1291-1300): el filo fino de `CELDA`, rotulo y valor. */
-function Meta({ rotulo, children }: { readonly rotulo: string; readonly children: ReactNode }) {
-  return (
-    <div className="-mt-px -ml-px border-t border-l border-linea-2 bg-superficie px-6 py-[14px]">
-      <dt className="m-0 text-[12px] tracking-[0.07em] text-tinta-3 uppercase">{rotulo}</dt>
-      <dd className="mx-0 mt-[5px] mb-0 text-[14.5px] font-bold text-pretty wrap-anywhere">{children}</dd>
-    </div>
-  );
-}
-
-/**
- * **Con plataforma, la banda no dice que se pago** (issue 28, revision).
- *
- * La del artboard afirma tres hechos —«Pagó …», «Le enviamos el comprobante a …», «La deuda pagada
- * ya se descontó de su cuenta»— y con plataforma **no ocurrio ninguno**: no hubo cobro, no se envio
- * nada y la deuda esta donde estaba (el reductor ya no la da por pagada). Un aviso al lado no
- * arregla una afirmacion falsa en el cuerpo: quien la lee se va creyendo que pago.
- *
- * Asi que se dice en condicional y se niegan los tres, uno por uno. Y no va en verde de exito: no
- * hay ningun exito que celebrar.
- */
-function BandaSimulada({ pago }: { readonly pago: PagoSellado }) {
-  const { t } = useTranslation();
-  const { estado } = useRecorrido();
-  const idDelTitulo = useId();
-
-  return (
-    <section
-      aria-labelledby={idDelTitulo}
-      className="mb-[18px] border border-l-[5px] border-linea border-l-azul bg-superficie px-[22px] py-5"
-    >
-      <h1 id={idDelTitulo} className="m-0 text-[21px] font-bold text-pretty">
-        {t('Así se vería su comprobante')}
-      </h1>
-      <p className="mt-[6px] mb-0 max-w-[70ch] text-[15px] leading-[1.6] text-pretty text-tinta-2">
-        {t(
-          'Esto es lo que habría pagado: {{importe}}. No se cobró nada, no se envió ningún comprobante y su deuda no ha cambiado.',
-          { importe: formatearImporte(aCobrar(estado, pago)) },
-        )}
-      </p>
-    </section>
-  );
-}
-
-/**
- * La banda verde de exito, que no se imprime (lineas 480-489 y 1276-1279). Solo en demostracion, y
- * por eso pide el sello: dice con que se pago, y eso solo lo sabe la demostracion (issue 58).
- */
-function BandaDeExito({ pago, sello }: { readonly pago: PagoRegistrado; readonly sello: SelloDeLaDemostracion }) {
-  const { t } = useTranslation();
-  const { estado } = useRecorrido();
-  const medio = t(sello.medio);
-
-  return (
-    <div
-      data-noprint="1"
-      className="mb-[18px] flex items-start gap-[15px] border border-l-[5px] border-ok-tinta/25 border-l-ok-tinta bg-ok-fondo px-[22px] py-5"
-    >
-      <span
-        aria-hidden="true"
-        className="grid size-[38px] flex-[0_0_auto] place-items-center rounded-full bg-ok-tinta text-sobre-azul"
-      >
-        <svg
-          width="21"
-          height="21"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          focusable="false"
-        >
-          <path d="M5 12.5l4.5 4.5L19 7" />
-        </svg>
-      </span>
-      <div className="min-w-0 flex-1">
-        <h1 className="m-0 text-[21px] font-bold text-pretty text-ok-tinta">{t('Su pago se registró')}</h1>
-        <p className="mt-[6px] mb-0 text-[15px] leading-[1.6] text-pretty text-ok-tinta">
-          {t(
-            'Pagó {{importe}} con {{medio}}. Le enviamos el comprobante a {{destino}}, y puede descargarlo aquí mismo. La deuda pagada ya se descontó de su cuenta.',
-            {
-              importe: formatearImporte(aCobrar(estado, pago)),
-              // «con tarjeta»: el artboard lo pone en minusculas (linea 1279).
-              medio: medio.toLowerCase(),
-              destino: pago.destino ?? t('su correo'),
-            },
-          )}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-/** El recibo: lo unico que se imprime (lineas 491-534 y 1287-1322). */
-function Recibo({ pago }: { readonly pago: PagoSellado }) {
-  const { t } = useTranslation();
-  const { estado } = useRecorrido();
-  const idDelTitulo = useId();
-  // Los numeros, el medio y el destino, solo de un pago registrado: uno simulado no los tiene (issue
-  // 59, `PagoSimulado`). Una sola pregunta, al pago; todo lo demas cuelga de su respuesta.
-  const registrado = esSimulado(pago) ? null : pago;
-  const sello = registrado === null ? null : selloDeLaDemostracion(estado, registrado);
-  const simulado = registrado === null;
-  // Del sello, como las filas (issue 50): a nombre de quien estaba la deuda AL PAGAR.
-  const quien = pago.contribuyente;
-
-  const columnas = [
-    { rotulo: t('Concepto'), cifra: false },
-    { rotulo: t('Unidad'), cifra: false },
-    { rotulo: t('Cuotas'), cifra: false },
-    { rotulo: t('Importe S/'), cifra: true },
-  ];
-
-  return (
-    <section
-      aria-labelledby={idDelTitulo}
-      data-recibo="1"
-      className="border border-linea bg-superficie shadow-sombra-1"
-    >
-      <div className="flex flex-wrap items-start gap-4 border-b-2 border-azul px-6 pt-[22px] pb-[18px]">
-        <img src={escudo} alt="" width={38} height={46} className="block h-[46px] w-auto flex-[0_0_auto]" />
-        <span className="min-w-[180px] flex-1">
-          <span className="block text-[16px] font-bold">{t('Municipalidad Distrital de Catacaos')}</span>
-          <span className="mt-[2px] block text-[13px] text-tinta-3">{t('Gerencia de Administración Tributaria')}</span>
-        </span>
-        {/*
-          Con plataforma esto NO es una constancia y no tiene numero: no hay comprobante emitido que
-          numerar. El numero del artboard es utileria, y aqui se leeria como el de un documento.
-        */}
-        <div className="min-w-[140px] flex-[1_0_auto] text-right">
-          <h2 id={idDelTitulo} className="m-0 text-[13px] font-normal text-tinta-3">
-            {simulado ? t('Comprobante de ejemplo') : t('Constancia de pago')}
-          </h2>
-          {sello === null ? null : (
-            <span className="mt-[2px] block text-[17px] font-bold text-azul tabular-nums">{sello.comprobante.numero}</span>
-          )}
-        </div>
-      </div>
-
-      <dl
-        data-meta="1"
-        className="m-0 grid grid-cols-[repeat(auto-fit,minmax(206px,1fr))] overflow-hidden bg-superficie max-[701px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] max-[521px]:grid-cols-[minmax(0,1fr)]"
-      >
-        {/*
-          Con plataforma no hay operacion, ni fecha de pago, ni medio: **no se pago**. Las tres del
-          artboard son numeros de utileria, y en un recibo se leen como el registro de un hecho.
-        */}
-        {sello === null ? null : <Meta rotulo={t('Número de operación')}>{sello.comprobante.operacion}</Meta>}
-        {sello === null ? null : (
-          <Meta rotulo={t('Fecha y hora')}>{`${formatearFecha(sello.comprobante.fecha)} · ${sello.comprobante.hora}`}</Meta>
-        )}
-        {sello === null ? null : <Meta rotulo={t('Medio de pago')}>{t(sello.medio)}</Meta>}
-        {/*
-          Quien es sale del RECORRIDO y no de `CONTRIBUYENTE` (issue 28): en demostracion son los
-          mismos dos valores del artboard, y con plataforma los que dijo el servidor. Escritos aqui,
-          un recibo de un pago hecho con plataforma llevaria el nombre y el codigo de otra persona.
-          El codigo solo si lo hay: con dos municipalidades detras no hay uno que valga por los dos.
-        */}
-        {quien === null ? null : <Meta rotulo={t('Contribuyente')}>{quien.nombre}</Meta>}
-        {quien?.codigo == null ? null : <Meta rotulo={t('Código')}>{quien.codigo}</Meta>}
-        {/* «Enviado a» afirma que se envio. Con plataforma no se envio nada a ningun sitio. */}
-        {registrado === null ? null : <Meta rotulo={t('Enviado a')}>{registrado.destino ?? t('su correo')}</Meta>}
-      </dl>
-
-      <Tabla className="min-w-[660px] max-[701px]:min-w-0">
-        <TablaCabecera>
-          <tr>
-            {columnas.map((columna) => (
-              <TablaRotulo key={columna.rotulo} cifra={columna.cifra} className={ROTULO_DEL_RECIBO}>
-                {columna.rotulo}
-              </TablaRotulo>
-            ))}
-          </tr>
-        </TablaCabecera>
-        <TablaCuerpo>
-          {pago.conceptos.map((deuda) => (
-            <TablaFila key={deuda.id}>
-              <TablaCelda identifica className={cn('font-bold', CELDA_DEL_RECIBO)}>
-                {deuda.concepto}
-              </TablaCelda>
-              <TablaCelda className={CELDA_DEL_RECIBO}>{deuda.unidad}</TablaCelda>
-              {/* El contrato del portal no trae cuotas (issue 26): la celda queda vacia, no inventada. */}
-              <TablaCelda className={CELDA_DEL_RECIBO}>{deuda.cuotas}</TablaCelda>
-              <TablaCelda cifra className={CELDA_DEL_RECIBO}>
-                {cifraSinSimbolo(aCobrarDe(estado, deuda))}
-              </TablaCelda>
-            </TablaFila>
-          ))}
-        </TablaCuerpo>
-        <tfoot>
-          {/*
-            Sin amnistia no se condona nada (issue 49): el interes ya va dentro de cada fila, y una
-            «Ordenanza» del artboard escrita en un recibo de una deuda de verdad seria inventada.
-          */}
-          {estado.amnistia ? (
-            <tr className="text-[14px] text-ok-tinta">
-              <th scope="row" colSpan={3} className={cn('border-t border-linea-2 py-[10px] text-left font-normal', CELDA_DEL_RECIBO)}>
-                {t('Interés condonado por la {{ordenanza}}', { ordenanza: ORDENANZA })}
-              </th>
-              <td className={cn('border-t border-linea-2 py-[10px] text-right tabular-nums', CELDA_DEL_RECIBO)}>
-                {`− ${cifraSinSimbolo(pago.interes)}`}
-              </td>
-            </tr>
-          ) : null}
-          <tr className="bg-sup text-[14.5px] font-bold text-tinta">
-            <th scope="row" colSpan={3} className={cn('border-t-2 border-linea py-3 text-left', CELDA_DEL_RECIBO)}>
-              {/* «Total pagado» afirma un pago. Con plataforma no se pago: se habria pagado. */}
-              {simulado ? t('Total que se pagaría') : t('Total pagado')}
-            </th>
-            <td className={cn('border-t-2 border-linea py-3 text-right tabular-nums', CELDA_DEL_RECIBO)}>
-              {cifraSinSimbolo(aCobrar(estado, pago))}
-            </td>
-          </tr>
-        </tfoot>
-      </Tabla>
-
-      <div className="border-t border-linea-2 px-6 pt-[18px] pb-[22px]">
-        <p className="m-0 max-w-[80ch] text-[13.5px] leading-[1.65] text-pretty text-tinta-3">
-          {simulado
-            ? t(
-                'Este comprobante es una vista de ejemplo y no acredita ningún pago: el portal todavía no cobra en línea, así que no hay ninguna operación que constatar. Para pagar, acérquese con su documento a la ventanilla de la municipalidad.',
-              )
-            : t(
-                'Esta constancia acredita el pago de los conceptos detallados. Consérvela: es lo que hay que presentar si la deuda volviera a aparecer. El pago con tarjeta, Yape o pagalo.pe se aplica de inmediato; el pago con código de banco, al día siguiente hábil.',
-              )}
-        </p>
-      </div>
-    </section>
-  );
-}
-
-/** Las medidas de un boton de las acciones (lineas 537-543 y 1287-1288). */
-const BOTON_DE_ACCION = 'min-h-[46px] py-0 text-[15.5px] max-[701px]:w-full';
-
-/** Descargar, imprimir y seguir; no se imprime (lineas 536-544 y 1281-1289). */
-function Acciones({ pago }: { readonly pago: PagoSellado }) {
-  const { t } = useTranslation();
-  const { estado, despachar } = useRecorrido();
-
-  return (
-    <div
-      data-acciones="1"
-      data-noprint="1"
-      className="mt-[18px] flex flex-wrap items-center gap-[11px] max-[701px]:flex-col max-[701px]:items-stretch"
-    >
-      {/*
-        Con plataforma no hay comprobante que descargar: no se emitio ninguno, y el numero del
-        artboard es utileria. «Imprimir» si se queda, y el aviso de pago simulado NO lleva
-        `data-noprint`: lo que salga en el papel lleva escrito que es una demostracion.
-      */}
-      {esSimulado(pago) ? null : (
-        <Boton
-          type="button"
-          variante="primario"
-          onClick={() => avisar(t('Se descargaría el comprobante {{numero}} en PDF.', { numero: pago.comprobante.numero }))}
-          className={cn(BOTON_DE_ACCION, 'px-6')}
-        >
-          {t('Descargar comprobante')}
-        </Boton>
-      )}
-      <Boton type="button" onClick={() => window.print()} className={cn(BOTON_DE_ACCION, 'px-[22px]')}>
-        {t('Imprimir')}
-      </Boton>
-      <span aria-hidden="true" className="min-w-2 flex-1 max-[701px]:hidden" />
-      {estado.autenticado ? (
-        <>
-          <Boton
-            type="button"
-            variante="primario"
-            onClick={() => despachar({ tipo: 'irA', paso: 'historial' })}
-            className={cn(BOTON_DE_ACCION, 'px-[22px]')}
-          >
-            {t('Ver mis pagos')}
-          </Boton>
-          {vivas(estado).length > 0 ? (
-            <Boton
-              type="button"
-              onClick={() => despachar({ tipo: 'irA', paso: 'deudas' })}
-              className={cn(BOTON_DE_ACCION, 'px-[22px]')}
-            >
-              {t('Pagar otra deuda')}
-            </Boton>
-          ) : null}
-        </>
-      ) : (
-        <Boton
-          type="button"
-          onClick={() => despachar({ tipo: 'consultarOtra' })}
-          className={cn(BOTON_DE_ACCION, 'px-[22px]')}
-        >
-          {t('Consultar otra deuda')}
-        </Boton>
-      )}
-    </div>
-  );
-}
-
-/**
- * Sin sesion: guardar el pago en una cuenta; no se imprime (lineas 546-552). El correo es el destino
- * del pago registrado; uno simulado no se envio a ningun sitio, y se dice «su correo».
- */
-function Invitacion({ pago }: { readonly pago: PagoSellado }) {
-  const { t } = useTranslation();
-  const { despachar } = useRecorrido();
-  const idDelTitulo = useId();
-
-  return (
-    <section
-      aria-labelledby={idDelTitulo}
-      data-noprint="1"
-      className="mt-[18px] border border-l-4 border-azul/25 border-l-azul bg-info-fondo px-[18px] py-4"
-    >
-      <h2 id={idDelTitulo} className="m-0 text-[15px] font-bold">
-        {t('Guarde este pago en una cuenta')}
-      </h2>
-      <p className="mt-[6px] mb-3 max-w-[70ch] text-[14px] leading-[1.6] text-pretty text-tinta-2">
-        {t(
-          'Si crea una cuenta con {{correo}}, este comprobante y los anteriores quedan guardados: no tendrá que volver a buscarlos.',
-          { correo: (esSimulado(pago) ? null : pago.destino) ?? t('su correo') },
-        )}
-      </p>
-      <Boton
-        type="button"
-        onClick={() => despachar({ tipo: 'irA', paso: 'identificar' })}
-        className="min-h-[42px] border-azul px-[18px] py-0 text-[14.5px] font-bold text-azul hover:border-azul hover:bg-azul-suave"
-      >
-        {t('Crear mi cuenta')}
-      </Boton>
-    </section>
-  );
-}
 
 export function Comprobante() {
   const { estado } = useRecorrido();
@@ -426,7 +63,7 @@ export function Comprobante() {
         pregunta** (issue 59): hasta entonces la banda se elegia por el sello y el aviso por el modo,
         y en demostracion con un sello nulo salia un recibo con banda simulada y sin aviso. Ahora un
         pago registrado siempre tiene sello —lo dice su tipo— y el reductor sella uno u otro segun
-        la politica del modo (`pagoSimulado`).
+        la politica del modo (`cobro.simulado`).
       */}
       {esSimulado(pago) ? (
         <>
@@ -434,7 +71,7 @@ export function Comprobante() {
           <BandaSimulada pago={pago} />
         </>
       ) : (
-        <BandaDeExito pago={pago} sello={selloDeLaDemostracion(estado, pago)} />
+        <BandaDeExito pago={pago} />
       )}
       <Recibo pago={pago} />
       <Acciones pago={pago} />
