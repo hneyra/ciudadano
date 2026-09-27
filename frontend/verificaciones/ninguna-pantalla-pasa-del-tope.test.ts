@@ -43,13 +43,12 @@ const DIRECTORIOS = ['src/pasos', 'src/piezas'] as const;
 /**
  * **Los archivos que pueden pasar del tope, y por que.** Crecer esta lista es una decision que se
  * justifica aqui, no un descuido.
+ *
+ * Hoy esta vacia: las seis pantallas que pasaban se partieron en el issue 60, y ninguna pieza nueva
+ * llego a 300 (la mayor, `src/pasos/historial/vista.ts`, 246). Mientras se partian, cada una estuvo
+ * aqui y la guarda obligo a quitarla en el mismo commit en que bajo del tope.
  */
-/** Mientras se parten, pantalla a pantalla. */
-const PARTIENDOSE = 'Se parte en el issue 60, en este mismo PR: la excepcion caduca sola cuando baje del tope.';
-
-const EXCEPCIONES: Readonly<Record<string, string>> = {
-  'src/pasos/identificar/Identificar.tsx': PARTIENDOSE,
-};
+const EXCEPCIONES: Readonly<Record<string, string>> = {};
 
 /** Los `.ts`/`.tsx` de produccion de un directorio, con su ruta relativa al frontend. */
 function deProduccion(directorio: string): string[] {
