@@ -1,6 +1,8 @@
 import { cn } from '@kamayuk/ui';
 import type { ComponentProps } from 'react';
 
+import { bandaConFilo } from './variantes.tsx';
+
 /**
  * **El aviso con filo izquierdo de 4 px** del artboard (`diseno/Ciudadano.dc.html`, lineas 148 y 176):
  * el error de la busqueda (`mal`) y la amnistia (`atencion`).
@@ -19,24 +21,26 @@ import type { ComponentProps } from 'react';
  *     la pagina, seria una region viva sin nada que anunciar.
  *
  * Asi que se construye aqui, con los MISMOS pares de tokens que `Alerta` usa para cada tono —el filo
- * tenue es el suyo, `border-mal-borde/40` y `border-atencion-tinta/25`— y sin un color propio. El
+ * tenue es el suyo, `border-mal-borde/40` y `border-atencion-tinta/25`, escritos una vez en
+ * `bandaConFilo` (`variantes.tsx`, issue 60)— y sin un color propio. El
  * `role` lo decide quien lo usa: el error de la busqueda lleva `role="alert"`; la amnistia, ninguno.
  */
 
-const TONOS = {
-  mal: 'border-mal-borde/40 border-l-mal-tinta bg-mal-fondo text-mal-tinta',
-  atencion: 'border-atencion-tinta/25 border-l-atencion-tinta bg-atencion-fondo text-atencion-tinta',
+/** La tinta del texto de cada tono; el filo y el papel son los de `bandaConFilo` (issue 60). */
+const TINTA = {
+  mal: 'text-mal-tinta',
+  atencion: 'text-atencion-tinta',
 } as const;
 
 export interface AvisoConFiloProps extends ComponentProps<'div'> {
-  readonly tono: keyof typeof TONOS;
+  readonly tono: keyof typeof TINTA;
 }
 
 export function AvisoConFilo({ tono, className, ...resto }: AvisoConFiloProps) {
   return (
     <div
       data-tono={tono}
-      className={cn('border border-l-4 text-[14.5px] text-pretty', TONOS[tono], className)}
+      className={cn(bandaConFilo({ tono, filo: 'fino' }), TINTA[tono], 'text-[14.5px] text-pretty', className)}
       {...resto}
     />
   );

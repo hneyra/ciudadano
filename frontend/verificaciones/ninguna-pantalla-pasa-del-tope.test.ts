@@ -49,8 +49,6 @@ const PARTIENDOSE = 'Se parte en el issue 60, en este mismo PR: la excepcion cad
 
 const EXCEPCIONES: Readonly<Record<string, string>> = {
   'src/pasos/comprobante/Comprobante.tsx': PARTIENDOSE,
-  'src/pasos/deudas/Deudas.tsx': PARTIENDOSE,
-  'src/pasos/deudas/LaConsulta.tsx': PARTIENDOSE,
   'src/pasos/historial/Historial.tsx': PARTIENDOSE,
   'src/pasos/identificar/Identificar.tsx': PARTIENDOSE,
   'src/pasos/pagar/Pagar.tsx': PARTIENDOSE,
