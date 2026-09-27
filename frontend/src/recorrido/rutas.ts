@@ -44,7 +44,14 @@ import { type Paso, TODOS_LOS_PASOS, pasoAlcanzable, ultimoAlcanzable } from './
  * datos» (`Identificar.test.tsx`, con la maquina cargada): el efecto veia `/identificar` —la ruta del
  * dibujo— cuando el navegador ya estaba en `#/pagar`, no navegaba, y cuando la transicion llegaba con
  * `/pagar` la URL «mandaba» y devolvia el recorrido a pagar. Por eso el efecto lee la ruta del
- * navegador (`rutaDelNavegador`), y `useLocation` solo lo despierta cuando cambia.
+ * navegador (`rutaDelNavegador`), y `useLocation` lo despierta cuando cambia.
+ *
+ * Y al reves: la URL tambien se cambia A ESPALDAS del enrutador. La vuelta del emisor limpia la barra
+ * con `history.replaceState` (`@kamayuk/sesion`, y el `catch` de `src/arranque.ts`), que no avisa a
+ * nadie: el navegador queda en `#/entrar` y el enrutador en `/`, la raiz, que no dibuja nada. Medido
+ * con el arnes (`recorrido-con-plataforma.spec.ts`, cancelar en el formulario): `main` vacio. Por eso,
+ * cuando lo que el enrutador dibuja no es lo que el navegador dice, se le pone al dia REEMPLAZANDO: la
+ * historia no gana ninguna entrada que la persona no haya dado.
  */
 
 /** La ruta de cada paso. */
@@ -81,18 +88,24 @@ export function useLaUrlYElPaso(): void {
   useEffect(() => {
     // `navegar` puede devolver una promesa (issue 55): aqui no hace falta esperarla, y se marca `void`
     // a proposito y no por descuido.
-    const enLaUrl = pasoDeLaRuta(rutaDelNavegador());
+    const enElNavegador = pasoDeLaRuta(rutaDelNavegador());
+    const dibujado = pasoDeLaRuta(pathname);
 
-    // 1. Cambio el paso: la URL lo sigue.
+    // 1. Cambio el paso: la URL lo sigue. Con una entrada nueva si el navegador esta en otra ruta; si
+    //    ya esta en la del paso y es el enrutador el que se quedo atras, reemplazando.
     if (pasoVisto.current !== estado.paso) {
       pasoVisto.current = estado.paso;
-      if (enLaUrl !== estado.paso) void navegar(RUTA_DEL_PASO[estado.paso]);
+      if (enElNavegador !== estado.paso || dibujado !== estado.paso) {
+        void navegar(RUTA_DEL_PASO[estado.paso], { replace: enElNavegador === estado.paso });
+      }
       return;
     }
 
-    // 2. No cambio el paso: manda la URL, si nombra un paso alcanzable.
-    if (enLaUrl !== null && pasoAlcanzable(estado, enLaUrl)) {
-      if (enLaUrl !== estado.paso) despachar({ tipo: 'irA', paso: enLaUrl });
+    // 2. No cambio el paso: manda la URL, si nombra un paso alcanzable. Y si el enrutador dibuja otra
+    //    ruta que la del navegador, se le pone al dia.
+    if (enElNavegador !== null && pasoAlcanzable(estado, enElNavegador)) {
+      if (enElNavegador !== estado.paso) despachar({ tipo: 'irA', paso: enElNavegador });
+      if (dibujado !== enElNavegador) void navegar(RUTA_DEL_PASO[enElNavegador], { replace: true });
       return;
     }
     void navegar(RUTA_DEL_PASO[ultimoAlcanzable(estado)], { replace: true });
