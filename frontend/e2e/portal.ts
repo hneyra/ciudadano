@@ -69,11 +69,11 @@ export async function entrarConMiCuenta(pagina: Page): Promise<void> {
   await tarjeta.getByRole('button', { name: 'Entrar y pagar' }).click();
 }
 
-/** Paso 4: elige un medio y espera su panel. */
+/** Paso 4: elige un medio —un `radio` del grupo, desde el issue 62— y espera su panel. */
 export async function elegirMedio(pagina: Page, medio: (typeof MEDIOS)[number]): Promise<void> {
-  const boton = principal(pagina).getByRole('button', { name: medio.rotulo, exact: true });
-  await boton.click();
-  await expect(boton).toHaveAttribute('aria-pressed', 'true');
+  const radio = principal(pagina).getByRole('radio', { name: medio.rotulo, exact: true });
+  await radio.click();
+  await expect(radio).toHaveAttribute('aria-checked', 'true');
   await expect(principal(pagina).getByRole('heading', { level: 2, name: medio.titulo })).toBeVisible();
 }
 

@@ -29,7 +29,8 @@ const EN_PAGAR: Partial<EstadoDelRecorrido> = { paso: 'pagar', numero: '00000025
 
 const principal = () => screen.getByRole('main');
 const enMain = () => within(principal());
-const medio = (rotulo: string) => enMain().getByRole('button', { name: rotulo });
+/** Un medio del selector: un `radio` del grupo (issue 62), por su rotulo. */
+const medio = (rotulo: string) => enMain().getByRole('radio', { name: rotulo });
 const panel = (titulo: string) => within(enMain().getByRole('region', { name: titulo }));
 const resumen = () => within(enMain().getByRole('region', { name: 'Lo que va a pagar' }));
 const franja = () => within(screen.getByRole('navigation'));
@@ -45,14 +46,74 @@ const nombreDelMedio = (m: MedioDePago) => m.rotulo;
 // Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
 plazosDelPortal();
 
+/**
+ * **El selector de medio es un grupo de radios** (issue 62): la eleccion es exclusiva, y cuatro
+ * `<button aria-pressed>` sueltos se leian como cuatro interruptores independientes —«Tarjeta,
+ * boton de alternar, pulsado»—, cada uno una parada del tabulador. Ahora es `radiogroup` con el
+ * nombre del titulo, cada medio un `radio` con `aria-checked`, una sola parada (la del elegido) y las
+ * flechas para moverse, que eligen al llegar, como pide el patron de ARIA.
+ */
+describe('el selector de medio es un radiogroup', () => {
+  const grupo = () => enMain().getByRole('radiogroup', { name: '¿Cómo quiere pagar?' });
+  const elegido = () => within(grupo()).getAllByRole('radio').filter((r) => r.getAttribute('aria-checked') === 'true');
+  /** Los medios que el tabulador salta: todos menos el elegido (`RovingFocusGroup` de Radix). */
+  const saltados = () => within(grupo()).getAllByRole('radio').filter((r) => r.tabIndex === -1);
+  const otrosQue = (rotulo: string) => within(grupo()).getAllByRole('radio').filter((r) => r !== medio(rotulo));
+  /** Una flecha sobre lo enfocado. Radix mueve el foco en un `setTimeout`: se espera a que llegue. */
+  async function flecha(tecla: string, llega: string): Promise<void> {
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: tecla });
+    await waitFor(() => expect(document.activeElement, `${tecla} tenia que llevar a «${llega}»`).toBe(medio(llega)));
+  }
+
+  it('el grupo se llama como el titulo, trae los cuatro medios como `radio` y uno solo elegido', () => {
+    montarElPortal({ hash: '#/pagar', estado: EN_PAGAR });
+
+    expect(within(grupo()).getAllByRole('radio').map((r) => r.textContent)).toEqual([
+      'TarjetaVisa, Mastercard, débito o crédito',
+      expect.stringMatching(/^Yape o Plin/),
+      expect.stringMatching(/^pagalo\.pe/),
+      expect.stringMatching(/^Banco o agente/),
+    ]);
+    expect(elegido()).toEqual([medio('Tarjeta')]);
+    // Ni un `aria-pressed`: un radio no es un interruptor.
+    expect(principal().querySelector('[aria-pressed]')).toBeNull();
+    // Una sola parada del tabulador: los otros tres, fuera; y llegar al grupo es llegar al elegido.
+    for (const otro of otrosQue('Tarjeta')) expect(otro.tabIndex, otro.textContent ?? '').toBe(-1);
+    grupo().focus();
+    expect(document.activeElement).toBe(medio('Tarjeta'));
+  });
+
+  it('las flechas mueven el foco y eligen, dando la vuelta; la parada sigue al elegido', async () => {
+    montarElPortal({ hash: '#/pagar', estado: EN_PAGAR });
+
+    medio('Tarjeta').focus();
+    await flecha('ArrowRight', 'Yape o Plin');
+    expect(elegido()).toEqual([medio('Yape o Plin')]);
+    expect(enMain().getByRole('region', { name: 'Pagar con Yape o Plin' })).toBeInTheDocument();
+    expect(saltados()).toEqual(otrosQue('Yape o Plin'));
+
+    await flecha('ArrowDown', 'pagalo.pe');
+    expect(elegido()).toEqual([medio('pagalo.pe')]);
+
+    await flecha('ArrowLeft', 'Yape o Plin');
+    await flecha('ArrowUp', 'Tarjeta');
+    expect(elegido()).toEqual([medio('Tarjeta')]);
+
+    // Desde el primero, hacia atras, al ultimo.
+    await flecha('ArrowLeft', 'Banco o agente');
+    expect(elegido()).toEqual([medio('Banco o agente')]);
+    expect(enMain().getByRole('region', { name: 'Pagar en un banco o agente' })).toBeInTheDocument();
+  });
+});
+
 describe('el selector de medio y su panel', () => {
   it('por omision, «Tarjeta» activa con sus 4 campos; «Yape o Plin» muestra «969 032 194» y el paso 3 con S/ 3,149.92', () => {
     montarElPortal({ hash: '#/pagar', estado: EN_PAGAR });
 
     expect(enMain().getByRole('heading', { level: 1, name: '¿Cómo quiere pagar?' })).toBeInTheDocument();
-    expect(medio('Tarjeta')).toHaveAttribute('aria-pressed', 'true');
+    expect(medio('Tarjeta')).toHaveAttribute('aria-checked', 'true');
     for (const otro of ['Yape o Plin', 'pagalo.pe', 'Banco o agente']) {
-      expect(medio(otro), otro).toHaveAttribute('aria-pressed', 'false');
+      expect(medio(otro), otro).toHaveAttribute('aria-checked', 'false');
     }
     // La nota describe el boton, sin entrar en su nombre.
     expect(medio('Tarjeta')).toHaveAccessibleDescription('Visa, Mastercard, débito o crédito');
@@ -73,8 +134,8 @@ describe('el selector de medio y su panel', () => {
 
     fireEvent.click(medio('Yape o Plin'));
 
-    expect(medio('Yape o Plin')).toHaveAttribute('aria-pressed', 'true');
-    expect(medio('Tarjeta')).toHaveAttribute('aria-pressed', 'false');
+    expect(medio('Yape o Plin')).toHaveAttribute('aria-checked', 'true');
+    expect(medio('Tarjeta')).toHaveAttribute('aria-checked', 'false');
     expect(enMain().queryByRole('region', { name: 'Pagar con tarjeta' })).toBeNull();
     const yape = panel('Pagar con Yape o Plin');
     expect(yape.queryAllByRole('textbox')).toEqual([]);
@@ -330,10 +391,10 @@ describe('todo lo que se lee pasa por `t()`', () => {
     montarElPortal({ hash: '#/pagar', estado: EN_PAGAR });
 
     for (const m of MEDIOS) {
-      fireEvent.click(enMain().getByRole('button', { name: marcado(nombreDelMedio(m)) }));
+      fireEvent.click(enMain().getByRole('radio', { name: marcado(nombreDelMedio(m)) }));
       const region = enMain().getByRole('region', { name: marcado(m.titulo) });
-      const boton = enMain().getByRole('button', { name: marcado(m.rotulo) });
-      expect(boton).toHaveAttribute('aria-pressed', 'true');
+      const boton = enMain().getByRole('radio', { name: marcado(m.rotulo) });
+      expect(boton).toHaveAttribute('aria-checked', 'true');
 
       const dato = new Set([
         ...(m.codigo === undefined ? [] : [m.codigo]),

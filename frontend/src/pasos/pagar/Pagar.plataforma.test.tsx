@@ -154,8 +154,12 @@ describe('AC4 — el paso 4, «Pagar»', () => {
     expect(principal().querySelector('[data-codigo]')).toBeNull();
     expect(principal().querySelector('[data-bancos]')).toBeNull();
     expect(enMain().queryByRole('button', { pressed: false })).toBeNull();
+    // Desde el issue 62 el selector es un `radiogroup`: se mira que no este ni como grupo ni como
+    // radio, ademas de como boton (que es como era antes).
+    expect(enMain().queryByRole('radiogroup')).toBeNull();
     for (const medio of ['Tarjeta', 'Yape o Plin', 'pagalo.pe', 'Banco o agente']) {
       expect(enMain().queryByRole('button', { name: medio }), medio).toBeNull();
+      expect(enMain().queryByRole('radio', { name: medio }), medio).toBeNull();
     }
   });
 
@@ -320,7 +324,7 @@ describe('REVISION — ninguna frase afirma un hecho que no ocurrio', () => {
     let dicho = document.body.textContent ?? '';
     for (const medio of ['Yape o Plin', 'pagalo.pe', 'Banco o agente', 'Tarjeta']) {
       // Por el nombre exacto: «Tarjeta» tambien esta dentro del panel del medio elegido.
-      fireEvent.click(enMain().getByRole('button', { name: new RegExp(`^${medio}$`) }));
+      fireEvent.click(enMain().getByRole('radio', { name: new RegExp(`^${medio}$`) }));
       dicho += document.body.textContent ?? '';
     }
 
