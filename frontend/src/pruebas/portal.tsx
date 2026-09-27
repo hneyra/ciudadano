@@ -1,6 +1,6 @@
 import { avisar } from '@kamayuk/ui';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, configure, render } from '@testing-library/react';
+import { act, cleanup, configure, render } from '@testing-library/react';
 import { vi } from 'vitest';
 
 import { Aplicacion } from '../aplicacion.tsx';
@@ -276,6 +276,92 @@ export async function limpiarElPortal(): Promise<void> {
   avisar.dismiss();
   window.history.replaceState(null, '', '/');
   await i18n.changeLanguage(IDIOMA_POR_OMISION);
+}
+
+/**
+ * **Mueve el navegador y espera a que se mueva**: al `popstate`, no a un plazo (issue 74).
+ *
+ * `mover` es `history.back()`, `history.forward()`, asignar `location.hash`… o nada, si lo que se
+ * espera es el `popstate` de algo que ya se hizo. Es la senal que escucha el enrutador
+ * (`createHashRouter`) y la que despierta a `useLaUrlYElPaso`.
+ *
+ * <h2>Por que no un plazo</h2>
+ *
+ * En jsdom `history.back()` no mueve nada en el acto: encola la travesia y la hace DOS `setTimeout`
+ * despues (`SessionHistory.traverseByDelta` y `_queueHistoryTraversalTask`), y solo entonces cambia la
+ * URL y dispara `popstate`. Hasta el issue 74 `src/enrutador.test.tsx` esperaba 50 ms, y con la maquina
+ * cargada no bastaban: si el bucle de eventos se para mas de 50 ms justo tras `back()`, al volver vencen
+ * a la vez el primer `setTimeout` de jsdom y el de la prueba; el de jsdom encola el segundo para DESPUES,
+ * y la prueba se despierta con la URL de antes. Medido con la prueba instrumentada (carga 8-12): el plazo
+ * de 50 ms se cumplia a los +284 ms del `back()` y el `popstate` llegaba a los +303, con el historial
+ * siempre de 4 entradas —el portal no habia empujado nada—. Con carga 15-16, 6 corridas de 6 en rojo.
+ *
+ * <h2>Por que dentro de `act`, y sin `waitFor` despues</h2>
+ *
+ * El `popstate` llega dentro de `act`, asi que lo que el enrutador y el recorrido hagan con el —el dibujo
+ * en transicion, el efecto que sigue a la URL, el `irA` y su dibujo— se vacia al salir, antes de mirar.
+ * Un `waitFor` despues daria por buena una franja que pasa un instante por el paso correcto y se va.
+ *
+ * Si el `popstate` no llega en `ESPERA_DEL_PORTAL` —el navegador no tenia a donde ir, o lo que se
+ * esperaba no ocurrio—, falla diciendolo, en vez de agotar el plazo del caso sin decir por que. Ese plazo
+ * no decide nada cuando la prueba pasa: solo pone nombre al rojo.
+ */
+export async function moverElNavegador(mover: () => void): Promise<void> {
+  await act(async () => {
+    const escucha = oirAlNavegador();
+    try {
+      mover();
+    } catch (error) {
+      // Sin esto, el oyente y el plazo seguirian vivos, y a los 5 s saldria un rechazo sin nadie que lo
+      // espere, que Vitest podria achacar a otro caso (revision del PR #76).
+      escucha.dejarDeOir();
+      throw error;
+    }
+    await escucha.llego;
+  });
+}
+
+/** El proximo `popstate`, con su plazo para fallar diciendolo; y como dejar de esperarlo. */
+export interface EscuchaDelNavegador {
+  readonly llego: Promise<void>;
+  readonly dejarDeOir: () => void;
+}
+
+/**
+ * **Empieza a oir el proximo `popstate` YA**, para esperarlo despues con `esperarAlNavegador`.
+ *
+ * Para cuando el movimiento lo provoca otro —una trampa dentro del portal, a media accion— y el oyente
+ * tiene que estar puesto ANTES de moverse: registrado despues, el `popstate` ya encolado podria llegar
+ * antes que el oyente (revision del PR #76). Con `moverElNavegador` no hace falta: oye y mueve a la vez.
+ */
+export function oirAlNavegador(): EscuchaDelNavegador {
+  let dejarDeOir = () => {};
+  const llego = new Promise<void>((listo, fallar) => {
+    const alMoverse = () => {
+      dejarDeOir();
+      listo();
+    };
+    const plazo = setTimeout(() => {
+      dejarDeOir();
+      fallar(new Error(`El navegador no se movio: ningun \`popstate\` en ${ESPERA_DEL_PORTAL} ms (${window.location.hash}).`));
+    }, ESPERA_DEL_PORTAL);
+    dejarDeOir = () => {
+      clearTimeout(plazo);
+      window.removeEventListener('popstate', alMoverse);
+    };
+    window.addEventListener('popstate', alMoverse);
+  });
+  // El rechazo lo recibe quien espere `llego`; esto solo evita que, mientras nadie lo espera todavia,
+  // Node lo cuente como un rechazo sin manejar.
+  llego.catch(() => {});
+  return { llego, dejarDeOir };
+}
+
+/** Espera, dentro de `act`, el `popstate` que ya se estaba oyendo (`oirAlNavegador`). */
+export async function esperarAlNavegador(escucha: EscuchaDelNavegador): Promise<void> {
+  await act(async () => {
+    await escucha.llego;
+  });
 }
 
 /** Un texto como sale del idioma `marcado`: envuelto, porque paso por `t()`. */
