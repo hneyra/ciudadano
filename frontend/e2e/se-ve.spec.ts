@@ -49,7 +49,8 @@ async function abrirElDetalle(pagina: Page, concepto: string): Promise<void> {
   const fila = principal(pagina)
     .getByRole('listitem')
     .filter({ has: pagina.getByRole('checkbox', { name: `Pagar ${concepto}` }) });
-  await fila.getByRole('button', { name: 'Ver el detalle' }).click();
+  // Desde el issue 62, cada «Ver el detalle» lleva su concepto en el nombre.
+  await fila.getByRole('button', { name: `Ver el detalle de ${concepto}` }).click();
   await expect(fila.getByRole('table')).toBeVisible();
 }
 

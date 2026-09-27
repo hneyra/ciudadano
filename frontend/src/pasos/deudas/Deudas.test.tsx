@@ -111,7 +111,7 @@ describe('con los cuatro conceptos marcados', () => {
       // La insignia de `@kamayuk/ui`, con el tono del estado; y el vencimiento, en la tinta del tono.
       expect(fila.getByText(estado).className).toContain(papel);
       expect(fila.getByText(deuda?.vence ?? '').className).toContain(tinta);
-      expect(fila.getByRole('button', { name: 'Ver el detalle' })).toHaveAttribute('aria-expanded', 'false');
+      expect(fila.getByRole('button', { name: `Ver el detalle de ${concepto}` })).toHaveAttribute('aria-expanded', 'false');
     }
   });
 
@@ -207,9 +207,9 @@ describe('el desglose de un concepto', () => {
     const fila = within(filaDe('Impuesto predial 2026'));
     expect(fila.queryByRole('table')).toBeNull();
 
-    fireEvent.click(fila.getByRole('button', { name: 'Ver el detalle' }));
+    fireEvent.click(fila.getByRole('button', { name: 'Ver el detalle de Impuesto predial 2026' }));
 
-    const ocultar = fila.getByRole('button', { name: 'Ocultar el detalle' });
+    const ocultar = fila.getByRole('button', { name: 'Ocultar el detalle de Impuesto predial 2026' });
     expect(ocultar).toHaveAttribute('aria-expanded', 'true');
     const tabla = fila.getByRole('table', { name: 'Cuotas del impuesto predial 2026' });
     // El boton dice que region abre, y esa region es la que lleva la tabla.
@@ -251,15 +251,59 @@ describe('el desglose de un concepto', () => {
 
     fireEvent.click(ocultar);
 
-    expect(fila.getByRole('button', { name: 'Ver el detalle' })).toHaveAttribute('aria-expanded', 'false');
+    expect(fila.getByRole('button', { name: 'Ver el detalle de Impuesto predial 2026' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
     expect(fila.queryByRole('table')).toBeNull();
+  });
+
+  /**
+   * **Cada «Ver el detalle» se llama con su concepto** (issue 62). Eran cuatro botones con el MISMO
+   * nombre en la misma lista: quien navega por botones oia «Ver el detalle» cuatro veces sin saber de
+   * que. El texto a la vista no cambia —es el del artboard—; el nombre lo empieza igual, que es lo que
+   * pide «la etiqueta en el nombre» (WCAG 2.5.3) para que quien lo dicta por voz lo encuentre.
+   */
+  it('cada «Ver el detalle» lleva su concepto en el nombre: ninguno repetido, y el texto a la vista, el del artboard', () => {
+    montarElPortal({ hash: '#/deudas', estado: EN_DEUDAS });
+
+    const botones = enMain().getAllByRole('button', { name: /^Ver el detalle/ });
+    expect(botones.map((b) => b.getAttribute('aria-label'))).toEqual(DEUDAS.map((d) => `Ver el detalle de ${d.concepto}`));
+    expect(new Set(botones.map((b) => b.getAttribute('aria-label'))).size).toBe(botones.length);
+    for (const boton of botones) expect(boton).toHaveTextContent(/^Ver el detalle$/);
+
+    fireEvent.click(within(filaDe('Arbitrios municipales 2026')).getByRole('button', { name: /^Ver el detalle/ }));
+    const ocultar = enMain().getByRole('button', { name: 'Ocultar el detalle de Arbitrios municipales 2026' });
+    expect(ocultar).toHaveTextContent(/^Ocultar el detalle$/);
+  });
+
+  /**
+   * **`aria-controls` solo abierto** (issue 62, revision del PR #71). El cuerpo del plegable solo se
+   * monta abierto, asi que cerrado no hay a donde apuntar: un `aria-controls` hacia un id que no existe
+   * es un atributo invalido. Se decidio NO montar el cuerpo oculto (`forceMount` + `hidden`): el
+   * desglose cerrado seguiria en el DOM, en el texto que leen las guardas y al imprimir. Medido: el
+   * `Trigger` de Radix (`@radix-ui/react-collapsible` 1.1.20) ya lo pone solo abierto; esto lo fija,
+   * para que una version que lo cambie no pase en silencio.
+   */
+  it('cerrado, ningun `aria-controls`; abierto, apunta al cuerpo, que existe y lleva la tabla', () => {
+    montarElPortal({ hash: '#/deudas', estado: EN_DEUDAS });
+
+    for (const boton of enMain().getAllByRole('button', { name: /^Ver el detalle/ })) {
+      expect(boton, boton.getAttribute('aria-label') ?? '').not.toHaveAttribute('aria-controls');
+    }
+    const fila = within(filaDe('Impuesto predial 2024'));
+    fireEvent.click(fila.getByRole('button', { name: 'Ver el detalle de Impuesto predial 2024' }));
+    const abierto = fila.getByRole('button', { name: 'Ocultar el detalle de Impuesto predial 2024' });
+    const cuerpo = document.getElementById(abierto.getAttribute('aria-controls') ?? '(ninguno)');
+    expect(cuerpo).not.toBeNull();
+    expect(cuerpo).toContainElement(fila.getByRole('table'));
   });
 
   it('abrir otro cierra el primero: solo hay un desglose abierto', () => {
     montarElPortal({ hash: '#/deudas', estado: EN_DEUDAS });
 
-    fireEvent.click(within(filaDe('Impuesto predial 2026')).getByRole('button', { name: 'Ver el detalle' }));
-    fireEvent.click(within(filaDe('Arbitrios municipales 2026')).getByRole('button', { name: 'Ver el detalle' }));
+    fireEvent.click(within(filaDe('Impuesto predial 2026')).getByRole('button', { name: /^Ver el detalle/ }));
+    fireEvent.click(within(filaDe('Arbitrios municipales 2026')).getByRole('button', { name: /^Ver el detalle/ }));
 
     expect(enMain().getAllByRole('table')).toHaveLength(1);
     expect(enMain().getByRole('table', { name: 'Servicios que componen el arbitrio' })).toBeInTheDocument();
@@ -360,7 +404,7 @@ describe('todo pasa por `t()`', () => {
 
     // Con un desglose abierto, para que su tabla tambien entre en el barrido.
     const predial = filaDe('Impuesto predial 2026', marcado('Pagar Impuesto predial 2026'));
-    fireEvent.click(within(predial).getByRole('button', { name: marcado('Ver el detalle') }));
+    fireEvent.click(within(predial).getByRole('button', { name: marcado('Ver el detalle de Impuesto predial 2026') }));
     expect(enMain().getByRole('table')).toBeInTheDocument();
     expect(escapados(principal())).toEqual([]);
 

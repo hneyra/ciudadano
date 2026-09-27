@@ -248,7 +248,7 @@ describe('AC2 — con deuda: los conceptos y sus importes salen de la SITUACION'
   it('el desglose ensena los CUATRO componentes, cada uno con la fecha que el servidor le puso', async () => {
     conSesion(() => Promise.resolve(CON_UNA_OBLIGACION));
 
-    fireEvent.click(await enMain().findByRole('button', { name: 'Ver el detalle' }));
+    fireEvent.click(await enMain().findByRole('button', { name: 'Ver el detalle de Impuesto predial 2024' }));
 
     expect(enMain().getByText('S/ 1,500.00')).toBeInTheDocument();
     expect(enMain().getByText('S/ 42.60')).toBeInTheDocument();
@@ -271,7 +271,7 @@ describe('AC3 — lo que el contrato no da, no se dibuja', () => {
     expect(insignias()).toEqual([]);
     expect(principal().textContent).not.toMatch(/Vencida|Por vencer|En coactiva|Vence /);
 
-    fireEvent.click(enMain().getByRole('button', { name: 'Ver el detalle' }));
+    fireEvent.click(enMain().getByRole('button', { name: 'Ver el detalle de Impuesto predial 2024' }));
 
     expect(enMain().getByText('El portal no publica el desglose de este concepto.')).toBeInTheDocument();
     expect(enMain().getByText(/cuántas cuotas son, cuándo vence cada una/)).toBeInTheDocument();

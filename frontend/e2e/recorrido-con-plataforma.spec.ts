@@ -234,7 +234,7 @@ test.describe('el recorrido con plataforma', () => {
     expect(backend.consultas()).toBe(1);
 
     // Y el desglose dice que no lo hay, en vez de rellenarlo.
-    await principal(page).getByRole('button', { name: 'Ver el detalle' }).click();
+    await principal(page).getByRole('button', { name: 'Ver el detalle de Impuesto predial 2024' }).click();
     await expect(principal(page).getByText('El portal no publica el desglose de este concepto.')).toBeVisible();
 
     // Paso 3 · Pagar: no hay medio de pago que ofrecer, y se dice.

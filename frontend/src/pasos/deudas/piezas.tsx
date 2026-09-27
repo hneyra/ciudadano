@@ -34,6 +34,10 @@ import { type QuienEsDicho, estaTodoMarcado, laBarraDePago } from './vista.ts';
  *   (ancho completo, papel al pasar); el del artboard es un enlace subrayado dentro de la cifra. Asi
  *   que se usa el `Trigger` de Radix —el mismo que hay debajo de `DisparadorDelPlegable`— sobre el
  *   `Boton` fantasma de siempre.
+ *   **`aria-controls` solo abierto** (issue 62, revision del PR #71): el cuerpo solo se monta abierto,
+ *   y el `Trigger` de Radix (`@radix-ui/react-collapsible` 1.1.20, medido) no lo pone cerrado. Se
+ *   descarto montar el cuerpo oculto (`forceMount` + `hidden`): el desglose cerrado seguiria en el
+ *   DOM, en lo que leen las guardas del texto y al imprimir. Lo fija `Deudas.test.tsx`.
  * · **`Boton`** para todas las acciones, con las medidas del artboard encima.
  */
 
@@ -133,6 +137,13 @@ export function FilaDeConcepto({
               <Boton
                 type="button"
                 variante="fantasma"
+                // El nombre lleva el concepto (issue 62): eran cuatro «Ver el detalle» iguales en la
+                // misma lista. Empieza por el texto a la vista (WCAG 2.5.3), que no cambia.
+                aria-label={
+                  abierta
+                    ? t('Ocultar el detalle de {{concepto}}', { concepto })
+                    : t('Ver el detalle de {{concepto}}', { concepto })
+                }
                 className="mt-[7px] min-h-[34px] p-0 text-[13.5px] underline hover:bg-transparent"
               >
                 {abierta ? t('Ocultar el detalle') : t('Ver el detalle')}
