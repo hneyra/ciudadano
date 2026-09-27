@@ -280,6 +280,99 @@ describe('AC3 — lo que el contrato no da, no se dibuja', () => {
   });
 });
 
+/**
+ * **Issue 57 — dos obligaciones gemelas** (mismo tributo, ejercicio, ubigeo y sin unidad).
+ *
+ * Antes del arreglo, las dos compartian `id` (`deLaSituacion.ts`), y con `marcadas` guardado POR ID
+ * (issue 50) eso significa UNA sola entrada para las dos: alternar una alternaba las dos, y React
+ * repetia `key`. Esta prueba pasa por la cadena de verdad —`fuente → adaptador → recorrido →
+ * pantalla`— y no por el adaptador solo: es la que demuestra que el defecto llega a lo que ve el
+ * ciudadano, y no solo a la lista de ids.
+ */
+describe('AC del issue 57 — dos obligaciones gemelas no comparten marca', () => {
+  /** La barra de pago, por el boton que lleva (regex: cambia de texto al marcar y desmarcar). */
+  function barraDePago(): HTMLElement {
+    const boton = enMain().getByRole('button', { name: /^Pagar (todo|lo marcado)$/ });
+    const barra = boton.parentElement;
+    if (barra === null) throw new Error('No se encontro la barra de pago');
+    return barra;
+  }
+
+  const CON_GEMELAS: SituacionDelContrato = respuesta({
+    totalConsolidado: { importe: '200.00', actualizadoA: '2026-09-16' },
+    municipalidades: [
+      {
+        ubigeo: '200104',
+        nombre: 'Municipalidad Distrital de Catacaos',
+        codigoContribuyente: '00000025673',
+        nombreContribuyente: 'Suc. Rufina Medina Medina',
+        activo: true,
+        resumenDeSaldos: {
+          insoluto: { importe: '200.00', actualizadoA: '2026-09-16' },
+          reajuste: { importe: '0.00', actualizadoA: '2026-09-16' },
+          interes: { importe: '0.00', actualizadoA: '2026-09-16' },
+          gasto: { importe: '0.00', actualizadoA: '2026-09-16' },
+          total: { importe: '200.00', actualizadoA: '2026-09-16' },
+          estadoDeLaConsulta: '2 obligaciones con saldo al 16/09/2026',
+        },
+        // Dos multas de transito del mismo ejercicio, sin predio ni vehiculo: nada en el contrato
+        // las distingue, que es exactamente el caso que cita el issue.
+        obligaciones: [
+          {
+            tributo: 'MULTA_TRANSITO',
+            ejercicio: 2025,
+            predioId: null,
+            vehiculoId: null,
+            insoluto: { importe: '120.00', actualizadoA: '2026-09-16' },
+            reajuste: { importe: '0.00', actualizadoA: '2026-09-16' },
+            interes: { importe: '0.00', actualizadoA: '2026-09-16' },
+            gasto: { importe: '0.00', actualizadoA: '2026-09-16' },
+            total: { importe: '120.00', actualizadoA: '2026-09-16' },
+          },
+          {
+            tributo: 'MULTA_TRANSITO',
+            ejercicio: 2025,
+            predioId: null,
+            vehiculoId: null,
+            insoluto: { importe: '80.00', actualizadoA: '2026-09-16' },
+            reajuste: { importe: '0.00', actualizadoA: '2026-09-16' },
+            interes: { importe: '0.00', actualizadoA: '2026-09-16' },
+            gasto: { importe: '0.00', actualizadoA: '2026-09-16' },
+            total: { importe: '80.00', actualizadoA: '2026-09-16' },
+          },
+        ],
+        predios: [],
+      },
+    ],
+  });
+
+  it('desmarcar una gemela deja la otra marcada, y el total baja en esa sola', async () => {
+    conSesion(() => Promise.resolve(CON_GEMELAS));
+
+    await enMain().findByRole('heading', { level: 1, name: 'Lo que debe, por concepto' });
+    // Con plataforma las dos entran marcadas: S/ 120.00 + S/ 80.00 = S/ 200.00.
+    expect(within(barraDePago()).getByText('Va a pagar los 2 conceptos')).toBeInTheDocument();
+    expect(within(barraDePago()).getByText('S/ 200.00')).toBeInTheDocument();
+
+    const [primera, segunda] = enMain().getAllByRole('checkbox', { name: 'Pagar MULTA_TRANSITO 2025' });
+    if (primera === undefined || segunda === undefined) throw new Error('faltan las dos casillas gemelas');
+    // Son DOS filas distintas, cada una con SU importe: el mismo id las habria fundido en una.
+    expect(within(primera.closest('li')!).getByText('S/ 120.00')).toBeInTheDocument();
+    expect(within(segunda.closest('li')!).getByText('S/ 80.00')).toBeInTheDocument();
+    expect(primera).toBeChecked();
+    expect(segunda).toBeChecked();
+
+    fireEvent.click(primera);
+
+    // La gemela NO marcada: con un id compartido, alternar la primera habria alternado tambien
+    // esta — que es el defecto exacto que el issue describe («marcar una marca las dos»).
+    expect(segunda).toBeChecked();
+    expect(within(barraDePago()).getByText('Va a pagar 1 concepto de 2')).toBeInTheDocument();
+    // El total bajo en UNA sola marca (los S/ 120.00 que se desmarcaron), no en las dos.
+    expect(within(barraDePago()).getByText('S/ 80.00')).toBeInTheDocument();
+  });
+});
+
 describe('cuando la peticion falla', () => {
   it('un 401 dice lo del ciudadano y ofrece ENTRAR, que va a la puerta de verdad', async () => {
     const ida = vi.spyOn(identidad, 'entrar').mockResolvedValue(null);
