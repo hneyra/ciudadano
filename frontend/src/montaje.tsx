@@ -93,7 +93,7 @@ export function montar(raiz: HTMLElement): Promise<void> {
       return arrancar(() => dibujar(fuente, <Aplicacion enrutador={enrutador} />), {
         // De la politica del modo de la fuente, y no del entorno otra vez: con la sesion de la
         // demostracion no se le pregunta nada a ningun emisor (issue 35).
-        conEmisor: politicaDe(fuente).sesion === 'del-emisor',
+        conEmisor: politicaDe(fuente).sesion.laAbreUnEmisor,
         esperando: () => dibujar(fuente, <ComprobandoLaSesion />),
       });
     })

@@ -93,14 +93,28 @@ export type Paso = PasoNumerado | 'historial';
 // ── La politica ────────────────────────────────────────────────────────────────────────────────
 
 /**
- * **Lo que un modo decide**, pregunta por pregunta. Cada campo es una pregunta que antes se contestaba
- * con `conPlataforma` en algun archivo; ahora se contesta UNA vez por modo, aqui, y el que pregunta no
- * sabe en que modo esta.
+ * **Lo que el portal sabe hacer, dicho en la portada** («Qué puede hacer aquí», issue 49). Cada modo
+ * elige cuales ofrece y en que orden; el texto y el icono de cada una los pone la portada
+ * (`src/piezas/PortadaDelPortal.tsx`).
  *
- * Son datos y no funciones: se comparan, se imprimen en un fallo y el estado del recorrido los lleva
- * dentro sin que deje de ser un valor.
+ *   · `ver-la-deuda-con-cuotas`: el predial, los arbitrios y el vehicular, con el vencimiento de cada
+ *     cuota. `ver-la-deuda-por-municipalidad`: lo que se debe en cada municipalidad, por tributo y
+ *     año, con la fecha de cada importe —sin cuotas: el contrato no las trae—.
+ *   · `pagar-en-linea` / `pagar-en-la-ventanilla`: si el cobro esta conectado o no.
+ *   · `descargar-comprobantes`, `saber-de-donde-sale` (el autovaluo y los metros de frontis) y
+ *     `ver-los-predios` (los que figuran a su nombre, con su codigo catastral).
  */
-export interface PoliticaDelModo {
+export type CapacidadDelPortal =
+  | 'ver-la-deuda-con-cuotas'
+  | 'ver-la-deuda-por-municipalidad'
+  | 'pagar-en-linea'
+  | 'pagar-en-la-ventanilla'
+  | 'descargar-comprobantes'
+  | 'saber-de-donde-sale'
+  | 'ver-los-predios';
+
+/** Por donde se va y por donde se empieza. */
+export interface PoliticaDelRecorrido {
   /**
    * Los pasos numerados de la franja, en su orden. De aqui tambien se deduce que pasos existen: un paso
    * que no esta en la lista no es alcanzable (`pasoAlcanzable`), y un recorrido sin «Mis datos» no
@@ -114,42 +128,107 @@ export interface PoliticaDelModo {
    */
   readonly primerPaso: { readonly sinSesion: PasoNumerado; readonly conSesion: PasoNumerado };
   /**
-   * Si un concepto del que la persona no decidio nada cuenta como marcado (`estaMarcada`). Con
+   * ¿Un concepto del que la persona no decidio nada cuenta como marcado? (`estaMarcada`). Con
    * plataforma si —el artboard abre con todo marcado, linea 929, y lo que llega en una consulta
    * posterior llega marcado como lo demas—; en demostracion no hace falta, porque las cuatro marcas del
    * artboard se escriben al arrancar.
    */
   readonly marcadoPorOmision: boolean;
+}
+
+/** De quien es la sesion, dicho por lo que la sesion hace. */
+export interface PoliticaDeLaSesion {
   /**
-   * **De quien es la sesion.** `del-emisor`: la de la cuenta del portal, en Keycloak —«Iniciar
+   * ¿La abre y la cierra un emisor de identidad? Si: la cuenta del portal, en Keycloak —«Iniciar
    * sesión» y «Cerrar sesión» van a la puerta, quien entro sale del token y al arrancar se le pregunta
-   * al emisor en silencio (issue 35)—. `de-la-demostracion`: la del artboard, que la abre el paso «Mis
-   * datos» y la cierra el reductor, y la persona es la usuaria de los datos de ejemplo.
+   * al emisor en silencio (issue 35)—. No: la del artboard, que la abre el paso «Mis datos» y la
+   * cierra el reductor, y la persona es la usuaria de los datos de ejemplo.
+   *
+   * De ella depende `traeElCorreo`: ver alli.
    */
-  readonly sesion: 'del-emisor' | 'de-la-demostracion';
+  readonly laAbreUnEmisor: boolean;
   /**
-   * **De donde sale la deuda.** `del-artboard`: cuatro conceptos con cuotas, vencimiento, estado y
-   * desglose, y los predios con su autovaluo. `de-la-consulta`: lo que contesta `GET /portal/situacion`
-   * —cada importe con su fecha, un reajuste propio, y nada de cuotas, vencimiento ni desglose (issue
-   * 26)—, con sus cinco finales y los predios que traiga.
+   * ¿Quien entra trae un correo al que enviar el comprobante? (`destinoDelComprobante`). La cuenta del
+   * artboard si; el realm del ciudadano pone el documento y ni el correo ni el codigo
+   * (`src/api/claims.ts`), y poner el del artboard escribiria el buzon de otra persona.
+   *
+   * **Depende de**: `laAbreUnEmisor` en `false` —el correo es el de la cuenta de los datos de ejemplo,
+   * y un emisor no manda ninguno—. Y el correo lo aporta la FUENTE (`LaDemostracion.usuario`): sin el,
+   * `destinoDelComprobante` cae en el correo escrito en vez de reventar. Lo mide `modo.test.ts`.
    */
-  readonly deuda: 'del-artboard' | 'de-la-consulta';
+  readonly traeElCorreo: boolean;
+}
+
+/** Lo que pasa al pagar. */
+export interface PoliticaDelCobro {
   /**
-   * **Si el pago es simulado** (issue 28). No hay endpoint de cobro (D-14): no se ofrece ningun medio,
+   * ¿El pago es simulado? (issue 28). No hay endpoint de cobro (D-14): no se ofrece ningun medio,
    * no se sella comprobante ni numero de operacion (`PagoSimulado`), la deuda no se da por pagada, y
    * los pasos 4 y 5 llevan el aviso permanente.
    */
-  readonly pagoSimulado: boolean;
-  /** Si el portal publica el historial de pagos del ciudadano. Con plataforma no hay endpoint (issue 28). */
-  readonly publicaLosPagos: boolean;
-  /** Si lo que se ve son datos de ejemplo, y el pie lo dice (issue 49). */
-  readonly datosDeEjemplo: boolean;
+  readonly simulado: boolean;
+}
+
+/** Lo que el portal sabe de la persona, y de donde lo sabe. */
+export interface PoliticaDelContenido {
   /**
-   * **Que ofrece la portada** («Qué puede hacer aquí», issue 49): las cuatro capacidades del artboard,
-   * o las tres que el portal con plataforma tiene de verdad —ver lo que debe, ver sus predios, pagar en
-   * la ventanilla—.
+   * ¿La deuda se le pide a un servidor? Si: lo que contesta `GET /portal/situacion`, con sus cinco
+   * finales (pidiendo, el peldano de la escalera, no se pudo consultar, sin registros, sin deuda), y el
+   * paso 2 y «Lo que queda pendiente» se los preguntan a la consulta. No: cuatro conceptos que ya estan
+   * en memoria, con cuotas, vencimiento, estado y desglose.
+   *
+   * De ella depende `publicaLasUnidades`: ver alli.
    */
-  readonly capacidades: 'las-del-artboard' | 'las-de-la-plataforma';
+  readonly laDeudaSeConsulta: boolean;
+  /**
+   * ¿Cada concepto trae un reajuste propio? (issue 26). El contrato lo da aparte, y el resumen de
+   * «Pagar» le pone su fila: sin ella, las filas no sumaban el total. El artboard no lo tiene.
+   */
+  readonly traeReajuste: boolean;
+  /** ¿Se publica el historial de pagos del ciudadano? Con plataforma no hay endpoint (issue 28). */
+  readonly publicaLosPagos: boolean;
+  /**
+   * ¿Se publican los predios y vehiculos con la base de su tributo (el autovaluo, los metros de
+   * frontis)? Si no, «De dónde sale lo que paga» ensena los predios que trae la consulta, sin cifra y
+   * sin vehiculos (issue 28).
+   *
+   * **Depende de**: `laDeudaSeConsulta` en `true` cuando vale `false` —«De dónde sale lo que paga»
+   * sin unidades publicadas lee los predios de la consulta (`DeDondeSaleDeLaConsulta`), y sin consulta
+   * no hay predios que leer—. Lo mide `modo.test.ts`.
+   */
+  readonly publicaLasUnidades: boolean;
+  /** ¿Lo que se ve son datos de ejemplo? El pie lo dice (issue 49). */
+  readonly sonDatosDeEjemplo: boolean;
+  /**
+   * **Que ofrece la portada** (issue 49): las cuatro capacidades del artboard, o las tres que el portal
+   * con plataforma tiene de verdad —ver lo que debe, ver sus predios, pagar en la ventanilla—.
+   */
+  readonly capacidades: readonly CapacidadDelPortal[];
+}
+
+/**
+ * **Lo que un modo decide**, pregunta por pregunta y agrupado por de que trata (revision del PR #70).
+ * Cada campo es una pregunta que antes se contestaba con `conPlataforma` en algun archivo; ahora se
+ * contesta UNA vez por modo, aqui, y el que pregunta no sabe en que modo esta.
+ *
+ * <h2>Cada campo se nombra por la pregunta, no por el modo (issue 60)</h2>
+ *
+ * Hasta el issue 60 la politica tenia `deuda: 'del-artboard' | 'de-la-consulta'`, `sesion:
+ * 'del-emisor' | 'de-la-demostracion'` y `capacidades: 'las-del-artboard' | 'las-de-la-plataforma'`:
+ * valores con el nombre del modo, que cambiaban siempre juntos. Preguntar `deuda === 'de-la-consulta'`
+ * era preguntar el modo con otras palabras, y `deuda` hacia de sustituto de preguntas distintas —la
+ * fila «Reajuste» de «Pagar», que secciones dibuja «Mis pagos»—. Ahora cada pregunta tiene su campo
+ * (`traeReajuste`, `publicaLasUnidades`…) y un modo nuevo contesta cada una por separado. Que ningun
+ * valor vuelva a ser el nombre de un modo lo mide `modo.test.ts`.
+ *
+ * Son datos y no funciones: se comparan, se imprimen en un fallo y el estado del recorrido los lleva
+ * dentro sin que deje de ser un valor.
+ */
+export interface PoliticaDelModo {
+  readonly recorrido: PoliticaDelRecorrido;
+  readonly sesion: PoliticaDeLaSesion;
+  readonly cobro: PoliticaDelCobro;
+  readonly contenido: PoliticaDelContenido;
 }
 
 /**
@@ -159,27 +238,39 @@ export interface PoliticaDelModo {
  */
 export const POLITICAS: { readonly [M in Modo['modo']]: PoliticaDelModo } = {
   demostracion: {
-    pasos: PASOS_DE_LA_DEMOSTRACION,
-    primerPaso: { sinSesion: 'buscar', conSesion: 'buscar' },
-    marcadoPorOmision: false,
-    sesion: 'de-la-demostracion',
-    deuda: 'del-artboard',
-    pagoSimulado: false,
-    publicaLosPagos: true,
-    datosDeEjemplo: true,
-    capacidades: 'las-del-artboard',
+    recorrido: {
+      pasos: PASOS_DE_LA_DEMOSTRACION,
+      primerPaso: { sinSesion: 'buscar', conSesion: 'buscar' },
+      marcadoPorOmision: false,
+    },
+    sesion: { laAbreUnEmisor: false, traeElCorreo: true },
+    cobro: { simulado: false },
+    contenido: {
+      laDeudaSeConsulta: false,
+      traeReajuste: false,
+      publicaLosPagos: true,
+      publicaLasUnidades: true,
+      sonDatosDeEjemplo: true,
+      capacidades: ['ver-la-deuda-con-cuotas', 'pagar-en-linea', 'descargar-comprobantes', 'saber-de-donde-sale'],
+    },
   },
   plataforma: {
-    pasos: PASOS_CON_PLATAFORMA,
-    // Quien ya entro no vuelve a entrar (issue 28).
-    primerPaso: { sinSesion: 'entrar', conSesion: 'deudas' },
-    marcadoPorOmision: true,
-    sesion: 'del-emisor',
-    deuda: 'de-la-consulta',
-    pagoSimulado: true,
-    publicaLosPagos: false,
-    datosDeEjemplo: false,
-    capacidades: 'las-de-la-plataforma',
+    recorrido: {
+      pasos: PASOS_CON_PLATAFORMA,
+      // Quien ya entro no vuelve a entrar (issue 28).
+      primerPaso: { sinSesion: 'entrar', conSesion: 'deudas' },
+      marcadoPorOmision: true,
+    },
+    sesion: { laAbreUnEmisor: true, traeElCorreo: false },
+    cobro: { simulado: true },
+    contenido: {
+      laDeudaSeConsulta: true,
+      traeReajuste: true,
+      publicaLosPagos: false,
+      publicaLasUnidades: false,
+      sonDatosDeEjemplo: false,
+      capacidades: ['ver-la-deuda-por-municipalidad', 'ver-los-predios', 'pagar-en-la-ventanilla'],
+    },
   },
 };
 

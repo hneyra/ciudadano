@@ -104,7 +104,7 @@ export const UMBRAL_DE_ESPERA = 300;
 /** Lo que `arrancar()` necesita saber del arranque, ademas de como montar. */
 export interface ComoArrancar {
   /**
-   * Si la sesion es la de un emisor (la politica del modo, `sesion: 'del-emisor'`, en `montaje.tsx`;
+   * Si la sesion es la de un emisor (la politica del modo, `sesion.laAbreUnEmisor`, en `montaje.tsx`;
    * hasta el issue 59 era `conPlataforma`). En demostracion no hay emisor al que preguntar, y **no se
    * le pregunta**: ni una peticion, ni un marco.
    */

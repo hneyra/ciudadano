@@ -17,19 +17,19 @@ import { useModo } from '../modo/useModo.ts';
  * `#`, que ademas de lo mismo es un enlace invalido para `jsx-a11y`.
  *
  * **Solo con datos de ejemplo, «Los datos de esta pantalla son de demostración.»** (issues 49 y 59,
- * `datosDeEjemplo` de la politica). Con plataforma no: alli los datos
+ * `contenido.sonDatosDeEjemplo` de la politica). Con plataforma no: alli los datos
  * son los de la persona, y la frase viajaba en la imagen de produccion diciendo lo contrario. Lo que
  * con plataforma SI es de demostracion —pagar y el comprobante— lo dice su aviso, en su pantalla.
  */
 export function Pie() {
   const { t } = useTranslation();
-  const { datosDeEjemplo } = useModo();
+  const { sonDatosDeEjemplo } = useModo().contenido;
   const entidad = t('Municipalidad Distrital de Catacaos');
   return (
     <footer data-noprint="1" className="border-t border-linea bg-superficie">
       <div className="mx-auto flex max-w-[1020px] flex-wrap items-center gap-4 p-[18px]">
         <p className="m-0 min-w-[220px] flex-1 text-[13px] leading-[1.55] text-pretty text-tinta-3">
-          {datosDeEjemplo
+          {sonDatosDeEjemplo
             ? t(
                 '{{entidad}} — Pago de tributos en línea. Atención en ventanilla de lunes a viernes, de 8:00 a 16:00. Los datos de esta pantalla son de demostración.',
                 { entidad },

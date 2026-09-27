@@ -85,7 +85,7 @@ function useLoLeido(fuente: FuenteDelPortal): DatosLeidos {
 export function comoEmpiezaCon(fuente: FuenteDelPortal): ComoEmpieza {
   return {
     en: fuente,
-    autenticado: politicaDe(fuente).sesion === 'del-emisor' && haySesion(),
+    autenticado: politicaDe(fuente).sesion.laAbreUnEmisor && haySesion(),
     amnistia: fuente.amnistia,
   };
 }

@@ -348,7 +348,7 @@ export type AccionDelRecorrido =
 
 /** Los pasos numerados de ESTE recorrido: cinco en demostracion, cuatro con plataforma. */
 export function pasosNumerados(estado: DecisionesDelRecorrido): readonly PasoNumerado[] {
-  return estado.politica.pasos;
+  return estado.politica.recorrido.pasos;
 }
 
 /**
@@ -359,7 +359,7 @@ export function pasosNumerados(estado: DecisionesDelRecorrido): readonly PasoNum
  * devolver `entrar` con la sesion abierta dejaria al enrutador redirigiendo en circulo.
  */
 export function primerPaso(estado: DecisionesDelRecorrido): Paso {
-  const { primerPaso: primero } = estado.politica;
+  const { primerPaso: primero } = estado.politica.recorrido;
   return estado.autenticado ? primero.conSesion : primero.sinSesion;
 }
 
@@ -395,7 +395,7 @@ export function vivasDelServidor(estado: EstadoDelRecorrido): readonly DeudaDelS
  * omision —marcado con plataforma, desmarcado en demostracion—. Ver `marcadas`.
  */
 export function estaMarcada(estado: DecisionesDelRecorrido, id: string): boolean {
-  return estado.marcadas[id] ?? estado.politica.marcadoPorOmision;
+  return estado.marcadas[id] ?? estado.politica.recorrido.marcadoPorOmision;
 }
 
 /** Lo marcado DE LA DEUDA VIVA: lo pagado no se vuelve a cobrar aunque siga marcado. */
@@ -528,9 +528,13 @@ export function inicio(estado: EstadoDelRecorrido): Paso {
  * del artboard escribiria el buzon de otra persona debajo del pago de esta.
  */
 export function destinoDelComprobante(estado: EstadoDelRecorrido): string | null {
-  // El de la cuenta del artboard, que llega con la demostracion (issue 58).
-  if (estado.autenticado && estado.politica.sesion === 'de-la-demostracion') {
-    return laDemostracion(estado).usuario.correo;
+  // El de la cuenta, que llega con los datos de la demostracion (issue 58). Se lee el DATO y no se
+  // exige (`laDemostracion` revienta sin el): una politica que diga que la sesion trae el correo con
+  // una fuente que no lo aporte cae en el correo escrito, en vez de tumbar el paso 4 (revision del
+  // PR #71). En demostracion el dato esta siempre, y el resultado es el de antes.
+  const deLaCuenta = estado.demostracion?.usuario.correo;
+  if (estado.autenticado && estado.politica.sesion.traeElCorreo && deLaCuenta !== undefined) {
+    return deLaCuenta;
   }
   const correo = estado.correo.trim();
   return correo === '' ? null : correo;
@@ -625,7 +629,7 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
       // Sin nada que pagar no se sella nada. El aviso «No hay nada que pagar.» es de la pantalla.
       if (pagado.length === 0) return estado;
       const sellado = { conceptos: pagado, contribuyente: estado.contribuyente, ...cuentaDe(pagado) };
-      if (estado.politica.pagoSimulado) {
+      if (estado.politica.cobro.simulado) {
         // **Un pago simulado NO da la deuda por pagada** (issue 28, revision): no hubo cobro, y
         // quitar el concepto de la deuda viva seria el mismo embuste que la frase «la deuda pagada
         // ya se descontó de su cuenta» — dicho con la lista en vez de con palabras. El aviso de los
