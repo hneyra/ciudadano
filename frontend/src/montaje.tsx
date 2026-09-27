@@ -62,6 +62,10 @@ const enrutador = crearEnrutador();
  * sintoma es el peor posible — la peticion del trozo sale con 200, no hay ni un error en la consola,
  * y `#raiz` se queda **vacio**.
  *
+ * (Desde el issue 58 `demostracion.ts` ya no esta en este trozo —solo lo importa la fuente de
+ * demostracion—, pero la fuente sigue compartiendo modulos con el recorrido, y la regla se queda: un
+ * `await` arriba vuelve a depender de como reparta Rollup.)
+ *
  * Dentro de una funcion que se llama cuando el modulo YA se evaluo, el ciclo no existe. En el paquete
  * de produccion el `import()` se pliega y tampoco, asi que esto solo se ve con la bandera encendida:
  * por eso lo encontro el arnes y no `yarn build`.

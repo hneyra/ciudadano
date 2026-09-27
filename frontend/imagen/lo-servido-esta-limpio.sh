@@ -36,9 +36,12 @@
 #      marca que ya no esta en el artboard busca algo que no existe, y es una guarda que no puede
 #      fallar (paso en `rentas` con «SULLON VILCHEZ»)—.
 #
-# Lo que NO busca: los datos del artboard que `src/datos/demostracion.ts` porta. Hoy SI viajan en el
-# paquete de produccion —el recorrido arranca con ellos, ver `la-demostracion-no-viaja-al-bundle.test.ts`—
-# y sacarlos es otra entrega. Esto vigila los ARCHIVOS de diseno, no los datos que se copiaron de ellos.
+# Lo que NO busca: los datos del artboard que `src/datos/demostracion.ts` porta —nombres, documentos,
+# comprobantes, direcciones—. Desde el issue 58 ya no viajan en el paquete de produccion, y lo mide el
+# arnes sobre un paquete construido como lo construye esta imagen (`e2e/el-dist-de-la-imagen-esta-limpio.spec.ts`
+# y `e2e/la-demostracion-no-viaja-al-bundle.spec.ts`), con las marcas que saca del propio
+# `demostracion.ts` (`verificaciones/marcas-de-la-demostracion.ts`). Aqui no, porque sacarlas pide
+# evaluar ese modulo de TypeScript y esta etapa es nginx, sin Node. Esto vigila los ARCHIVOS de diseno.
 #
 # POSIX y busybox: corre en `nginx:*-alpine` y en la maquina de quien verifica.
 set -eu

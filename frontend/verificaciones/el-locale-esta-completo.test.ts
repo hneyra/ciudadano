@@ -10,6 +10,7 @@ import { HISTORIAL, MEDIOS, UNIDADES } from '../src/datos/demostracion.ts';
 import { clavesDelHistorial } from '../src/pasos/historial/textosDelHistorial.ts';
 import { clavesDeLosMedios } from '../src/pasos/pagar/textosDeLosMedios.ts';
 import { RAIZ } from './artboards.ts';
+import { marcasDeLaDemostracion } from './marcas-de-la-demostracion.ts';
 
 /**
  * **El locale tiene todas las claves, y ninguna se aparta de la suya** (rentas#103, AC5).
@@ -497,11 +498,6 @@ describe('el locale `es` esta completo y no se aparta', () => {
     expect(Object.keys(esperadoDeLaDemostracion), 'la lista no trae lo que dicen los pagos y las unidades').toEqual(
       expect.arrayContaining(['BCP con código', '8.20 m de frontis', 'Base imponible']),
     );
-    // Y NINGUNA de esas en el locale que viaja siempre: ahi estaban las direcciones del artboard.
-    expect(
-      Object.keys(esperado).filter((clave) => clave in esperadoDeLaDemostracion),
-      'el locale de siempre trae lo que dicen los datos de la demostracion',
-    ).toEqual([]);
     // Y la derivada de la escalera de la API (issues 13 y 33): si la tabla se vaciara, sus 27
     // claves faltarian del locale sin que el resto de la lista lo notara. Las dos ultimas son las
     // de los peldanos que trae kamayuk-lib#96: mientras ese PR siga abierto NINGUN fallo llega a
@@ -519,6 +515,19 @@ describe('el locale `es` esta completo y no se aparta', () => {
     expect(Object.keys(esperado), 'la lista no trae lo que dice el adaptador de la situacion').toEqual(
       expect.arrayContaining(['Sin detalle del predio', 'Sin unidad asociada']),
     );
+  });
+
+  it('el locale que viaja en TODO paquete no trae ninguna marca de los datos de la demostracion (issue 58)', () => {
+    // Ahi estaban las direcciones, las fichas catastrales y el nombre de la tarjeta de ejemplo, y con
+    // `es.json` viajaban en el paquete de produccion. Son las mismas marcas que el arnes busca en lo
+    // construido (`e2e/la-demostracion-no-viaja-al-bundle.spec.ts`); aqui se ven antes, en `yarn verificar`.
+    const marcas = marcasDeLaDemostracion();
+    const conMarca = (claves: readonly string[]) => claves.filter((clave) => marcas.some((marca) => clave.includes(marca)));
+
+    expect(conMarca(Object.keys(esperado)), 'la lista de `es.json` trae datos de la demostracion').toEqual([]);
+    expect(conMarca(Object.keys(enDisco)), '`es.json` trae datos de la demostracion').toEqual([]);
+    // Y la busqueda encuentra lo que busca: en el de la demostracion SI estan.
+    expect(conMarca(Object.keys(esperadoDeLaDemostracion)).length).toBeGreaterThan(0);
   });
 
   it.each([
