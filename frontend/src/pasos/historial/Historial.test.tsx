@@ -182,9 +182,9 @@ describe('sin haber pagado nada en esta visita', () => {
       'Medio',
       'Comprobante',
       'Importe S/',
-      'Descargar comprobante',
+      'Acción',
     ]);
-    expect(pagos.getByRole('columnheader', { name: 'Descargar comprobante' })).toBeInTheDocument();
+    expect(pagos.getByRole('columnheader', { name: 'Acción' })).toBeInTheDocument();
     expect(
       pagos.getByText(
         'Un pago aplicado ya descontó la cuota. Si pagó y la deuda sigue apareciendo, traiga el comprobante: se resuelve el mismo día.',
@@ -439,7 +439,7 @@ describe('todo lo que se lee pasa por `t()`', () => {
       expect(enMain().getByRole('button', { name: marcado(boton) }), boton).toBeInTheDocument();
     }
     expect(enMain().getByRole('button', { name: marcado('Comprobante 0003-0041182') })).toHaveTextContent(marcado('Comprobante'));
-    expect(enMain().getByRole('columnheader', { name: marcado('Descargar comprobante') })).toBeInTheDocument();
+    expect(enMain().getByRole('columnheader', { name: marcado('Acción') })).toBeInTheDocument();
     fireEvent.click(enMain().getByRole('button', { name: marcado('Comprobante 0003-0041182') }));
     expect(await screen.findByText(marcado('Se descargaría el comprobante 0003-0041182.'))).toBeInTheDocument();
   });

@@ -141,10 +141,12 @@ export function PagosRealizados() {
             ))}
             {/* La columna de la accion no tiene rotulo a la vista, como en el artboard (linea 1338); para un
                 lector de pantalla si (issue 75): una cabecera vacia no dice que hay en la columna (axe,
-                `empty-table-header`). `relative` encierra al `sr-only`, que es `absolute`: sin el, su caja
-                se salia del marco que desplaza la tabla, y a 400 px la pagina crecia a 746 (medido en el arnes). */}
+                `empty-table-header`). «Acción» y no «Descargar comprobante»: con plataforma la tabla sale
+                sin filas y no hay comprobante que descargar (`src/pruebas/frasesQueAfirman.ts`).
+                `relative` encierra al `sr-only`, que es `absolute`: sin el, su caja se salia del marco que
+                desplaza la tabla, y a 400 px la pagina crecia a 746 (medido en el arnes). */}
             <TablaRotulo className="relative px-[18px]">
-              <span className="sr-only">{t('Descargar comprobante')}</span>
+              <span className="sr-only">{t('Acción')}</span>
             </TablaRotulo>
           </tr>
         </TablaCabecera>

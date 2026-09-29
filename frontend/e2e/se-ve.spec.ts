@@ -113,7 +113,7 @@ for (const ancho of ANCHURAS) {
       await expect(main.getByRole('region', { name: 'De dónde sale lo que paga' }).getByRole('listitem').first()).toBeVisible();
       await seVeBien(page, `mis pagos a ${ancho} px`);
       // La columna de la accion tiene rotulo para un lector de pantalla, y a la vista sigue sin el (issue 75).
-      const rotulo = main.getByRole('region', { name: 'Pagos realizados' }).getByRole('columnheader', { name: 'Descargar comprobante' });
+      const rotulo = main.getByRole('region', { name: 'Pagos realizados' }).getByRole('columnheader', { name: 'Acción' });
       expect(await noSeVe(rotulo.locator('span')), `mis pagos a ${ancho} px: el rotulo de la columna de la accion se ve`).toBe(true);
       await seVeBienConLaListaAbierta(
         page,
