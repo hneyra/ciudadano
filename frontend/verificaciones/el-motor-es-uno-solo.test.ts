@@ -157,12 +157,33 @@ describe('y el motor prometido alcanza al que exige `kamayuk-lib`', () => {
   });
 });
 
+/**
+ * Un workflow de verdad —YAML que GitHub aceptaria, no lineas sueltas (issue 63)— con un trabajo por
+ * motor, cada uno con su `actions/setup-node`.
+ */
+function unWorkflow(...motores: readonly string[]): string {
+  return [
+    'on: push',
+    'jobs:',
+    ...motores.flatMap((motor, i) => [
+      `  trabajo${String(i + 1)}:`,
+      '    runs-on: ubuntu-latest',
+      '    steps:',
+      '      - uses: actions/checkout@v4',
+      '      - uses: actions/setup-node@v4',
+      '        with:',
+      `          node-version: "${motor}"`,
+    ]),
+    '',
+  ].join('\n');
+}
+
 describe('LA MUESTRA: la guarda muerde, sobre declaraciones inventadas', () => {
   /** Los cinco sitios de acuerdo, para retocar uno y ver que se nota. */
   const deAcuerdo = (): Declaracion[] => [
     elDeEngines(JSON.stringify({ engines: { node: '>=24' } })),
     elDelNvmrc('24\n'),
-    ...losDelWorkflow('        node-version: "24"\n        node-version: "24"\n'),
+    ...losDelWorkflow(unWorkflow('24', '24')),
     ...elDelDockerfile('FROM node:24-alpine AS construccion\nFROM nginx:1.31.5-alpine AS interfaz\n'),
   ];
 
@@ -188,7 +209,7 @@ describe('LA MUESTRA: la guarda muerde, sobre declaraciones inventadas', () => {
     // diff es una linea.
     const torcidas = [
       ...deAcuerdo().slice(0, 2),
-      ...losDelWorkflow('        node-version: "24"\n        node-version: "22"\n'),
+      ...losDelWorkflow(unWorkflow('24', '22')),
     ];
     expect(motoresDistintos(torcidas)).toEqual([24, 22]);
   });
@@ -213,10 +234,11 @@ describe('LA MUESTRA: la guarda muerde, sobre declaraciones inventadas', () => {
     // El comentario que explica de donde sale el motor nombra el numero. Sin este filtro contaria
     // como una declaracion mas —y seguiria contando el dia que el `node-version` de verdad
     // cambiara—, que es justo lo que `andamiaje.test.ts` descubrio de su propia copia de `rentas`.
-    const conComentario =
-      '      # el motor sale del .nvmrc\n' +
-      '      #   node-version: "22"\n' +
-      '        node-version: "24"\n';
+    const conComentario = unWorkflow('24').replace(
+      '      - uses: actions/setup-node@v4\n',
+      '      # el motor sale del .nvmrc\n      #   node-version: "22"\n      - uses: actions/setup-node@v4\n',
+    );
+    expect(conComentario).toContain('#   node-version: "22"');
     expect(losDelWorkflow(conComentario).map((d) => d.dice)).toEqual(['24']);
   });
 

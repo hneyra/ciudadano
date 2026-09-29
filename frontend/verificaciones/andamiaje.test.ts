@@ -3,6 +3,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
+import { type Paso, type Trabajo, leerElWorkflow, lineasDe } from './workflow.ts';
+
 /**
  * El andamiaje no se afloja solo. Portada de `rentas/frontend/verificaciones/andamiaje.test.ts`.
  *
@@ -127,63 +129,81 @@ describe('«yarn verificar» encadena las cuatro comprobaciones', () => {
  */
 const SITIO_DEL_WORKFLOW = '.github/workflows/frontend.yml';
 
+/**
+ * El workflow, leido como YAML (issue 63): lo que se mira son sus DATOS —`on`, `jobs`, los pasos de
+ * cada trabajo en su orden—, y no sus lineas. Hasta el issue 63 se quitaban los comentarios a mano y
+ * se cortaba cada trabajo por su sangria: medido al portarlo de `rentas`, con
+ * `yarn install --frozen-lockfile` cambiado por `yarn install` la prueba del candado seguia en VERDE,
+ * porque la cadena salia en los comentarios que explican el paso. Con el lector, un comentario no es un
+ * dato. Sin el archivo, el workflow sale vacio y NO una excepcion: leerlo a secas reventaria el
+ * modulo entero con un `ENOENT` durante la recoleccion, y el rojo hablaria de `readFileSync`.
+ */
+const RUTA_DEL_WORKFLOW = join(REPOSITORIO, SITIO_DEL_WORKFLOW);
+const LEIDO = leerElWorkflow(existsSync(RUTA_DEL_WORKFLOW) ? leer(RUTA_DEL_WORKFLOW) : '');
+const TRABAJOS = LEIDO.workflow.jobs ?? {};
+
+/** Los pasos de un trabajo, en su orden; ninguno si el trabajo no esta. */
+const pasosDe = (trabajo: Trabajo | undefined): readonly Paso[] => trabajo?.steps ?? [];
+
+/** El indice del paso que corre exactamente esa orden (una linea), o -1. */
+const pasoQueCorre = (trabajo: Trabajo | undefined, orden: string): number =>
+  pasosDe(trabajo).findIndex((paso) => paso.run?.trim() === orden);
+
+/** El paso que clona un repositorio en una ruta (`actions/checkout`). */
+const checkout = (trabajo: Trabajo | undefined, ruta: string): Paso | undefined =>
+  pasosDe(trabajo).find((paso) => paso.uses?.startsWith('actions/checkout@') === true && paso.with?.['path'] === ruta);
+
 describe('el frontend tiene su propia CI', () => {
-  const ruta = join(REPOSITORIO, SITIO_DEL_WORKFLOW);
-  const encontrado = existsSync(ruta) ? ruta : undefined;
+  const verificar = TRABAJOS['verificar'];
 
   it('el workflow esta instalado', () => {
     expect(
-      encontrado,
+      existsSync(RUTA_DEL_WORKFLOW) ? RUTA_DEL_WORKFLOW : undefined,
       `No hay workflow del frontend en «${SITIO_DEL_WORKFLOW}».\n` +
         'Sin el, «yarn verificar» solo se ejecuta en la maquina de quien lo escribe.',
     ).toBeDefined();
   });
 
-  // Sin el archivo, `workflow` es la cadena vacia y NO una excepcion. Leerlo a secas
-  // reventaba el modulo entero con un `ENOENT` durante la recoleccion: los doce casos de
-  // este archivo desaparecian y el rojo hablaba de `readFileSync`, no de la CI que falta.
-  //
-  // Y SIN COMENTARIOS, que es lo que esta copia anade a la de `rentas`. Medido al demostrar que
-  // mordia: con `yarn install --frozen-lockfile` cambiado por `yarn install` a secas, la prueba
-  // del candado seguia en VERDE, porque la cadena sale tambien en los comentarios que explican el
-  // paso. Un workflow que habla de lo que hace no puede contar como un workflow que lo hace.
-  const workflow = (encontrado === undefined ? '' : leer(encontrado))
-    .split('\n')
-    .filter((linea) => !linea.trim().startsWith('#'))
-    .join('\n');
+  it('EL CENTINELA: es YAML que se lee, y tiene un trabajo `verificar`', () => {
+    expect(LEIDO.error).toBeNull();
+    expect(verificar, 'No hay trabajo `verificar` en el workflow del frontend.').toBeDefined();
+  });
 
   it('se dispara solo con lo suyo', () => {
-    // Hoy todo el repositorio es `frontend/`, pero el filtro se pone desde el principio: el dia
-    // que entre otra cosa —documentacion, un arnes—, un cambio suyo no tiene por que gastar una
-    // instalacion de npm, y quitarlo sin querer es un cambio de una linea que nadie revisa.
-    expect(workflow).toMatch(/paths:\s*\[?"?frontend\/\*\*/);
+    // El filtro se pone desde el principio: el dia que entre otra cosa —documentacion, un arnes—, un
+    // cambio suyo no tiene por que gastar una instalacion de npm, y quitarlo sin querer es un cambio de
+    // una linea que nadie revisa.
+    for (const evento of ['push', 'pull_request']) {
+      expect(LEIDO.workflow.on?.[evento]?.paths, `on.${evento}.paths`).toContain('frontend/**');
+    }
   });
 
   it('el workflow es tambien lo suyo: un cambio en el se verifica a si mismo', () => {
-    expect(workflow).toMatch(/paths:\s*\[[^\]]*"\.github\/workflows\/frontend\.yml"/);
+    for (const evento of ['push', 'pull_request']) {
+      expect(LEIDO.workflow.on?.[evento]?.paths, `on.${evento}.paths`).toContain('.github/workflows/frontend.yml');
+    }
   });
 
   it('ejecuta la misma orden que se ejecuta en local', () => {
     // Si la CI corriera `yarn lint && yarn test` por su cuenta, «verde en CI» y «verde en
     // mi maquina» dejarian de ser la misma afirmacion en cuanto una de las dos cambie.
-    expect(workflow).toMatch(/^\s*run:\s*yarn verificar\s*$/m);
+    expect(pasoQueCorre(verificar, 'yarn verificar')).toBeGreaterThanOrEqual(0);
   });
 
-  it('instala con el candado, no con lo que haya hoy en el registro', () => {
-    expect(workflow).toMatch(/^\s*run:\s*yarn install --frozen-lockfile\s*$/m);
+  it('instala con el candado, no con lo que haya en el registro', () => {
+    expect(pasoQueCorre(verificar, 'yarn install --frozen-lockfile')).toBeGreaterThanOrEqual(0);
   });
 
   it('y construye el bundle, que `yarn verificar` no construye', () => {
-    expect(workflow).toMatch(/^\s*run:\s*yarn build\s*$/m);
+    expect(pasoQueCorre(verificar, 'yarn build')).toBeGreaterThan(pasoQueCorre(verificar, 'yarn verificar'));
   });
 
   it('y clona `kamayuk-lib` AL LADO, que es donde los `link:` lo buscan', () => {
     // Sin el hermano, `yarn install --frozen-lockfile` sale en verde igual (rentas#113) y el rojo
     // llega despues hablando de modulos. La ruta tiene que ser exactamente la del `link:`: con
     // `../../kamayuk-lib` desde `ciudadano/frontend`, el hermano cae en `kamayuk-lib`.
-    expect(workflow).toMatch(/^\s*repository:\s*hneyra\/kamayuk-lib\s*$/m);
-    expect(workflow).toMatch(/^\s*path:\s*kamayuk-lib\s*$/m);
-    expect(workflow).toMatch(/^\s*path:\s*ciudadano\s*$/m);
+    expect(checkout(verificar, 'kamayuk-lib')?.with?.['repository']).toBe('hneyra/kamayuk-lib');
+    expect(checkout(verificar, 'ciudadano')).toBeDefined();
   });
 });
 
@@ -196,15 +216,9 @@ describe('el frontend tiene su propia CI', () => {
  * repositorio: subir de version es escribir el SHA nuevo ahi, y lo dice `CLAUDE.md`.
  *
  * Los DOS trabajos clonan la libreria por su cuenta, asi que los dos tienen que leer el archivo y
- * pasarlo como `ref:`; de ahi `it.each` sobre los dos bloques, y no solo sobre uno.
+ * pasarlo como `ref:`; de ahi `it.each` sobre los dos trabajos, y no solo sobre uno.
  */
 describe('la libreria se clona en el SHA fijado, no en la punta de `main`', () => {
-  const ruta = join(REPOSITORIO, SITIO_DEL_WORKFLOW);
-  const workflow = (existsSync(ruta) ? leer(ruta) : '')
-    .split('\n')
-    .filter((linea) => !linea.trim().startsWith('#'))
-    .join('\n');
-
   const rutaSha = join(REPOSITORIO, 'KAMAYUK_LIB_SHA');
   const sha = existsSync(rutaSha) ? leer(rutaSha).trim() : '';
 
@@ -215,26 +229,33 @@ describe('la libreria se clona en el SHA fijado, no en la punta de `main`', () =
     ).toMatch(/^[0-9a-f]{40}$/);
   });
 
-  const bloques: Record<string, string> = {
-    verificar: workflow.match(/^ {2}verificar:\n((?: {4,}.*\n?|\s*\n)*)/m)?.[1] ?? '',
-    arnes: workflow.match(/^ {2}arnes:\n((?: {4,}.*\n?|\s*\n)*)/m)?.[1] ?? '',
-  };
+  const trabajos: ReadonlyArray<readonly [string, Trabajo | undefined]> = [
+    ['verificar', TRABAJOS['verificar']],
+    ['arnes', TRABAJOS['arnes']],
+  ];
+  /** El paso que lee el SHA: el que el checkout de la libreria nombra en su `ref:`. */
+  const pasoDelSha = (trabajo: Trabajo | undefined) => pasosDe(trabajo).find((paso) => paso.id === 'sha-de-kamayuk-lib');
 
-  it.each(Object.entries(bloques))('el trabajo `%s` existe', (_nombre, trabajo) => {
-    expect(trabajo, 'No hay trabajo con ese nombre en el workflow del frontend.').not.toBe('');
+  it.each(trabajos)('el trabajo `%s` existe', (_nombre, trabajo) => {
+    expect(trabajo, 'No hay trabajo con ese nombre en el workflow del frontend.').toBeDefined();
   });
 
-  it.each(Object.entries(bloques))(
-    'el trabajo `%s` lee `KAMAYUK_LIB_SHA` del checkout de este repositorio',
-    (_nombre, trabajo) => {
-      // La misma orden que escribe el workflow: leer el archivo YA CLONADO (el checkout de este
-      // repositorio va primero) y exponerlo como salida del paso, para que el checkout de la
-      // libreria —que viene despues— lo use en `ref:`.
-      expect(trabajo).toMatch(/^\s*sha="\$\(cat ciudadano\/KAMAYUK_LIB_SHA\)"\s*$/m);
-    },
-  );
+  it.each(trabajos)('el trabajo `%s` lee `KAMAYUK_LIB_SHA` del checkout de este repositorio', (_nombre, trabajo) => {
+    // La misma orden que escribe el workflow: leer el archivo YA CLONADO (el checkout de este
+    // repositorio va primero) y exponerlo como salida del paso, para que el checkout de la
+    // libreria —que viene despues— lo use en `ref:`.
+    expect(lineasDe(pasoDelSha(trabajo))).toContain('sha="$(cat ciudadano/KAMAYUK_LIB_SHA)"');
+    const pasos = pasosDe(trabajo);
+    const paso = pasoDelSha(trabajo);
+    expect(pasos.indexOf(checkout(trabajo, 'ciudadano') as Paso), 'el SHA se lee antes de clonar este repositorio').toBeLessThan(
+      pasos.indexOf(paso as Paso),
+    );
+    expect(pasos.indexOf(paso as Paso), 'la libreria se clona antes de leer su SHA').toBeLessThan(
+      pasos.indexOf(checkout(trabajo, 'kamayuk-lib') as Paso),
+    );
+  });
 
-  it.each(Object.entries(bloques))(
+  it.each(trabajos)(
     'y el trabajo `%s` VALIDA ese SHA antes de exponerlo, en vez de dejarlo pasar vacio',
     (_nombre, trabajo) => {
       // Ronda 1 del PR #65: `cat` sobre un archivo ausente o vacio no hace fallar la asignacion
@@ -244,22 +265,21 @@ describe('la libreria se clona en el SHA fijado, no en la punta de `main`', () =
       // `main` sin decirlo, el silencio exacto que este issue queria quitar. Sin esta linea, esa
       // rotura pasaba el centinela de arriba (que solo mira que el archivo `KAMAYUK_LIB_SHA`
       // exista en el REPOSITORIO) y solo se notaba mas tarde, con la libreria ya clonada.
-      expect(trabajo).toMatch(/^\s*if\s*!\s*\[\[\s*"\$sha"\s*=~\s*\^\[0-9a-f\]\{40\}\$\s*\]\];\s*then\s*$/m);
-      expect(trabajo).toMatch(/^\s*exit 1\s*$/m);
-      expect(trabajo).toMatch(/^\s*echo "sha=\$sha" >> "\$GITHUB_OUTPUT"\s*$/m);
+      const guion = lineasDe(pasoDelSha(trabajo));
+      const valida = guion.indexOf('if ! [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then');
+      const expone = guion.indexOf('echo "sha=$sha" >> "$GITHUB_OUTPUT"');
+      expect(valida, 'el paso no valida el SHA').toBeGreaterThanOrEqual(0);
+      expect(guion.slice(valida)).toContain('exit 1');
+      expect(expone, 'el paso expone el SHA antes de validarlo').toBeGreaterThan(guion.indexOf('exit 1', valida));
     },
   );
 
-  it.each(Object.entries(bloques))(
-    'y el trabajo `%s` clona `kamayuk-lib` en ESE SHA, con `ref:`',
-    (_nombre, trabajo) => {
-      // Esto es lo que se pone rojo si alguien vuelve a clonar sin `ref` — el defecto que el
-      // issue nombra. Medido quitando esta linea del workflow: «expected '  verificar:\n    …'
-      // not to match /^\s*ref:\s*\$\{\{\s*steps\.sha-de-kamayuk-lib…/» en los DOS trabajos, y con
-      // ella puesta en solo uno, en el otro.
-      expect(trabajo).toMatch(/^\s*ref:\s*\$\{\{\s*steps\.sha-de-kamayuk-lib\.outputs\.sha\s*\}\}\s*$/m);
-    },
-  );
+  it.each(trabajos)('y el trabajo `%s` clona `kamayuk-lib` en ESE SHA, con `ref:`', (_nombre, trabajo) => {
+    // Esto es lo que se pone rojo si alguien vuelve a clonar sin `ref` — el defecto que el
+    // issue nombra. Medido quitando esta linea del workflow: rojo en el trabajo tocado, y en el
+    // otro, que la seguia teniendo, verde.
+    expect(checkout(trabajo, 'kamayuk-lib')?.with?.['ref']).toBe('${{ steps.sha-de-kamayuk-lib.outputs.sha }}');
+  });
 });
 
 /**
@@ -271,35 +291,28 @@ describe('la libreria se clona en el SHA fijado, no en la punta de `main`', () =
  * falle— y de la configuracion, lo que hace que mida el bundle y no otra cosa.
  */
 describe('el arnes corre en la CI contra el bundle', () => {
-  const ruta = join(REPOSITORIO, SITIO_DEL_WORKFLOW);
-  const workflow = (existsSync(ruta) ? leer(ruta) : '')
-    .split('\n')
-    .filter((linea) => !linea.trim().startsWith('#'))
-    .join('\n');
-  // El bloque del trabajo: desde `  arnes:` hasta el siguiente trabajo (dos espacios y un nombre) o el final.
-  const trabajo = workflow.match(/^ {2}arnes:\n((?: {4,}.*\n?|\s*\n)*)/m)?.[1] ?? '';
+  const trabajo = TRABAJOS['arnes'];
   const config = existsSync(join(RAIZ, 'playwright.config.ts')) ? leer(join(RAIZ, 'playwright.config.ts')) : '';
   const scripts = JSON.parse(leer(join(RAIZ, 'package.json'))).scripts as Record<string, string>;
 
   it('EL CENTINELA: el workflow tiene un trabajo `arnes`', () => {
-    expect(trabajo, 'No hay trabajo `arnes` en el workflow del frontend.').not.toBe('');
+    expect(trabajo, 'No hay trabajo `arnes` en el workflow del frontend.').toBeDefined();
   });
 
   it('espera a `verificar` y tiene su tope de 20 minutos', () => {
-    expect(trabajo).toMatch(/^\s*needs:\s*verificar\s*$/m);
-    expect(trabajo).toMatch(/^\s*timeout-minutes:\s*20\s*$/m);
+    expect([trabajo?.needs].flat()).toContain('verificar');
+    expect(trabajo?.['timeout-minutes']).toBe(20);
   });
 
   it('con los dos clones hermanos y el candado', () => {
-    expect(trabajo).toMatch(/^\s*path:\s*ciudadano\s*$/m);
-    expect(trabajo).toMatch(/^\s*repository:\s*hneyra\/kamayuk-lib\s*$/m);
-    expect(trabajo).toMatch(/^\s*path:\s*kamayuk-lib\s*$/m);
-    expect(trabajo).toMatch(/^\s*run:\s*yarn install --frozen-lockfile\s*$/m);
+    expect(checkout(trabajo, 'ciudadano')).toBeDefined();
+    expect(checkout(trabajo, 'kamayuk-lib')?.with?.['repository']).toBe('hneyra/kamayuk-lib');
+    expect(pasoQueCorre(trabajo, 'yarn install --frozen-lockfile')).toBeGreaterThanOrEqual(0);
   });
 
   it('instala Chromium y corre el arnes, en ese orden', () => {
-    const navegador = trabajo.search(/^\s*run:\s*yarn e2e:navegador\s*$/m);
-    const arnes = trabajo.search(/^\s*run:\s*yarn e2e\s*$/m);
+    const navegador = pasoQueCorre(trabajo, 'yarn e2e:navegador');
+    const arnes = pasoQueCorre(trabajo, 'yarn e2e');
     expect(navegador, 'el trabajo no instala Chromium').toBeGreaterThanOrEqual(0);
     expect(arnes, 'el trabajo no corre `yarn e2e`').toBeGreaterThan(navegador);
   });
@@ -311,15 +324,16 @@ describe('el arnes corre en la CI contra el bundle', () => {
    * paso que instala la fuente tiene que estar, y ANTES de `yarn e2e`, que es quien la necesita.
    */
   it('instala una fuente compatible con Arial antes de correr el arnes', () => {
-    const fuentes = trabajo.search(/^\s*run:\s*sudo apt-get update && sudo apt-get install -y fonts-liberation\s*$/m);
-    const arnes = trabajo.search(/^\s*run:\s*yarn e2e\s*$/m);
+    const fuentes = pasoQueCorre(trabajo, 'sudo apt-get update && sudo apt-get install -y fonts-liberation');
+    const arnes = pasoQueCorre(trabajo, 'yarn e2e');
     expect(fuentes, 'el trabajo no instala `fonts-liberation`').toBeGreaterThanOrEqual(0);
     expect(arnes, 'el trabajo no corre `yarn e2e`').toBeGreaterThan(fuentes);
   });
 
   it('y sube el informe SIEMPRE, tambien cuando el arnes falla', () => {
-    expect(trabajo).toMatch(/uses:\s*actions\/upload-artifact@v\d+\s*\n\s*if:\s*always\(\)/);
-    expect(trabajo).toMatch(/^\s*path:\s*ciudadano\/frontend\/playwright-report\/\s*$/m);
+    const informe = pasosDe(trabajo).find((paso) => paso.uses?.startsWith('actions/upload-artifact@') === true);
+    expect(informe?.if).toBe('always()');
+    expect(informe?.with?.['path']).toBe('ciudadano/frontend/playwright-report/');
   });
 
   it('los dos guiones: `e2e` y `e2e:navegador`', () => {
