@@ -15,7 +15,7 @@ entra a su cuenta, paga con uno de cuatro medios y se lleva un comprobante que s
 >   simulado y se dice**: no hay endpoint de cobro, las dos ultimas pantallas lo avisan, no se ofrece
 >   ningun medio de pago, el comprobante es una vista de ejemplo y **la deuda no cambia**.
 >
-> Hoy, contra la plataforma local, la respuesta real es «no se pudo consultar»: `catastro` contesta 401
+> Contra la plataforma local, medida el 2026-09-16, la respuesta real es «no se pudo consultar»: `catastro` contesta 401
 > al token del ciudadano, asi que `rentas` no puede componer el total. Es backend, y de otros
 > repositorios.
 >
@@ -33,7 +33,7 @@ verificaciones y como se demostro que cada una muerde— esta en [`CLAUDE.md`](C
   `>=24` que exige `kamayuk-lib` en su `package.json`, lo comprueba
   `frontend/verificaciones/el-motor-es-uno-solo.test.ts` dentro de `yarn verificar`.
 - **`kamayuk-lib` clonado al lado de este repositorio, y en `main`**: `frontend/package.json` enlaza
-  `@kamayuk/{formato,ui,verificaciones}` con `link:../../kamayuk-lib/paquetes/*`. Sin el hermano,
+  `@kamayuk/{api,formato,sesion,ui,verificaciones}` con `link:../../kamayuk-lib/paquetes/*`. Sin el hermano,
   `yarn install` sale con codigo 0 igual y lo primero que se rompe lo dice nombrando el `git clone`.
 
 ```bash
@@ -53,7 +53,7 @@ nvm use                      # el motor sale del .nvmrc de aqui: Node 24
 yarn install                 # con ../../kamayuk-lib en su sitio
 yarn dev                     # http://localhost:5174/portal/ en modo demostracion
 yarn dev:con-plataforma      # lo mismo, leyendo de la plataforma (Keycloak + backend)
-yarn verificar               # lint, tipos, i18n y pruebas de vitest. Sin navegador
+yarn verificar               # lint, tipos, i18n, pruebas de vitest y las cifras de CLAUDE.md. Sin navegador
 yarn build                   # el bundle en dist/; FALLA si algun trozo de JavaScript pasa de 500 kB
 yarn e2e:navegador           # una vez: descarga el Chromium que pide la version de Playwright del yarn.lock
 yarn e2e                     # construye el bundle, lo sirve y lo recorre en Chromium (Playwright)
@@ -131,5 +131,5 @@ La referencia de diseno es `frontend/diseno/Ciudadano.dc.html`. Cada pantalla es
 
 El estado del recorrido vive en memoria: escribir `#/pagar` sin haber buscado lleva a `#/buscar` —o a
 `#/entrar`, con plataforma—. Y con plataforma, `#/buscar` y `#/identificar` no son alcanzables: el
-backend ya no ofrece buscar por documento (ADR-0020) y a quien entro con su cuenta no se le vuelve a
+backend no ofrece buscar por documento (infrastructure ADR-0020) y a quien entro con su cuenta no se le vuelve a
 preguntar quien es.

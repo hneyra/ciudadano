@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
  *
  *   · Sin `strict` y sus companeras, el compilador deja pasar el `undefined` que
  *     luego se muestra al ciudadano como «NaN».
- *   · Si `verificar` deja de encadenar uno de sus cuatro pasos, el PR sigue saliendo verde y ya
+ *   · Si `verificar` deja de encadenar uno de sus pasos, el PR sigue saliendo verde y ya
  *     no dice lo mismo. Es un cambio de una linea y nadie lo revisa dos veces.
  *   · Si el workflow pierde su filtro o su comando, la CI del frontend deja de existir sin
  *     que ningun archivo se borre.
@@ -100,12 +100,13 @@ describe('el compilador es tan estricto como el issue pide', () => {
   });
 });
 
-describe('«yarn verificar» encadena las cuatro comprobaciones', () => {
+describe('«yarn verificar» encadena sus comprobaciones', () => {
   const scripts = JSON.parse(leer(join(RAIZ, 'package.json'))).scripts as Record<string, string>;
 
   // `i18n` tambien: es `i18next-cli status`, el unico paso que dice que el codigo usa una clave que
-  // el locale no tiene. Fuera de la cadena, una frase nueva sin su entrada pasaria en verde.
-  it.each(['lint', 'typecheck', 'i18n', 'test'])('llama a «yarn %s»', (comprobacion) => {
+  // el locale no tiene. Fuera de la cadena, una frase nueva sin su entrada pasaria en verde. Y
+  // `cifras` (issue 64): fuera, una cifra de `CLAUDE.md` tocada a mano pasaria en verde.
+  it.each(['lint', 'typecheck', 'i18n', 'test', 'cifras'])('llama a «yarn %s»', (comprobacion) => {
     expect(
       scripts['verificar'],
       `«verificar» dejo de llamar a «${comprobacion}». Una cadena a la que le falta un\n` +
