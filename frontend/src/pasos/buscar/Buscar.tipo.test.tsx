@@ -7,7 +7,6 @@ import {
   marcado,
   montarElPortal,
   remendarJsdomParaElMenu,
-  plazosDelPortal,
 } from '../../pruebas/portal.tsx';
 
 /**
@@ -40,9 +39,6 @@ function abrirElTipo(nombre = 'Buscar por'): HTMLElement[] {
   expect(disparador).toHaveAttribute('aria-expanded', 'true');
   return screen.getAllByRole('option');
 }
-
-// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
-plazosDelPortal();
 
 describe('cambiar de tipo', () => {
   it('a «DNI» cambia etiqueta y placeholder, vacia el campo y quita el error', async () => {

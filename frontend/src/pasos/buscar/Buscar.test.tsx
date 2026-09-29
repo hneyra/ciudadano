@@ -2,7 +2,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest';
 
 import i18n, { IDIOMA_MARCADO } from '../../i18n/i18n.ts';
-import { limpiarElPortal, marcado, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
+import { limpiarElPortal, marcado, montarElPortal } from '../../pruebas/portal.tsx';
 
 /**
  * **Paso 1 · Buscar mi deuda**: los errores, la busqueda valida y los textos del artboard.
@@ -56,9 +56,6 @@ const AMNISTIA_RESTO =
 const principal = () => screen.getByRole('main');
 const botonBuscar = (nombre = 'Buscar mi deuda') => within(principal()).getByRole('button', { name: nombre });
 const campoNumero = (nombre = 'Código de contribuyente') => within(principal()).getByRole('textbox', { name: nombre });
-
-// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
-plazosDelPortal();
 
 describe('los errores de la busqueda', () => {
   it('vacio muestra el primero con `role="alert"`; `12a`, el segundo; y escribir lo borra', async () => {
@@ -178,18 +175,6 @@ describe('lo que la pantalla dice', () => {
     expect(amnistia.parentElement?.textContent).toBe(`${AMNISTIA_TITULO} ${AMNISTIA_RESTO}`);
     // Esta ahi desde que se abre la pagina: no es una region viva.
     expect(amnistia.parentElement).not.toHaveAttribute('role');
-  });
-
-  it('los tres controles miden al menos 44 px de alto', () => {
-    montarElPortal();
-    // jsdom no maqueta: se comprueba la clase aqui y la medida en el navegador (capturas del PR).
-    for (const control of [
-      within(principal()).getByRole('combobox', { name: 'Buscar por' }),
-      campoNumero(),
-      botonBuscar(),
-    ]) {
-      expect(control.className.split(/\s+/)).toContain('min-h-[44px]');
-    }
   });
 
   it('y todo pasa por `t()`: con el idioma marcado sale envuelto', async () => {

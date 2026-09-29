@@ -7,7 +7,7 @@ import { identidad } from '../../api/identidad.ts';
 import type { ObligacionDelContrato, SituacionDelContrato } from '../../datos/contrato.ts';
 import { LLAVES } from '../../datos/fuente.ts';
 import { crearFuenteDeLaPlataforma } from '../../datos/fuenteDeLaPlataforma.ts';
-import { limpiarElPortal, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
+import { limpiarElPortal, montarElPortal } from '../../pruebas/portal.tsx';
 
 /**
  * **Una sola verdad para lo que manda el servidor** (issue 50).
@@ -141,8 +141,6 @@ afterEach(async () => {
   vi.restoreAllMocks();
   await limpiarElPortal();
 });
-
-plazosDelPortal();
 
 describe('AC1 — mientras no hay respuesta, «consultando»; y ningun final antes de tenerla', () => {
   it('con deuda, «No le queda nada por pagar» no aparece NUNCA, ni hay un instante sin nada entre la espera y la lista', async () => {

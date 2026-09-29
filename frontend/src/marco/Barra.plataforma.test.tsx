@@ -9,7 +9,6 @@ import {
   limpiarElPortal,
   montarElPortal,
   remendarJsdomParaElMenu,
-  plazosDelPortal,
 } from '../pruebas/portal.tsx';
 
 /**
@@ -57,9 +56,6 @@ afterEach(async () => {
   vi.restoreAllMocks();
   await limpiarElPortal();
 });
-
-// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
-plazosDelPortal();
 
 describe('sin sesion', () => {
   it('«Iniciar sesión» va a la PUERTA, y no al paso «Mis datos»', async () => {

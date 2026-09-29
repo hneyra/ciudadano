@@ -4,6 +4,7 @@ import { join, relative } from 'node:path';
 import ts from 'typescript';
 
 import { RAIZ } from './artboards.ts';
+import { opcionesDelProyecto } from './compilador.ts';
 
 /**
  * **Donde se escribe texto en la pagina sin React**, juzgado por el ARBOL y con los TIPOS (issue 56,
@@ -160,18 +161,6 @@ export function fuentesDelPortal(): Fuente[] {
   return [...deSrc, ...guiones, ...html];
 }
 
-/** Las opciones del compilador del proyecto, mas JavaScript para `public/`. */
-function opciones(): ts.CompilerOptions {
-  const leido = ts.getParsedCommandLineOfConfigFile(join(RAIZ, 'tsconfig.json'), {}, {
-    ...ts.sys,
-    onUnRecoverableConfigFileDiagnostic: (d) => {
-      throw new Error(ts.flattenDiagnosticMessageText(d.messageText, '\n'));
-    },
-  });
-  if (leido === undefined) throw new Error('No se pudo leer tsconfig.json');
-  return { ...leido.options, allowJs: true, checkJs: false, noEmit: true };
-}
-
 /** Si el tipo es el de un nodo del DOM, o no se sabe cual es. */
 function esNodoONoSeSabe(tipo: ts.Type): boolean {
   if ((tipo.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) !== 0) return true;
@@ -258,7 +247,9 @@ function juzgar(arbol: ts.SourceFile, comprobador: ts.TypeChecker, fuente: Fuent
  */
 export function textoEnElDom(fuentes: readonly Fuente[]): Hallazgo[] {
   const virtuales = new Map(fuentes.filter((f) => f.codigo !== undefined).map((f) => [f.archivo, f.codigo as string]));
-  const anfitrion = ts.createCompilerHost(opciones(), true);
+  // Las opciones del compilador del proyecto, mas JavaScript para `public/`.
+  const opciones = opcionesDelProyecto({ allowJs: true, checkJs: false });
+  const anfitrion = ts.createCompilerHost(opciones, true);
   const leerOriginal = anfitrion.readFile.bind(anfitrion);
   const existeOriginal = anfitrion.fileExists.bind(anfitrion);
   anfitrion.readFile = (archivo) => virtuales.get(archivo) ?? leerOriginal(archivo);
@@ -266,7 +257,7 @@ export function textoEnElDom(fuentes: readonly Fuente[]): Hallazgo[] {
 
   const programa = ts.createProgram(
     fuentes.map((f) => f.archivo),
-    opciones(),
+    opciones,
     anfitrion,
   );
   const comprobador = programa.getTypeChecker();

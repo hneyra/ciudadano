@@ -9,7 +9,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { identidad } from '../../api/identidad.ts';
 import type { SituacionDelContrato } from '../../datos/contrato.ts';
 import { crearFuenteDeLaPlataforma } from '../../datos/fuenteDeLaPlataforma.ts';
-import { limpiarElPortal, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
+import { limpiarElPortal, montarElPortal } from '../../pruebas/portal.tsx';
 
 /**
  * **«Mis pagos» con plataforma: lo que SI hay, y lo que todavia no se publica** (issue 28).
@@ -114,9 +114,6 @@ afterEach(async () => {
   await limpiarElPortal();
 });
 
-// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
-plazosDelPortal();
-
 describe('«Pagos realizados» con plataforma', () => {
   it('dice que el portal todavia no publica el historial, y no lo llama averia', async () => {
     await enElHistorial();
@@ -132,7 +129,8 @@ describe('«Pagos realizados» con plataforma', () => {
    * **La tabla vacia tambien se desplaza, y sin un boton dentro** (issue 62). Con plataforma no hay
    * pagos: la tabla lleva solo su cabecera, de 760 px, y a 400 px se desplaza dentro de su marco sin
    * nada enfocable que deje al teclado llegar a ella (axe, `scrollable-region-focusable`, serious,
-   * medido en el arnes a 400 y 320 px). El marco entra en el tabulador como region con nombre.
+   * medido en el arnes a 400 y 320 px). El marco entra en el tabulador como region con nombre. Que
+   * desplace el marco y no la pagina lo mide `seVeBien` en `e2e/recorrido-con-plataforma.spec.ts`.
    */
   it('el marco que desplaza la tabla se enfoca con el teclado, aunque no haya ningun pago', async () => {
     await enElHistorial();
@@ -140,7 +138,6 @@ describe('«Pagos realizados» con plataforma', () => {
     const pagos = within(enMain().getByRole('region', { name: 'Pagos realizados' }));
     const marco = pagos.getByRole('region', { name: 'Tabla de los pagos realizados' });
     expect(marco).toHaveAttribute('tabindex', '0');
-    expect(marco.className).toContain('overflow-x-auto');
     expect(marco).toContainElement(pagos.getByRole('table'));
     expect(within(marco).queryAllByRole('button')).toEqual([]);
   });

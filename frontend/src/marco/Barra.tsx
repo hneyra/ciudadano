@@ -66,9 +66,9 @@ import { type EstadoDelRecorrido, laDemostracion } from '../recorrido/recorrido.
  */
 /**
  * «Iniciar sesión» a ≤ 880 px: sin relleno, 44×44 px y el icono en el centro. El texto va aparte, en
- * `sr-only` a esa anchura. Exportado para que `Barra.test.tsx` lo compare con lo que el boton lleva.
+ * `sr-only` a esa anchura. Que se vea asi lo mide el arnes en Chromium, a 880 y a 400 px.
  */
-export const ICONO_SOLO_EN_EL_CELULAR =
+const ICONO_SOLO_EN_EL_CELULAR =
   'max-[881px]:my-[6px] max-[881px]:size-[44px] max-[881px]:justify-center max-[881px]:gap-0 max-[881px]:px-0';
 
 /**

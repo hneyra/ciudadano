@@ -5,7 +5,6 @@ import {
   limpiarElPortal,
   montarElPortal,
   remendarJsdomParaElMenu,
-  plazosDelPortal,
 } from '../../pruebas/portal.tsx';
 
 /**
@@ -21,9 +20,6 @@ import {
 
 beforeAll(remendarJsdomParaElMenu);
 afterEach(limpiarElPortal);
-
-// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
-plazosDelPortal();
 
 describe('cerrar sesion desde el comprobante', () => {
   it('vuelve a buscar, y `#/comprobante` redirige a `#/buscar` sin ensenar el recibo', async () => {

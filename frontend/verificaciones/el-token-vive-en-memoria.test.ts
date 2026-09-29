@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative } from 'node:path';

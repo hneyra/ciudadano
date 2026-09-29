@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { type ReactNode, use } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { limpiarElPortal, montarElPortal, moverElNavegador, plazosDelPortal } from '../pruebas/portal.tsx';
+import { limpiarElPortal, montarElPortal, moverElNavegador } from '../pruebas/portal.tsx';
 
 /**
  * **Atras mientras el enrutador todavia no ha dibujado la ruta a la que acaba de ir** (issue 74).
@@ -41,8 +41,6 @@ afterEach(async () => {
   trampa.puerta = null;
   await limpiarElPortal();
 });
-
-plazosDelPortal();
 
 describe('atras antes de que el enrutador dibuje la ruta nueva', () => {
   it('el recorrido sigue a la URL aunque la ruta dibujada sea la misma de antes', async () => {

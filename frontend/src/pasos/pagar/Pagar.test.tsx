@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DEUDAS, MEDIOS, USUARIO } from '../../datos/demostracion.ts';
 import type { MedioDePago } from '../../datos/tipos.ts';
 import i18n, { ABRE, CIERRA, IDIOMA_MARCADO } from '../../i18n/i18n.ts';
-import { limpiarElPortal, marcado, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
+import { limpiarElPortal, marcado, montarElPortal } from '../../pruebas/portal.tsx';
 import type { EstadoDelRecorrido } from '../../recorrido/recorrido.ts';
 import { textosDelMedio } from './textosDeLosMedios.ts';
 
@@ -42,9 +42,6 @@ function totalDelResumen(rotulo: string): string {
 }
 
 const nombreDelMedio = (m: MedioDePago) => m.rotulo;
-
-// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
-plazosDelPortal();
 
 /**
  * **El selector de medio es un grupo de radios** (issue 62): la eleccion es exclusiva, y cuatro
@@ -462,38 +459,23 @@ describe('todo lo que se lee pasa por `t()`', () => {
 describe('las medidas del artboard', () => {
   const clases = (el: Element | null | undefined) => (el?.className ?? '').toString().split(/\s+/);
 
-  // `max-[821px]` y `max-[521px]`, y no `max-[820px]`/`max-[520px]`: Tailwind v4 emite `max-[820px]` como
-  // `width < 820px`, que a 820 px justos no aplica y el `max-width: 820px` del artboard si. Lo destapo
-  // el arnes (`e2e/se-ve.spec.ts`: «a 820 px el resumen tiene que ir ENCIMA de los medios»).
-  it('dos columnas que a ≤ 820 px son una con el resumen arriba y sin pegar; medios y bancos a una columna a ≤ 520 px', () => {
+  // Lo que cambia EN un corte —una columna a ≤ 820 px con el resumen arriba, el codigo a 31/24/21 px, medios y
+  // bancos a una columna a ≤ 520 px— lo mide `e2e/se-ve.spec.ts` («820: el resumen de pagar pasa arriba…») en
+  // Chromium, en el pixel del corte y en el de encima (issue 63). Aqui quedan las medidas que ninguna
+  // especificacion mide. `max-[821px]`, y no `max-[820px]`: Tailwind v4 emite `max-[820px]` como `width < 820px`,
+  // que a 820 px justos no aplica y el `max-width: 820px` del artboard si.
+  it('la rejilla de 320 px con 18 px de hueco, el resumen pegado a 14 px (suelto a ≤ 820 px), medios de 218 px y bancos de 186 px, el codigo en negrita espaciada', () => {
     montarElPortal({ hash: '#/pagar', estado: { ...EN_PAGAR, medio: 'banco' } });
 
     expect(clases(principal().querySelector('[data-pagar]'))).toEqual(
-      expect.arrayContaining([
-        'grid',
-        'grid-cols-[minmax(0,1fr)_minmax(0,320px)]',
-        'gap-[18px]',
-        'max-[821px]:grid-cols-[minmax(0,1fr)]',
-      ]),
+      expect.arrayContaining(['grid', 'grid-cols-[minmax(0,1fr)_minmax(0,320px)]', 'gap-[18px]']),
     );
     expect(clases(principal().querySelector('[data-resumen]'))).toEqual(
-      expect.arrayContaining(['sticky', 'top-[14px]', 'max-[821px]:static', 'max-[821px]:-order-1']),
+      expect.arrayContaining(['sticky', 'top-[14px]', 'max-[821px]:static']),
     );
-    expect(clases(principal().querySelector('[data-medios]'))).toEqual(
-      expect.arrayContaining(['grid-cols-[repeat(auto-fit,minmax(218px,1fr))]', 'max-[521px]:grid-cols-[minmax(0,1fr)]']),
-    );
-    expect(clases(principal().querySelector('[data-bancos]'))).toEqual(
-      expect.arrayContaining(['grid-cols-[repeat(auto-fit,minmax(186px,1fr))]', 'max-[521px]:grid-cols-[minmax(0,1fr)]']),
-    );
-    expect(clases(principal().querySelector('[data-codigo]'))).toEqual(
-      expect.arrayContaining([
-        'text-[31px]',
-        'font-bold',
-        'tracking-[0.1em]',
-        'max-[821px]:text-[24px]',
-        'max-[521px]:text-[21px]',
-      ]),
-    );
+    expect(clases(principal().querySelector('[data-medios]'))).toContain('grid-cols-[repeat(auto-fit,minmax(218px,1fr))]');
+    expect(clases(principal().querySelector('[data-bancos]'))).toContain('grid-cols-[repeat(auto-fit,minmax(186px,1fr))]');
+    expect(clases(principal().querySelector('[data-codigo]'))).toEqual(expect.arrayContaining(['font-bold', 'tracking-[0.1em]']));
   });
 
   it('el medio activo con filo de 2 px `azul` y papel `azul-suave`, su icono sobre `azul`; confirmar, verde de 48 px', () => {

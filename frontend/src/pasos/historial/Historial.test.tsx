@@ -5,7 +5,7 @@ import { DEUDAS, HISTORIAL, UNIDADES, USUARIO } from '../../datos/demostracion.t
 import type { FuenteDelPortal } from '../../datos/fuente.ts';
 import { LA_DEMOSTRACION } from '../../datos/fuenteDeDemostracion.ts';
 import i18n, { ABRE, CIERRA, IDIOMA_MARCADO } from '../../i18n/i18n.ts';
-import { limpiarElPortal, marcado, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
+import { limpiarElPortal, marcado, montarElPortal } from '../../pruebas/portal.tsx';
 import { type EstadoDelRecorrido, datosDeLaDemostracion } from '../../recorrido/recorrido.ts';
 import { textosDeLaUnidad, textosDelPago } from './textosDelHistorial.ts';
 
@@ -76,9 +76,6 @@ const LAS_CINCO_DEL_ARTBOARD = [
   ['04/12/2024', 'Arbitrios 2024 — cuotas 9 a 12', 'Ventanilla', '0003-0031044', '148.60', 'Comprobante'],
   ['22/02/2024', 'Impuesto predial 2024 — cuota 1', 'pagalo.pe', '0003-0028801', '460.65', 'Comprobante'],
 ];
-
-// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
-plazosDelPortal();
 
 describe('tras entrar y pagar los cuatro conceptos', () => {
   it('la banda «Pago de S/ 3,149.92 registrado hoy», 6 filas con la primera resaltada y «Sin deuda pendiente»', async () => {
@@ -474,23 +471,20 @@ describe('todo lo que se lee pasa por `t()`', () => {
 describe('las medidas del artboard', () => {
   const clases = (el: Element | null | undefined) => (el?.className ?? '').toString().split(/\s+/);
 
-  it('la tabla de pagos mide 760 px como minimo y se desplaza en su propio marco', async () => {
+  // Que la tabla desplace su marco y no la pagina lo mide `seVeBien` en «mis pagos» a 400 y 320 px, y los
+  // 36 px de los botones de cada fila, `lasAreasTactilesLleganA44` con la medida del artboard (issue 63).
+  it('la tabla de pagos mide 760 px como minimo', async () => {
     montarElPortal({ hash: '#/historial', estado: { paso: 'historial', autenticado: true } });
     await filasDePagos();
 
-    const tabla = seccion('Pagos realizados').querySelector('table');
-    expect(clases(tabla)).toContain('min-w-[760px]');
-    expect(clases(tabla?.parentElement)).toContain('overflow-x-auto');
+    expect(clases(seccion('Pagos realizados').querySelector('table'))).toContain('min-w-[760px]');
   });
 
-  it('los botones con el alto del artboard: 46 px los del pie de lo pendiente, 36 px los de cada fila', async () => {
+  it('«Pagar lo pendiente» con los 46 px de alto del artboard, y el total pendiente en negrita y `mal-tinta`', async () => {
     montarElPortal({ hash: '#/historial', estado: { paso: 'historial', autenticado: true } });
     await filasDePagos();
 
     expect(clases(enMain().getByRole('button', { name: 'Pagar lo pendiente' }))).toContain('min-h-[46px]');
-    for (const boton of within(seccion('Pagos realizados')).getAllByRole('button')) {
-      expect(clases(boton)).toContain('min-h-[36px]');
-    }
     expect(clases(seccion('Lo que queda pendiente').querySelector('[data-total-pendiente]'))).toEqual(
       expect.arrayContaining(['text-mal-tinta', 'font-bold', 'tabular-nums']),
     );

@@ -58,14 +58,14 @@ export default tseslint.config(
   {
     ignores: [
       '**/dist/**',
-      // Los otros dos paquetes que el arnes construye: el de produccion, que
-      // `e2e/la-demostracion-no-viaja-al-bundle.spec.ts` compara con el de demostracion (issue 27),
-      // y el CON PLATAFORMA, que el segundo servidor de `playwright.config.ts` sirve (issue 28).
-      // Los dos son bundles minificados en el disco: sin esto, `yarn lint` los linta y sale con
-      // miles de errores («'window' is not defined»), como paso con `playwright-report/`.
-      '**/dist-de-produccion/**',
+      // El otro paquete que el arnes construye: el CON PLATAFORMA, que el segundo servidor de
+      // `playwright.config.ts` sirve (issue 28) y que es el de produccion de todo el arnes (issue 63).
+      // Es un bundle minificado en el disco: sin esto, `yarn lint` lo linta y sale con miles de
+      // errores («'window' is not defined»), como paso con `playwright-report/`.
       '**/dist-con-plataforma/**',
-      // Y el que `e2e/el-dist-de-la-imagen-esta-limpio.spec.ts` construye como la imagen (issue 37).
+      // Y los dos que el arnes construia hasta el issue 63 (issues 27 y 37): una copia de trabajo de
+      // antes puede tenerlos en el disco.
+      '**/dist-de-produccion/**',
       '**/dist-de-la-imagen/**',
       '**/node_modules/**',
       // Lo que deja el arnes (issue 11): el informe HTML con el visor de trazas empaquetado, y las
@@ -73,6 +73,9 @@ export default tseslint.config(
       // un rojo, `yarn lint` —y con el `yarn verificar`— salia con «✖ 3965 problems».
       '**/playwright-report/**',
       '**/test-results/**',
+      // El directorio de trabajo de `yarn mutaciones` (issue 63): copias del arbol con el codigo mutado.
+      // Su informe (`reports/`) no hace falta: es `.html` y `.json`, que ESLint no lee.
+      '**/.stryker-tmp/**',
       '**/*.config.js',
       '**/*.config.ts',
       // El artboard es un prototipo de Claude Design, no codigo de este repositorio.

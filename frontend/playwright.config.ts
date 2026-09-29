@@ -94,7 +94,8 @@ export default defineConfig({
     // recorrido con plataforma tiene su propio servidor, el de abajo.
     //
     // Lo que esto NO deja de medir es que la demostracion se caiga del paquete de PRODUCCION:
-    // `e2e/la-demostracion-no-viaja-al-bundle.spec.ts` construye ese aparte y compara los dos.
+    // `e2e/la-demostracion-no-viaja-al-bundle.spec.ts` compara los dos, con el de produccion que
+    // construye el servidor de abajo.
     {
       command: `yarn build:arnes && yarn preview --port ${PUERTO} --strictPort`,
       url: URL_DEL_ARNES,
@@ -102,13 +103,20 @@ export default defineConfig({
       timeout: 120_000,
     },
     /**
-     * **El segundo: el paquete CON PLATAFORMA** (issue 28).
+     * **El segundo: el paquete CON PLATAFORMA** (issue 28), que es EL paquete de produccion del arnes
+     * (issue 63).
      *
      * `yarn build` a secas es el de produccion, y el de produccion **es** el modo plataforma: la
      * bandera `VITE_KAMAYUK_SIN_PLATAFORMA` solo enciende la demostracion en desarrollo
      * (`src/datos/laFuente.ts`). Se construye en otro directorio y se sirve en el puerto siguiente,
      * porque los dos paquetes tienen que estar a la vez: `la-demostracion-no-viaja-al-bundle` mide
      * el de demostracion y `recorrido-con-plataforma` el otro.
+     *
+     * **Se construye como la imagen**: la orden del `Dockerfile` (`yarn build`) con su bandera apagada
+     * (`env`). Asi este mismo paquete es el que leen `la-demostracion-no-viaja-al-bundle.spec.ts` y,
+     * sobre una copia, `el-dist-de-la-imagen-esta-limpio.spec.ts`, que hasta el issue 63 construian
+     * cada uno el suyo: cuatro `vite build` por corrida, y los tres de produccion identicos byte a byte
+     * (medido). Lo vigila `verificaciones/el-arnes-construye-produccion-una-vez.test.ts`.
      *
      * **El backend no se levanta**: lo pone la propia especificacion con `page.route` —el emisor de
      * identidad y `GET /portal/situacion`—, que es lo unico que deja recorrer esto en una CI donde
@@ -118,6 +126,7 @@ export default defineConfig({
       command:
         `yarn build --outDir ${DIST_CON_PLATAFORMA} && ` +
         `yarn preview --outDir ${DIST_CON_PLATAFORMA} --port ${PUERTO_CON_PLATAFORMA} --strictPort`,
+      env: { VITE_KAMAYUK_SIN_PLATAFORMA: 'false' },
       url: URL_CON_PLATAFORMA,
       reuseExistingServer: false,
       timeout: 120_000,

@@ -1,11 +1,12 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { expect, test } from '@playwright/test';
 
+import { DIST_CON_PLATAFORMA } from '../puerto-del-arnes.mjs';
 import { enQueArchivosEsta } from '../verificaciones/marcas-de-la-demostracion.ts';
 
 /**
@@ -16,6 +17,12 @@ import { enQueArchivosEsta } from '../verificaciones/marcas-de-la-demostracion.t
  * `VITE_KAMAYUK_SIN_PLATAFORMA=false`, `imagen/sin-mapas.sh` y `imagen/lo-servido-esta-limpio.sh`,
  * los mismos dos guiones que la imagen corre. Sin Docker, porque la suite no lo tiene; el `docker build`
  * lo repite dentro de la etapa que se publica, y esta en el PR del issue 37.
+ *
+ * El paquete es el que construye el segundo servidor del arnes (`dist-con-plataforma/`), con la orden y
+ * la bandera de la imagen (issue 63; hasta entonces este camino construia uno igual por su cuenta). Se
+ * trabaja sobre una COPIA: `sin-mapas.sh` borra, y el paquete servido lo recorre despues
+ * `recorrido-con-plataforma.spec.ts`. Que se lea ese y que se construya como la imagen lo vigila
+ * `verificaciones/el-arnes-construye-produccion-una-vez.test.ts`.
  *
  * Se queda en el arnes, y no en `yarn verificar`, por lo mismo que
  * `la-demostracion-no-viaja-al-bundle.spec.ts`: construye, y `yarn verificar` no construye nada a
@@ -31,26 +38,26 @@ import { enQueArchivosEsta } from '../verificaciones/marcas-de-la-demostracion.t
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const FRONTEND = join(AQUI, '..');
 
-/** Donde se construye. No se versiona (`.gitignore`), no entra en la imagen (`.dockerignore`) y se borra al acabar. */
-const DE_LA_IMAGEN = join(FRONTEND, 'dist-de-la-imagen');
+/** El paquete de produccion que sirve el arnes; se lee, y no se toca. */
+const DE_PRODUCCION = join(FRONTEND, DIST_CON_PLATAFORMA);
+
+/**
+ * La copia sobre la que se trabaja, fuera del arbol. Se crea en `beforeAll` y no al cargar el modulo:
+ * Playwright carga cada especificacion tambien para listarla, y ahi nadie la borraria.
+ */
+let deLaImagen = '';
 
 /** La lista de marcas, escrita como la escribe la etapa de construccion (issue 58). Fuera del dist. */
 const MARCAS = join(tmpdir(), `ciudadano-marcas-${String(process.pid)}.txt`);
 
 const comprobar = () =>
-  spawnSync('sh', [join(FRONTEND, 'imagen', 'lo-servido-esta-limpio.sh'), DE_LA_IMAGEN, FRONTEND, MARCAS], {
+  spawnSync('sh', [join(FRONTEND, 'imagen', 'lo-servido-esta-limpio.sh'), deLaImagen, FRONTEND, MARCAS], {
     encoding: 'utf8',
   });
 
 test.beforeAll(() => {
-  rmSync(DE_LA_IMAGEN, { recursive: true, force: true });
-  // La bandera, apagada como en el `ENV` del `Dockerfile`. `vite build` a secas ya la dejaria sin
-  // encender, pero lo que se mide es lo que la imagen hace, y la imagen la escribe.
-  execFileSync('npx', ['vite', 'build', '--outDir', DE_LA_IMAGEN], {
-    cwd: FRONTEND,
-    stdio: 'pipe',
-    env: { ...process.env, VITE_KAMAYUK_SIN_PLATAFORMA: 'false' },
-  });
+  deLaImagen = mkdtempSync(join(tmpdir(), 'ciudadano-dist-de-la-imagen-'));
+  cpSync(DE_PRODUCCION, deLaImagen, { recursive: true });
   // Y la lista de marcas, con el mismo generador que el `Dockerfile` (issue 58).
   writeFileSync(
     MARCAS,
@@ -59,12 +66,12 @@ test.beforeAll(() => {
 });
 
 test.afterAll(() => {
-  rmSync(DE_LA_IMAGEN, { recursive: true, force: true });
+  if (deLaImagen !== '') rmSync(deLaImagen, { recursive: true, force: true });
   rmSync(MARCAS, { force: true });
 });
 
 test('EL CENTINELA: recien construido, con sus mapas, el guion sale ROJO', () => {
-  const mapas = readdirSync(join(DE_LA_IMAGEN, 'assets')).filter((archivo) => archivo.endsWith('.map'));
+  const mapas = readdirSync(join(deLaImagen, 'assets')).filter((archivo) => archivo.endsWith('.map'));
   expect(mapas.length, '`vite build` ya no emite mapas: la mitad roja no mediria nada').toBeGreaterThan(0);
 
   const antes = comprobar();
@@ -73,7 +80,7 @@ test('EL CENTINELA: recien construido, con sus mapas, el guion sale ROJO', () =>
 });
 
 test('y despues de sin-mapas.sh, como en la imagen, sale limpio', () => {
-  execFileSync('sh', [join(FRONTEND, 'imagen', 'sin-mapas.sh'), DE_LA_IMAGEN], { stdio: 'pipe' });
+  execFileSync('sh', [join(FRONTEND, 'imagen', 'sin-mapas.sh'), deLaImagen], { stdio: 'pipe' });
 
   const despues = comprobar();
   expect(despues.stderr, 'el dist que la imagen publicaria no esta limpio').toBe('');
@@ -86,16 +93,16 @@ test('y despues de sin-mapas.sh, como en la imagen, sale limpio', () => {
 test('y lo que queda es un portal: la pagina, las senias, la vuelta del canje y sus trozos', () => {
   // Sin esto, «limpio» seria verde tambien sobre un directorio vacio.
   for (const archivo of ['index.html', 'configuracion.js', 'silencio.html']) {
-    expect(existsSync(join(DE_LA_IMAGEN, archivo)), `falta «${archivo}»`).toBe(true);
+    expect(existsSync(join(deLaImagen, archivo)), `falta «${archivo}»`).toBe(true);
   }
-  expect(readdirSync(join(DE_LA_IMAGEN, 'assets')).filter((archivo) => archivo.endsWith('.js')).length).toBeGreaterThan(10);
+  expect(readdirSync(join(deLaImagen, 'assets')).filter((archivo) => archivo.endsWith('.js')).length).toBeGreaterThan(10);
 });
 
 test('y no lleva ni una marca de los datos del artboard (issue 58)', () => {
   // La misma busqueda que `la-demostracion-no-viaja-al-bundle.spec.ts` hace sobre `yarn build`, aqui
   // sobre lo que la imagen publicaria. La mitad que demuestra que la busqueda encuentra lo que busca
   // —todas las marcas en el paquete de demostracion— esta alli.
-  const encontradas = enQueArchivosEsta(DE_LA_IMAGEN)
+  const encontradas = enQueArchivosEsta(deLaImagen)
     .filter(({ archivos }) => archivos.length > 0)
     .map(({ marca, archivos }) => `«${marca}» en ${archivos.join(', ')}`);
 

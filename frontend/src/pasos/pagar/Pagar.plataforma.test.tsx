@@ -8,7 +8,7 @@ import { CONTRIBUYENTE, DEUDAS, USUARIO } from '../../datos/demostracion.ts';
 import { crearFuenteDeLaPlataforma } from '../../datos/fuenteDeLaPlataforma.ts';
 import i18n, { IDIOMA_MARCADO } from '../../i18n/i18n.ts';
 import { FRASES_QUE_AFIRMAN, laDice, nombreDe } from '../../pruebas/frasesQueAfirman.ts';
-import { limpiarElPortal, marcado, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
+import { limpiarElPortal, marcado, montarElPortal } from '../../pruebas/portal.tsx';
 import { LA_DEMOSTRACION } from '../../datos/fuenteDeDemostracion.ts';
 import { datosDeLaDemostracion } from '../../recorrido/recorrido.ts';
 
@@ -129,9 +129,6 @@ afterEach(async () => {
   vi.restoreAllMocks();
   await limpiarElPortal();
 });
-
-// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
-plazosDelPortal();
 
 describe('AC4 — el paso 4, «Pagar»', () => {
   it('lleva el aviso de pago simulado, y el boton de confirmar lo repite', async () => {

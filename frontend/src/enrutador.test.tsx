@@ -1,7 +1,7 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { limpiarElPortal, montarElPortal, moverElNavegador, plazosDelPortal } from './pruebas/portal.tsx';
+import { limpiarElPortal, montarElPortal, moverElNavegador } from './pruebas/portal.tsx';
 
 /**
  * **Las rutas hash obedecen al recorrido**: lo que no es alcanzable redirige, con `replace`, al
@@ -12,9 +12,6 @@ import { limpiarElPortal, montarElPortal, moverElNavegador, plazosDelPortal } fr
  */
 
 afterEach(limpiarElPortal);
-
-// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
-plazosDelPortal();
 
 describe('entrar por hash', () => {
   it('`#/pagar` sin haber buscado redirige a `#/buscar`', async () => {

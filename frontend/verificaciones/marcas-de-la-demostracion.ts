@@ -114,7 +114,8 @@ function archivosDe(dist: string, desde = dist): readonly string[] {
 
 /**
  * **En que archivos de un paquete construido aparece cada marca.** Lo usan los caminos del arnes que
- * construyen: `e2e/la-demostracion-no-viaja-al-bundle.spec.ts` y `e2e/el-dist-de-la-imagen-esta-limpio.spec.ts`.
+ * miden los paquetes que el arnes sirve: `e2e/la-demostracion-no-viaja-al-bundle.spec.ts` y
+ * `e2e/el-dist-de-la-imagen-esta-limpio.spec.ts`.
  */
 export function enQueArchivosEsta(dist: string): readonly { marca: string; archivos: readonly string[] }[] {
   const contenidos = archivosDe(dist).map((archivo) => ({ archivo, texto: readFileSync(join(dist, archivo), 'utf8') }));

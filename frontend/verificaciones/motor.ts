@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import { destinoDelEnlace, enlacesDeclarados } from './enlace.ts';
 import { raizDelClon } from './remedio.mjs';
+import { trabajosDelWorkflow } from './workflow.ts';
 
 /**
  * **El motor de Node que este arbol promete, leido de los cuatro sitios que lo dicen** (issue 39).
@@ -83,21 +84,20 @@ export function elDelNvmrc(crudo: string, donde = 'frontend/.nvmrc'): Declaracio
 }
 
 /**
- * Cada `node-version` del workflow, uno por trabajo.
+ * Cada `node-version` del workflow, uno por paso que lo fija, leidos con un lector de YAML (issue 63).
  *
- * SIN COMENTARIOS, por lo que `andamiaje.test.ts` aprendio al demostrar que mordia: un workflow que
- * habla de lo que hace no puede contar como un workflow que lo hace. El comentario que explica de
- * donde sale el motor nombra el numero, y sin este filtro contaria como una declaracion mas — y
- * peor: seguiria contando el dia que el `node-version` de verdad cambiara.
+ * Se navega `jobs.<trabajo>.steps[*].with['node-version']`: lo que el workflow DICE, y no una linea
+ * que se le parezca. Hasta el issue 63 era una expresion regular por linea que tenia que saltarse los
+ * comentarios a mano, por lo que `andamiaje.test.ts` aprendio al demostrar que mordia: el comentario
+ * que explica de donde sale el motor nombra el numero. Con el lector, un comentario no es un dato.
  */
 export function losDelWorkflow(crudo: string, donde = SITIO_DEL_WORKFLOW): Declaracion[] {
-  const salida: Declaracion[] = [];
-  crudo.split('\n').forEach((linea, indice) => {
-    if (linea.trim().startsWith('#')) return;
-    const dicho = /^\s*node-version:\s*"?([^"\s#]+)"?\s*$/.exec(linea)?.[1];
-    if (dicho !== undefined) salida.push(declara(`${donde}:${indice + 1} → node-version`, dicho));
-  });
-  return salida;
+  return Object.entries(trabajosDelWorkflow(crudo)).flatMap(([nombre, trabajo]) =>
+    (trabajo.steps ?? []).flatMap((paso, indice) => {
+      const dicho = paso.with?.['node-version'];
+      return dicho === undefined ? [] : [declara(`${donde} → jobs.${nombre}.steps[${String(indice)}].with.node-version`, String(dicho))];
+    }),
+  );
 }
 
 /**

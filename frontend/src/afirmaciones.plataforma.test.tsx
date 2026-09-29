@@ -12,7 +12,7 @@ import { deLaSituacion } from './datos/deLaSituacion.ts';
 import { crearFuenteDeLaPlataforma } from './datos/fuenteDeLaPlataforma.ts';
 import { CON_PLATAFORMA } from './modo/modo.ts';
 import { FRASES_QUE_AFIRMAN, laDice, nombreDe } from './pruebas/frasesQueAfirman.ts';
-import { limpiarElPortal, montarElPortal, plazosDelPortal, remendarJsdomParaElMenu } from './pruebas/portal.tsx';
+import { limpiarElPortal, montarElPortal, remendarJsdomParaElMenu } from './pruebas/portal.tsx';
 import {
   type AccionDelRecorrido,
   type Paso,
@@ -275,9 +275,6 @@ afterEach(async () => {
   vi.restoreAllMocks();
   await limpiarElPortal();
 });
-
-// Monta el portal entero varias veces por caso: sus plazos, en `src/pruebas/portal.tsx`.
-plazosDelPortal();
 
 describe('con plataforma, ninguna frase de la lista llega al documento', () => {
   it.each(FINALES)('$nombre: en ningun paso alcanzable', async (final) => {

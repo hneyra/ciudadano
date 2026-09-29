@@ -1,18 +1,22 @@
 # Node: dependencias y bundle. Se instalan y se construyen; no se versionan.
 node_modules/
 dist/
-# El paquete de PRODUCCION que construye `e2e/la-demostracion-no-viaja-al-bundle.spec.ts` para
-# compararlo con el de demostracion que sirve el arnes (issue 27). Vive un camino y se borra.
-dist-de-produccion/
-# El paquete CON PLATAFORMA que sirve el segundo servidor del arnes (issue 28), para
-# `e2e/recorrido-con-plataforma.spec.ts`. Se construye en cada corrida.
+# El paquete CON PLATAFORMA que sirve el segundo servidor del arnes (issue 28), construido como la
+# imagen: es el de produccion que leen tambien `la-demostracion-no-viaja-al-bundle.spec.ts` y
+# `el-dist-de-la-imagen-esta-limpio.spec.ts` (issue 63). Se construye en cada corrida.
 dist-con-plataforma/
-# El paquete construido COMO LO CONSTRUYE LA IMAGEN que mide `e2e/el-dist-de-la-imagen-esta-limpio.spec.ts`
-# (issue 37): con la bandera apagada, sin mapas, y comprobado con el mismo guion. Vive un camino.
+# Los dos que esos caminos construian por su cuenta hasta el issue 63 (issues 27 y 37). Desde entonces
+# no se construyen, pero una copia de trabajo anterior puede tenerlos en el disco.
+dist-de-produccion/
 dist-de-la-imagen/
 
 # La cache de Vite: es de una maquina y de una corrida.
 .vite/
+
+# Lo que deja `yarn mutaciones` (issue 63): el directorio de trabajo de Stryker, que borra al acabar
+# salvo si se corta a medias, y su informe, que es de una corrida.
+.stryker-tmp/
+reports/
 
 # El arnes de Playwright, cuando llegue (como en `rentas`#107): ni el informe ni las trazas se
 # versionan, son de una corrida y en CI viajan como artefacto del trabajo.
