@@ -4,6 +4,7 @@ import { join, relative } from 'node:path';
 import ts from 'typescript';
 
 import { RAIZ } from './artboards.ts';
+import { opcionesDelProyecto } from './compilador.ts';
 
 /**
  * **Quien lee el modo —demostracion o plataforma— fuera del modulo que lo define** (issue 59).
@@ -143,17 +144,6 @@ export function archivoDeMuestra(ruta: string): Archivo {
   return { ruta, archivo: join(RAIZ, ruta) };
 }
 
-function opciones(): ts.CompilerOptions {
-  const leido = ts.getParsedCommandLineOfConfigFile(join(RAIZ, 'tsconfig.json'), {}, {
-    ...ts.sys,
-    onUnRecoverableConfigFileDiagnostic: (d) => {
-      throw new Error(ts.flattenDiagnosticMessageText(d.messageText, '\n'));
-    },
-  });
-  if (leido === undefined) throw new Error('No se pudo leer tsconfig.json');
-  return { ...leido.options, noEmit: true };
-}
-
 /** Si alguna declaracion del simbolo es una propiedad de una de las `VARIANTES`. */
 function esDeUnaVariante(simbolo: ts.Symbol | undefined): boolean {
   return (simbolo?.declarations ?? []).some((declaracion) => {
@@ -250,7 +240,7 @@ function juzgar(arbol: ts.SourceFile, comprobador: ts.TypeChecker, ruta: string)
 export function lecturasDelModo(archivos: readonly Archivo[]): Lectura[] {
   const programa = ts.createProgram(
     archivos.map((a) => a.archivo),
-    opciones(),
+    opcionesDelProyecto(),
   );
   const comprobador = programa.getTypeChecker();
   return archivos.flatMap(({ ruta, archivo }) => {

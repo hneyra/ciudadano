@@ -8,6 +8,8 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
+import { type Importacion, alcanzados, importacionesDe, importacionesDelCodigo, seCarga } from './grafo-de-imports.ts';
+
 /**
  * **La demostracion —la fuente y sus DATOS— es SOLO de desarrollo, y se puede comprobar sin construir**
  * (issues 27 y 58).
@@ -93,23 +95,25 @@ const ANDAMIAJE = 'src/pruebas/portal.tsx';
  */
 const ALCANZAN_LA_DEMOSTRACION: readonly string[] = [DEMOSTRACION];
 
+/** Los DATOS del artboard (issue 58) y la parte del locale que los traduce. */
+const DEMOSTRACION_DATOS = 'src/datos/demostracion.ts';
+const DATOS = [DEMOSTRACION_DATOS, 'src/i18n/locales/es.demostracion.json'] as const;
+
+/** Las marcas con que el arnes busca los datos en el paquete: importan los datos para sacarlas. */
+const MARCAS = 'verificaciones/marcas-de-la-demostracion.ts';
+
 /**
  * **Lo que un archivo IMPORTA**, y no lo que nombra.
  *
  * La diferencia es la guarda entera: nombrar la demostracion en prosa —para contar por que el
  * `import()` es dinamico, que es justo lo que hay que contar— no mete nada en el paquete; importarla,
- * si. Con una busqueda de texto a secas, esta guarda se pondria roja por sus propios comentarios y la
- * salida seria borrarlos.
- *
- * Coge las tres formas: `from '…'`, `import('…')` e `import '…'`.
+ * si. Desde el issue 63 lo dice el grafo de `import` del compilador (`grafo-de-imports.ts`): las dos
+ * comillas, `export … from`, `import()` y `require`, y el archivo al que de verdad lleva cada uno. La
+ * expresion regular de antes solo veia comillas simples. Un `import type` no cuenta: se borra al
+ * compilar y no carga nada.
  */
-function importaDe(texto: string): readonly string[] {
-  return [...texto.matchAll(/(?:from|import)\s*\(?\s*'([^']+)'/g)].map((coincidencia) => coincidencia[1] ?? '');
-}
-
-/** Si ese archivo importa algo cuyo especificador case con el patron. */
-function importa(ruta: string, patron: RegExp): boolean {
-  return importaDe(leer(ruta)).some((especificador) => patron.test(especificador));
+function importa(ruta: string, destino: string): boolean {
+  return importacionesDe(ruta).some((i) => seCarga(i) && i.archivo === destino);
 }
 
 /** Todos los `.ts`/`.tsx` bajo `src/`, con su ruta relativa al frontend. */
@@ -136,7 +140,7 @@ describe('AC1 — la fuente de demostracion existe y vive sola en su archivo', (
     // Era su sitio hasta este issue, y es el sitio que la mete en el paquete: `src/datos/fuente.ts`
     // lo importan las pantallas para `useHistorial` y compania. Nombrarla en su cabecera —para
     // contar donde se fue— no la mete en ningun sitio; importarla, si.
-    expect(importa('src/datos/fuente.ts', /fuenteDeDemostracion/)).toBe(false);
+    expect(importa('src/datos/fuente.ts', DEMOSTRACION)).toBe(false);
   });
 });
 
@@ -144,7 +148,7 @@ describe('AC1 — nada de produccion alcanza la fuente si no es por el `import()
   it('solo `laFuente.ts` la nombra, y ningun otro archivo de produccion', () => {
     const culpables = deProduccion.filter(
       (ruta) =>
-        ruta !== ELECCION && ruta !== DEMOSTRACION && ruta !== ANDAMIAJE && importa(ruta, /fuenteDeDemostracion/),
+        ruta !== ELECCION && ruta !== DEMOSTRACION && ruta !== ANDAMIAJE && importa(ruta, DEMOSTRACION),
     );
 
     expect(
@@ -160,21 +164,20 @@ describe('AC1 — nada de produccion alcanza la fuente si no es por el `import()
     // La excepcion de arriba vale lo que valga esto: `src/pruebas/portal.tsx` puede importarla
     // estaticamente porque no cuelga del arbol de `main.tsx`. Si un dia colgara, la demostracion
     // entraria en el paquete con el andamiaje detras.
-    const culpables = deProduccion.filter((ruta) => ruta !== ANDAMIAJE && importa(ruta, /pruebas\/portal/));
+    const culpables = deProduccion.filter((ruta) => ruta !== ANDAMIAJE && importa(ruta, ANDAMIAJE));
 
     expect(culpables, `Estos archivos de produccion importan \`${ANDAMIAJE}\`:\n  ${culpables.join('\n  ')}`).toEqual([]);
   });
 
   it('la nombra UNA vez, en un `import()` dinamico y no en un `import … from`', () => {
-    const eleccion = leer(ELECCION);
-
     // Un `import { fuenteDeDemostracion } from './fuenteDeDemostracion.ts'` mete el modulo en el
     // paquete pase lo que pase con la bandera: no hay condicion que pliegue un import estatico.
-    expect(
-      /from\s+'[^']*fuenteDeDemostracion/.test(eleccion),
-      '`laFuente.ts` importa la demostracion ESTATICAMENTE: entonces viaja al paquete siempre.',
-    ).toBe(false);
-    expect(eleccion.match(/import\('\.\/fuenteDeDemostracion\.ts'\)/g)).toHaveLength(1);
+    const formas = importacionesDe(ELECCION)
+      .filter((i) => i.archivo === DEMOSTRACION)
+      .map((i) => i.forma);
+    expect(formas, '`laFuente.ts` importa la demostracion ESTATICAMENTE: entonces viaja al paquete siempre.').toEqual([
+      'dinamica',
+    ]);
   });
 
   it('LAS DOS CONDICIONES SE LEEN AL CONSTRUIR, y van delante del `import()`', () => {
@@ -255,12 +258,9 @@ describe('AC1 — la bandera esta declarada, y dice lo mismo en los tres sitios 
 });
 
 describe('los DATOS del artboard: solo los alcanza la fuente de demostracion (issue 58)', () => {
-  it.each([
-    ['src/datos/demostracion.ts', /(^|\/)demostracion\.ts$/],
-    ['src/i18n/locales/es.demostracion.json', /(^|\/)es\.demostracion\.json$/],
-  ])('`%s` solo lo importa la fuente de demostracion', (datos, patron) => {
+  it.each(DATOS)('`%s` solo lo importa la fuente de demostracion', (datos) => {
     expect(existsSync(join(FRONTEND, datos)), `falta «${datos}»`).toBe(true);
-    const alcanzan = deProduccion.filter((ruta) => importa(ruta, patron)).sort((a, b) => a.localeCompare(b, 'es'));
+    const alcanzan = deProduccion.filter((ruta) => importa(ruta, datos)).sort((a, b) => a.localeCompare(b, 'es'));
 
     expect(
       alcanzan,
@@ -275,7 +275,67 @@ describe('los DATOS del artboard: solo los alcanza la fuente de demostracion (is
   it('y las marcas con que se busca en el paquete tampoco las importa nadie de produccion', () => {
     // `verificaciones/marcas-de-la-demostracion.ts` importa los datos para sacar de ellos lo que buscar;
     // desde `src/` meteria en el paquete justo lo que busca.
-    const culpables = deProduccion.filter((ruta) => importa(ruta, /marcas-de-la-demostracion/));
+    const culpables = deProduccion.filter((ruta) => importa(ruta, MARCAS));
     expect(culpables).toEqual([]);
+  });
+});
+
+/**
+ * **Desde la entrada del paquete, ni la fuente, ni sus datos, ni el andamiaje** (issue 63).
+ *
+ * Lo de arriba mira quien importa cada cosa DE PRIMERA MANO. Esto sigue el grafo entero desde
+ * `src/main.tsx` —lo que `index.html` carga—, como lo seguiria Rollup: los `import` estaticos, los
+ * `export … from` y los `import()`, que parten el paquete en trozos pero viajan todos. Menos UNO, el
+ * de `laFuente.ts` a la fuente de demostracion, que es el que las dos condiciones pliegan. Asi se ve
+ * tambien lo que llega por un modulo intermedio que las listas no nombran: un `.js` del arbol, un
+ * modulo de fuera de `src/`, un `export … from` de paso.
+ */
+describe('desde `src/main.tsx`, lo de la demostracion solo se alcanza por el `import()` plegable', () => {
+  const ENTRADA = 'src/main.tsx';
+  const esElPlegable = (i: Importacion, de: string) => de === ELECCION && i.archivo === DEMOSTRACION && i.forma === 'dinamica';
+  const LO_DE_LA_DEMOSTRACION = [DEMOSTRACION, ...DATOS, ANDAMIAJE, MARCAS];
+
+  it('EL CENTINELA: con ese `import()`, la fuente y sus datos SI se alcanzan, y por el', () => {
+    // La otra mitad: sin ella, «no se alcanza» seria verde con un grafo que no resolviera nada.
+    const todo = alcanzados([ENTRADA], seCarga);
+    for (const datos of [DEMOSTRACION, ...DATOS]) {
+      expect(todo.get(datos), `desde ${ENTRADA} no se llega a ${datos} ni por su \`import()\``).toContain(ELECCION);
+    }
+  });
+
+  it('y sin el, no se alcanza nada de ella: ni la fuente, ni sus datos, ni el andamiaje, ni las marcas', () => {
+    const alcanzado = alcanzados([ENTRADA], (i, de) => seCarga(i) && !esElPlegable(i, de));
+    const caminos = LO_DE_LA_DEMOSTRACION.flatMap((destino) => {
+      const camino = alcanzado.get(destino);
+      return camino === undefined ? [] : [camino.join(' → ')];
+    });
+
+    expect(
+      caminos,
+      'Esto llega al paquete por otro camino que el `import()` plegable de `laFuente.ts`:\n' +
+        `  ${caminos.join('\n  ')}\n\n` +
+        '  Viaja pase lo que pase con la bandera.',
+    ).toEqual([]);
+  });
+
+  it('EL CENTINELA del lector: las dos comillas, `export … from`, `import()`, `require`, y un `import type` que no carga', () => {
+    const leidas = importacionesDelCodigo(
+      [
+        'import { USUARIO } from "./demostracion.ts";',
+        "export { CONTRIBUYENTE } from './demostracion.ts';",
+        "const f = () => import('./fuenteDeDemostracion.ts');",
+        "const g = require('./demostracion.ts');",
+        "import type { LaDemostracion } from './tipos.ts';",
+        "// import { nada } from './comentario.ts';",
+      ].join('\n'),
+      'src/datos/sintetico.ts',
+    );
+    expect(leidas.map((i) => [i.forma, i.archivo, i.soloTipos])).toEqual([
+      ['estatica', DEMOSTRACION_DATOS, false],
+      ['reexporta', DEMOSTRACION_DATOS, false],
+      ['dinamica', DEMOSTRACION, false],
+      ['require', DEMOSTRACION_DATOS, false],
+      ['estatica', 'src/datos/tipos.ts', true],
+    ]);
   });
 });
