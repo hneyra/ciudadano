@@ -1,7 +1,7 @@
 import { type Page, expect, test } from '@playwright/test';
 
 import { URL_CON_PLATAFORMA } from '../puerto-del-arnes.mjs';
-import { principal, seVeBien } from './portal.ts';
+import { principal, seVeBien, seVeBienConElAviso, seVeBienConLaListaAbierta } from './portal.ts';
 
 /**
  * **AC6 — el recorrido CON PLATAFORMA, contra un backend falso que pone el propio arnes** (issue 28).
@@ -322,7 +322,14 @@ test.describe('el recorrido con plataforma', () => {
       await expect(page.getByRole('heading', { level: 1, name: 'Así se vería su comprobante' })).toBeVisible();
       await seVeBien(page, `el comprobante con plataforma a ${ancho} px`);
 
-      await page.getByRole('banner').getByRole('button', { name: /Rufina Medina Medina/ }).click();
+      // El menu de la sesion abierto, y el aviso que da una de sus opciones (issue 75).
+      const cuenta = page.getByRole('banner').getByRole('button', { name: /Rufina Medina Medina/ });
+      await seVeBienConLaListaAbierta(page, `el comprobante con plataforma a ${ancho} px, el menu de la sesion`, cuenta, 'menu');
+      await cuenta.click();
+      await page.getByRole('menuitem', { name: 'Cambiar mi clave' }).click();
+      await seVeBienConElAviso(page, `el comprobante con plataforma a ${ancho} px`, 'El portal todavía no permite cambiar la clave.');
+
+      await cuenta.click();
       await page.getByRole('menuitem', { name: 'Mis pagos' }).click();
       await expect(page.getByRole('heading', { level: 1, name: 'Mis pagos' })).toBeVisible();
       await expect(principal(page).getByText('Impuesto predial 2024')).toBeVisible();

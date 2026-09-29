@@ -126,7 +126,11 @@ export async function filasDe(tabla: Locator): Promise<string[][]> {
  * `sin-colores-propios.test.ts` es quien cierra ese hueco de verdad: un `font-family` a mano en
  * `src/` sale rojo ahi, en cualquier elemento, sin esperar a que el arnes lo recorra.
  */
-export async function seVeBien(pagina: Page, donde: string): Promise<void> {
+export async function seVeBien(
+  pagina: Page,
+  donde: string,
+  { zonas = ZONAS_DE_LA_PAGINA }: { readonly zonas?: string } = {},
+): Promise<void> {
   const medido = await pagina.evaluate(() => {
     const barra = document.querySelector('header');
     return {
@@ -144,23 +148,99 @@ export async function seVeBien(pagina: Page, donde: string): Promise<void> {
   expect(medido.letra, `${donde}: el cuerpo no DECLARA la fuente del tema («${medido.fuenteDelTema}»)`).toBe(
     medido.fuenteDelTema,
   );
-  await lasAreasTactilesLleganA44(pagina, donde);
+  await lasAreasTactilesLleganA44(pagina, donde, zonas);
   await axeNoEncuentraNadaGrave(pagina, donde);
 }
 
 /**
- * **Lo que axe encuentra `serious` o `critical` y se deja, uno a uno y con su porque** (issue 62).
+ * **Lo que se abre encima de la pagina tambien se ve bien** (issue 75): el menu de la sesion y la lista
+ * de un `Desplegable`. `seVeBien`, en cada paso, mide la pagina con todo cerrado; lo que se abre es
+ * otra pagina para axe —el `Select` de Radix oculta el resto con `aria-hidden`, y el menu modal lo
+ * ocultaba— y sus opciones son controles que el dedo toca.
  *
- * Vacio: en ningun paso de los dos modos, a ninguna de las anchuras que mide el arnes, queda nada
- * grave. Una entrada nueva aqui tiene que decir la regla, a que nodo se refiere (un trozo de su
- * `target`) y por que se admite; no se apaga ninguna regla entera (`disableRules`), porque eso la
+ *   1. Con el puntero encima del disparador, axe: el velo del hover de la barra es el del menu abierto,
+ *      y axe lee el `:hover` que el navegador aplica.
+ *   2. Abierta, `seVeBien` con las areas tactiles de SUS opciones: lo de debajo lo tapa la lista, y un
+ *      toque ahi la cierra.
+ *   3. Tab no saca el foco de la lista, y Escape la cierra y devuelve el foco a su disparador.
+ */
+export async function seVeBienConLaListaAbierta(
+  pagina: Page,
+  donde: string,
+  disparador: Locator,
+  rol: 'menu' | 'listbox',
+): Promise<void> {
+  await disparador.hover();
+  await axeNoEncuentraNadaGrave(pagina, `${donde}, con el puntero sobre el disparador`);
+
+  await disparador.click();
+  const lista = pagina.getByRole(rol);
+  await expect(lista, `${donde}: la lista no se abrio`).toBeVisible();
+  await seVeBien(pagina, `${donde}, con la lista abierta`, { zonas: `[role="${rol}"]` });
+
+  await pagina.keyboard.press('Tab');
+  await expect(lista, `${donde}: Tab cerro la lista`).toBeVisible();
+  expect(
+    await lista.evaluate((nodo) => nodo.contains(document.activeElement)),
+    `${donde}: Tab saco el foco de la lista abierta`,
+  ).toBe(true);
+
+  await pagina.keyboard.press('Escape');
+  await expect(lista, `${donde}: Escape no cerro la lista`).toHaveCount(0);
+  await expect(disparador, `${donde}: Escape no devolvio el foco al disparador`).toBeFocused();
+}
+
+/**
+ * **Un aviso a la vista tambien se ve bien** (issue 75). Los avisos (`avisar`, `sonner`) entran y se
+ * van solos a los cuatro segundos, asi que un `seVeBien` los alcanzaba solo si caian en su momento. Aqui
+ * se espera al aviso, se le pone el puntero encima —`sonner` para su reloj mientras tanto— y se mide con
+ * el entero a la vista; al acabar, tiene que seguir ahi, o axe no lo vio.
+ */
+export async function seVeBienConElAviso(pagina: Page, donde: string, texto: string): Promise<void> {
+  const aviso = pagina.locator('[data-sonner-toast]').filter({ hasText: texto });
+  await expect(aviso, `${donde}: el aviso «${texto}» no salio`).toBeVisible();
+  await aviso.hover();
+  await seVeBien(pagina, `${donde}, con el aviso «${texto}» a la vista`);
+  await expect(aviso, `${donde}: el aviso «${texto}» se fue antes de acabar de medir`).toBeVisible({ timeout: 0 });
+  await pagina.mouse.move(0, 0);
+}
+
+/**
+ * Mientras la lista de un `Desplegable` de `@kamayuk/ui` (el `Select` de Radix) esta abierta. Una
+ * admision con este `mientras` no vale con la lista cerrada, ni con otra cosa abierta.
+ */
+const CON_EL_DESPLEGABLE_ABIERTO = '[data-slot="desplegable-lista"][data-state="open"]';
+
+/**
+ * **Lo que axe encuentra `serious` o `critical` y se deja, uno a uno y con su porque** (issues 62 y 75).
+ *
+ * Una entrada tiene que decir la regla, a que nodo se refiere (un trozo de su `target`), por que se
+ * admite y, si solo se admite en un estado, `mientras`: un selector que tiene que encontrar algo en la
+ * pagina en el momento de pasar axe. No se apaga ninguna regla entera (`disableRules`), porque eso la
  * apagaria tambien donde si importa.
+ *
+ * **`aria-hidden-focus` con la lista del `Desplegable` abierta** (issue 75), en la barra, la franja,
+ * `main` y el pie. El `Select` de Radix es siempre modal: mientras la lista esta abierta, `hideOthers`
+ * pone `aria-hidden` al resto de la pagina, que sigue siendo enfocable. No se alcanza —el foco queda
+ * atrapado en la lista, Tab no sale y un toque fuera la cierra: lo mide `seVeBienConLaListaAbierta`—,
+ * pero axe no ve la trampa. `Select.Root` no tiene `modal`, y `Desplegable` no deja elegir: el arreglo
+ * (una lista que no oculte, o `inert` en vez de `aria-hidden`) es de `kamayuk-lib`, y no se toca desde
+ * aqui. El menu de la sesion, que si lo deja elegir, se abre no modal (`src/marco/Barra.tsx`) y no
+ * tiene entrada.
  */
 export const LO_GRAVE_QUE_SE_ADMITE: ReadonlyArray<{
   readonly regla: string;
   readonly nodo: string;
+  readonly mientras?: string;
   readonly porque: string;
-}> = [];
+}> = (['header', 'nav', 'main', 'footer'] as const).map((nodo) => ({
+  regla: 'aria-hidden-focus',
+  nodo,
+  mientras: CON_EL_DESPLEGABLE_ABIERTO,
+  porque:
+    'El `Select` de Radix (debajo de `Desplegable`) es siempre modal y oculta el resto con `aria-hidden`; ' +
+    'el foco no sale de la lista, y `Desplegable` no deja abrirla de otra forma (issue de `kamayuk-lib`).',
+}));
 
 /**
  * **axe, en cada paso** (issue 62): `@axe-core/playwright` con todas sus reglas —WCAG 2.x A y AA y
@@ -180,6 +260,11 @@ export async function axeNoEncuentraNadaGrave(pagina: Page, donde: string): Prom
     const finitas = document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity);
     await Promise.all(finitas.map((a) => a.finished.catch(() => undefined)));
   });
+  // Que admisiones valen AHORA: las que no dicen `mientras`, y las que si lo dicen y lo encuentran.
+  const vigentes = await pagina.evaluate(
+    (mientras) => mientras.map((selector) => selector === null || document.querySelector(selector) !== null),
+    LO_GRAVE_QUE_SE_ADMITE.map((a) => a.mientras ?? null),
+  );
   const { violations: violaciones } = await new AxeBuilder({ page: pagina }).analyze();
   const graves: string[] = [];
   for (const violacion of violaciones) {
@@ -188,9 +273,11 @@ export async function axeNoEncuentraNadaGrave(pagina: Page, donde: string): Prom
       const detalle = (nodo.failureSummary ?? '').replace(/\s+/g, ' ').trim();
       const linea = `${violacion.impact ?? '(sin impacto)'} ${violacion.id} en ${objetivo}: ${violacion.help} — ${detalle}`;
       const grave = violacion.impact === 'serious' || violacion.impact === 'critical';
-      const admitida = LO_GRAVE_QUE_SE_ADMITE.some((a) => a.regla === violacion.id && objetivo.includes(a.nodo));
+      const admitida = LO_GRAVE_QUE_SE_ADMITE.some(
+        (a, i) => vigentes[i] === true && a.regla === violacion.id && objetivo.includes(a.nodo),
+      );
       if (grave && !admitida) graves.push(linea);
-      else test.info().annotations.push({ type: `axe (${donde})`, description: linea });
+      else test.info().annotations.push({ type: `axe (${donde})`, description: `${admitida ? '(admitida) ' : ''}${linea}` });
     }
   }
   expect(graves, `${donde}: axe encuentra violaciones graves`).toEqual([]);
@@ -222,8 +309,14 @@ export const MAS_BAJOS_POR_EL_ARTBOARD: ReadonlyArray<{
 ];
 
 /**
- * **Cada control se toca en 44 × 44 px** (issue 62; WCAG 2.5.5), en la barra, la franja, `main` y el
- * pie.
+ * Donde se miden las areas tactiles con todo cerrado: la barra, la franja, `main` y el pie. Con una
+ * lista abierta encima se mide la lista (`seVeBienConLaListaAbierta`).
+ */
+const ZONAS_DE_LA_PAGINA = 'header, nav, main, footer';
+
+/**
+ * **Cada control se toca en 44 × 44 px** (issue 62; WCAG 2.5.5), dentro de `zonas`: con todo cerrado,
+ * la barra, la franja, `main` y el pie; con una lista abierta, sus opciones (issue 75).
  *
  * <h2>Se mide lo que toca el dedo, no la caja</h2>
  *
@@ -234,17 +327,20 @@ export const MAS_BAJOS_POR_EL_ARTBOARD: ReadonlyArray<{
  * vecino y sale rojo. Lo que no se ve —oculto, `sr-only`, dentro de `aria-hidden`— no se toca y no se
  * mide. Cada control se trae al centro de la vista antes de medirlo.
  */
-export async function lasAreasTactilesLleganA44(pagina: Page, donde: string): Promise<void> {
+export async function lasAreasTactilesLleganA44(pagina: Page, donde: string, zonas = ZONAS_DE_LA_PAGINA): Promise<void> {
   const excepciones = MAS_BAJOS_POR_EL_ARTBOARD.map((e) => ({ fuente: e.nombre.source, alto: e.alto, linea: e.linea }));
-  const cortos = await pagina.evaluate((excepciones) => {
+  const cortos = await pagina.evaluate(([excepciones, zonas]) => {
     const SELECTOR =
-      'button, a[href], input:not([type="hidden"]), select, textarea, [role="checkbox"], [role="radio"], [role="menuitem"]';
+      'button, a[href], input:not([type="hidden"]), select, textarea, [role="checkbox"], [role="radio"], [role="menuitem"], [role="option"]';
     const vistos = new Set<Element>();
     const salida: string[] = [];
     const nombreDe = (el: Element) => (el.getAttribute('aria-label') ?? el.textContent ?? '').replace(/\s+/g, ' ').trim();
     const describir = (el: Element | null) =>
       el === null ? '(nada)' : `<${el.tagName.toLowerCase()}> «${nombreDe(el).slice(0, 40)}»`;
-    for (const zona of document.querySelectorAll('header, nav, main, footer')) {
+    const lasZonas = document.querySelectorAll(zonas);
+    // Una zona que no esta no se mide en silencio: con la lista cerrada, sus opciones serian cero.
+    if (lasZonas.length === 0) return [`no hay nada que medir: ninguna zona «${zonas}» en la pagina`];
+    for (const zona of lasZonas) {
       for (const control of zona.querySelectorAll<HTMLElement>(SELECTOR)) {
         if (vistos.has(control)) continue;
         vistos.add(control);
@@ -284,7 +380,7 @@ export async function lasAreasTactilesLleganA44(pagina: Page, donde: string): Pr
     }
     window.scrollTo(0, 0);
     return salida;
-  }, excepciones);
+  }, [excepciones, zonas] as const);
   expect(cortos, `${donde}: controles con un area tactil de menos de 44 px`).toEqual([]);
 }
 
