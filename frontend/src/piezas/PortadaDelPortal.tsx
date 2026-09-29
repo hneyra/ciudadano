@@ -15,7 +15,7 @@ import { AvisoConFilo } from './AvisoConFilo.tsx';
  *
  * Son las dos piezas del paso 1 que **no** dependen de como se llegue a la deuda: «Qué puede hacer
  * aquí» (artboard, lineas 154-178) y el aviso de la amnistia (lineas 168-178 del bloque de abajo).
- * Estaban dentro de `src/pasos/buscar/Buscar.tsx`, que con plataforma ya no se dibuja: el primer
+ * Estaban dentro de `src/pasos/buscar/Buscar.tsx`, que con plataforma no se dibuja: el primer
  * paso es «Entrar». El issue pide que esa pantalla las CONSERVE, asi que viven aqui y las dos
  * pantallas las usan.
  *

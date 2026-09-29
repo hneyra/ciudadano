@@ -96,7 +96,7 @@ function importesEnPantalla(): string[] {
   return (principal().textContent ?? '').match(/S\/\s?[\d,]+\.\d{2}/g) ?? [];
 }
 
-/** Una respuesta del contrato con las ramas que la plataforma local todavia no produce. */
+/** Una respuesta del contrato con las ramas que la plataforma local no produjo al medir. */
 function respuesta(cambios: Partial<SituacionDelContrato>): SituacionDelContrato {
   return {
     tipoDocumento: 'DNI',
@@ -195,8 +195,8 @@ describe('AC5 — la respuesta MEDIDA de la plataforma local (no se pudo consult
       importesEnPantalla(),
       'Un total donde falto una municipalidad es una cifra plausible y equivocada.',
     ).toEqual([]);
-    // Y lo que NO se dice: que no figura en ningun padron. La medida trae `sinRegistros: true` y aun
-    // asi eso no se afirma, porque no se pudo comprobar (`deLaSituacion.ts`).
+    // Y lo que NO se dice: que no figura en ningun padron. La medida trae `sinRegistros: true` y, aun
+    // asi, eso no se afirma, porque no se pudo comprobar (`deLaSituacion.ts`).
     expect(enMain().queryByText(/No encontramos deuda a su nombre/)).toBeNull();
     expect(rutas).toEqual(['/portal/situacion']);
 

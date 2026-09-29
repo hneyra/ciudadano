@@ -71,7 +71,7 @@ export interface FuenteConPlataforma extends ConPlataforma, LoQueTodaFuenteSabe 
    *
    * Sin parametros a proposito: infrastructure ADR-0020 retiro `GET /portal/deuda?doc=` —era una enumeracion de
    * contribuyentes— y lo reemplazo por `GET /portal/situacion`, donde el sujeto sale del token. Por
-   * eso la fuente ya no ofrece «la deuda de este documento»: el servidor no lo ofrece.
+   * eso la fuente no ofrece «la deuda de este documento»: el servidor no lo ofrece.
    */
   readonly consulta: () => Promise<SituacionDelServidor>;
 }
@@ -115,7 +115,7 @@ const RAMA = 'portal';
  * otro sitio, renombrar una aqui dejaria aquel apuntando a una llave que nadie lee, y el sintoma no
  * seria un error sino un dato viejo.
  *
- * La de la situacion ya no lleva documento dentro: no hay dos consultas distintas que separar,
+ * La de la situacion no lleva documento dentro: no hay dos consultas distintas que separar,
  * porque el sujeto sale del token y hay uno solo por pestana.
  */
 export const LLAVES = {

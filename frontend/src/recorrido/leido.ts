@@ -32,7 +32,7 @@ export interface DatosLeidos {
   readonly demostracion: LaDemostracion | null;
 }
 
-/** Nada leido todavia: con plataforma, mientras la consulta no contesta con deuda. */
+/** Nada leido: con plataforma, mientras la consulta no contesta con deuda. */
 export const SIN_DATOS: DatosLeidos = { deudas: [], contribuyente: null, demostracion: null };
 
 /**
@@ -41,7 +41,7 @@ export const SIN_DATOS: DatosLeidos = { deudas: [], contribuyente: null, demostr
  *
  * Hasta el issue 58 esto era una constante escrita sobre `DEUDAS` y `CONTRIBUYENTE`, importados de
  * `demostracion.ts`: el reductor era uno de los archivos que metian los datos en el paquete de
- * produccion. Y hasta el issue 59 aceptaba `null` —«una demostracion sin datos»—: la fuente ya no
+ * produccion. Y hasta el issue 59 aceptaba `null` —«una demostracion sin datos»—: la fuente no
  * puede ser eso (`FuenteDelPortal` es una union por modo), asi que aqui tampoco.
  */
 export function datosDeLaDemostracion(demostracion: LaDemostracion): DatosLeidos {

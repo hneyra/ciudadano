@@ -303,7 +303,11 @@ operativo**, en pocas líneas y en presente, y cuando algo viene de `rentas` lo 
 (`rentas#113`): esa procedencia es la medición que se hizo. **La historia** —qué se midió, qué se probó
 y se descartó— va a un ADR de `docs/adr/` (issue 64), y el comentario lo enlaza por su ruta
 (`docs/adr/CIU-0001-la-raiz-de-la-api-escrita-una-vez.md`); `verificaciones/los-adr-citados-existen.test.ts`
-exige que el ADR citado exista y que cada ADR lo cite alguien.
+exige que el ADR citado exista y que cada ADR lo cite alguien. Y un comentario no dice «hoy», «todavía»,
+«ya no», «esta entrega», «por ahora», «de momento» ni «aún» en sentido de todavía: se queda falso al día
+siguiente sin que nada se ponga rojo. Lo vigila `verificaciones/sin-frases-temporales.test.ts` en todo
+`src/`, pruebas incluidas, con el analizador de TypeScript (las cadenas no cuentan) y exenciones por
+archivo y frase que caducan solas.
 
 ## Comandos
 

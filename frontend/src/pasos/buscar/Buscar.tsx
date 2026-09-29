@@ -115,7 +115,7 @@ export function Buscar() {
   const alEnviar = ({ tipoDeDocumento, numero }: ValoresDeLaBusqueda) => {
     despachar({ tipo: 'buscar', tipoDeDocumento, numero });
     // Lo que queda por pagar es la deuda viva, y no los cuatro del artboard (linea 1006): tras
-    // «Consultar otra deuda» lo pagado ya no esta pendiente (nota del revisor del issue 9). Buscar no
+    // «Consultar otra deuda» lo pagado deja de estar pendiente (nota del revisor del issue 9). Buscar no
     // cambia `pagadas`, asi que contarla antes de despachar da lo mismo que despues.
     const pendientes = vivas(estado).length;
     avisar(

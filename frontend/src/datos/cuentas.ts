@@ -106,7 +106,7 @@ export function totalDe(deuda: ConSaldo): Importe {
  * el «Importe S/» de cada fila del comprobante (artboard, linea 1308).
  *
  * El reajuste **no** se condona: la amnistia perdona el interes moratorio, y el reajuste es lo que
- * el tributo vale hoy.
+ * el tributo vale a la fecha del calculo.
  */
 export function conAmnistiaDe(deuda: ConSaldo): Importe {
   return sumarImportes([deuda.insoluto, deuda.reajuste ?? NADA, deuda.gastos]);

@@ -54,7 +54,7 @@ export const botonConContorno = cva('font-bold', {
 });
 
 /**
- * **El boton principal cuando todavia no hay nada que hacer** («Pagar» sin nada marcado, confirmar
+ * **El boton principal cuando no hay nada que hacer** («Pagar» sin nada marcado, confirmar
  * sin nada que pagar). Sigue siendo pulsable —avisa por que no—, asi que no es `disabled`: se pinta
  * con `--linea` y `--tinta-2` (5.49:1), y no blanco sobre `#BBB` (1.92:1) como el artboard.
  */

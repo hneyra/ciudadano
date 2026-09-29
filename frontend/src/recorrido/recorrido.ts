@@ -121,8 +121,8 @@ interface LoQueSeSella extends Cuenta {
    *
    * Los conceptos enteros y no sus ids (issue 50): con plataforma la lista es la de la cache de
    * consultas, y si una consulta posterior trae otra, un sello de ids quedaria apuntando a conceptos
-   * que ya no estan —el recibo perderia filas, o las cambiaria de importe—. El comprobante dice lo
-   * que se cobro, no lo que hoy dice el servidor.
+   * que desaparecieron —el recibo perderia filas, o las cambiaria de importe—. El comprobante dice lo
+   * que se cobro, no lo que el servidor diga despues.
    */
   readonly conceptos: readonly ConceptoDeDeuda[];
   /** A nombre de quien estaba esa deuda al pagar. Por lo mismo: no se vuelve a leer de la cache. */
@@ -312,7 +312,7 @@ export interface ComoEmpieza {
 /**
  * **El estado con que se abre el portal, segun de donde lea** (issue 28).
  *
- * Lo leido al empezar es lo que el modo tenga ya (`loLeidoDe`, sin respuesta todavia): con plataforma
+ * Lo leido al empezar es lo que el modo tenga ya (`loLeidoDe`, sin respuesta del servidor): con plataforma
  * no hay deuda que ensenar hasta que la consulta conteste, y la lista arranca **vacia** y sin ninguna
  * marca escrita —lo que llegue, llega marcado por omision (`marcadoPorOmision`)—.
  *
@@ -566,7 +566,7 @@ export function cuentaPorPagar(estado: EstadoDelRecorrido): Cuenta {
  * revisor del issue 7 lo corrige: «Iniciar sesión» abre «Mis datos» aunque no se haya buscado, y
  * sin nada que pagar ese «Pagar» quedaria vacio. Entonces se va al historial.
  *
- * Se pregunta sobre el estado de ANTES de entrar, sin sesion todavia: si no se busco, lo marcado por
+ * Se pregunta sobre el estado de ANTES de entrar, sin sesion: si no se busco, lo marcado por
  * omision no es un pago elegido y se va al historial, aunque con la sesion ya puesta `hayQuePagar` lo
  * daria por bueno (issue 10). Desde el historial, pagar es elegirlo en «Pagar lo pendiente».
  */
@@ -580,7 +580,7 @@ export function inicio(estado: EstadoDelRecorrido): Paso {
 }
 
 /**
- * A donde se envia el comprobante (artboard, linea 1027). `null`: aun no hay correo, «su correo».
+ * A donde se envia el comprobante (artboard, linea 1027). `null`: sin correo dado, «su correo».
  *
  * **Con la sesion del emisor no hay correo que decir**: el realm del ciudadano pone `tipo_documento`
  * y `numero_documento`, y ni el correo ni el codigo de contribuyente (`src/api/claims.ts`). Poner el
@@ -697,7 +697,7 @@ function desdeElPrincipio(estado: EstadoDelRecorrido): Alcanzado {
 }
 
 /**
- * **El progreso con la eleccion como quedo** (revision del PR #72): si al marcar o desmarcar ya no
+ * **El progreso con la eleccion como quedo** (revision del PR #72): si al marcar o desmarcar no
  * queda nada elegido, «Elegir qué pago» deja de estar hecho y pagar deja de estar alcanzado —la franja
  * y el boton Adelante llevaban a un «No hay nada que pagar.»—. «Mis datos» no depende de lo elegido
  * (el correo o la sesion siguen valiendo) y se queda. Volver a marcar no devuelve nada: a pagar se
@@ -795,7 +795,7 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
 
     case 'entrar':
       if (estado.paso !== 'identificar') return estado;
-      // `destinoAlEntrar` sobre `estado`, que aun no tiene sesion: ver su comentario.
+      // `destinoAlEntrar` sobre `estado`, el de antes de la sesion: ver su comentario.
       return { ...avanzar(estado, 'identificar', destinoAlEntrar(estado)), autenticado: true };
 
     case 'elegirMedio':
@@ -854,7 +854,7 @@ export function recorrido(estado: EstadoDelRecorrido, accion: AccionDelRecorrido
       //
       // Y por el mismo argumento (issue 49), todo lo que la persona tecleo o eligio: la tarjeta
       // (`valores`: numero, vencimiento, CVV), el correo, lo que busco y lo que marco. Con el recibo
-      // olvidado y la tarjeta todavia escrita en el paso 4, el equipo compartido seguia siendo un
+      // olvidado y la tarjeta escrita en el paso 4, el equipo compartido seguia siendo un
       // problema. `marcadas` queda VACIO y no con las cuatro marcas del artboard: esas no son una
       // eleccion de nadie (`hayQuePagar`), y tras cerrar sesion no hay nadie que haya elegido. Vacio
       // es «nadie decidio nada»: cada concepto vale lo de por omision (`estaMarcada`).

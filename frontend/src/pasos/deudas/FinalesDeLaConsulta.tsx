@@ -12,20 +12,20 @@ import { Bloque, Parrafo } from './piezas.tsx';
  * de la escalera, «no se pudo consultar», «sin registros» y «sin deuda». Lo que hay cuando hay deuda
  * esta en `LaConsulta.tsx`; por que se dibuja cada uno asi, en su cabecera.
  *
- * Los cinco van a `mb-[18px]` de lo que venga debajo; `Pidiendo` no lleva filo, porque todavia no
- * dice nada.
+ * Los cinco van a `mb-[18px]` de lo que venga debajo; `Pidiendo` no lleva filo, porque no dice
+ * nada.
  */
 
 const MARGEN = 'mb-[18px]';
 
 /**
- * Mientras la consulta viaja. Sin cifras y sin esqueleto de cifras: no hay ninguna todavia.
+ * Mientras la consulta viaja. Sin cifras y sin esqueleto de cifras: no ha llegado ninguna.
  *
  * **Se anuncia** (issue 62): es un `status`, region viva cortes, y lo que dice se lee sin mover el
  * foco. Hasta el issue 62 era una `section aria-busy` que nadie anunciaba. Y ya **sin `aria-busy`**:
  * con `aria-busy="true"` una tecnologia de apoyo puede retener lo que cambia dentro hasta que pase a
  * `false` (ARIA 1.2), y esta seccion no pasa a `false`, desaparece. Quien espera a que la pantalla
- * termine (`quieta`, en `src/afirmaciones.plataforma.test.tsx`) mira ademas que ya no se diga esto.
+ * termine (`quieta`, en `src/afirmaciones.plataforma.test.tsx`) mira ademas que esto deje de decirse.
  */
 export function Pidiendo() {
   const { t } = useTranslation();

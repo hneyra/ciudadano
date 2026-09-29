@@ -15,9 +15,9 @@ import { POLITICAS, type PoliticaDelModo } from './modo.ts';
  * **Cada politica se sostiene sola** (revision del PR #70): el primer paso de cada modo, con sesion y
  * sin ella, esta en su franja y se puede alcanzar; y con sesion no es `entrar`, que no se repite.
  *
- * Recorre TODAS las de `POLITICAS`, no las dos de hoy escritas a mano: un modo nuevo entra aqui solo.
+ * Recorre TODAS las de `POLITICAS`, no una lista escrita a mano: un modo nuevo entra aqui solo.
  * Es lo que evita que el enrutador redirija en circulo —`primerPaso` es a donde manda lo que no es
- * alcanzable (`ultimoAlcanzable`)— en un modo que nadie ha recorrido todavia.
+ * alcanzable (`ultimoAlcanzable`)— en un modo que nadie ha recorrido.
  */
 
 /** El estado de partida de una politica, sin nada leido, en su primer paso. */

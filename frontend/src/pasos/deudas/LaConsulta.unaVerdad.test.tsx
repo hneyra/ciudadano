@@ -198,7 +198,7 @@ describe('AC2 — una consulta repetida no vuelve a marcarlo todo', () => {
   it('una DISTINTA lo reconcilia: lo que sigue existiendo conserva su marca, lo nuevo llega marcado y lo que desaparecio se va', async () => {
     const { cliente } = clienteQueContesta(
       conDeuda(predial(2024, '1500.00'), predial(2025, '300.00'), predial(2026, '80.00')),
-      // 2025 ya no esta (se pago en la ventanilla); 2026 cambio de importe; 2023 aparece.
+      // 2025 desaparece (se pago en la ventanilla); 2026 cambio de importe; 2023 aparece.
       conDeuda(predial(2023, '40.00'), predial(2024, '1500.00'), predial(2026, '95.00')),
     );
     const { consultas } = montarEnElPaso2(cliente);
@@ -223,7 +223,7 @@ describe('AC2 — y el comprobante no cuelga de la lista', () => {
   it('otra respuesta despues de simular el pago no le quita filas al recibo, ni le cambia el nombre', async () => {
     const { cliente } = clienteQueContesta(
       conDeuda(predial(2024, '1500.00'), predial(2025, '300.00')),
-      // Despues, 2025 ya no esta y la municipalidad cambio el nombre del padron.
+      // Despues, 2025 desaparece y la municipalidad cambio el nombre del padron.
       {
         ...conDeuda(predial(2024, '1500.00')),
         municipalidades: conDeuda(predial(2024, '1500.00')).municipalidades.map((municipalidad) => ({
@@ -240,7 +240,7 @@ describe('AC2 — y el comprobante no cuelga de la lista', () => {
     await waitFor(() => expect(window.location.hash).toBe('#/comprobante'));
     expect(enMain().getByText('Impuesto predial 2025')).toBeInTheDocument();
 
-    // Aqui el paso 2 ya no esta montado, y el unico que sigue la llave es el recorrido, que no pide
+    // Aqui el paso 2 esta desmontado, y el unico que sigue la llave es el recorrido, que no pide
     // (`useLaSituacionSinPedir`): `refetchQueries` se salta las consultas apagadas. Se pide a mano.
     await act(async () => {
       await consultas.getQueryCache().find({ queryKey: LLAVES.situacion })?.fetch();
@@ -250,7 +250,7 @@ describe('AC2 — y el comprobante no cuelga de la lista', () => {
     });
     expect(consultas.getQueryData<{ deudas: unknown[] }>(LLAVES.situacion)?.deudas).toHaveLength(1);
 
-    // El recibo dice lo que se sello, no lo que hoy dice el servidor.
+    // El recibo dice lo que se sello, no lo que dice despues el servidor.
     expect(enMain().getByText('Impuesto predial 2024')).toBeInTheDocument();
     expect(enMain().getByText('Impuesto predial 2025')).toBeInTheDocument();
     expect(enMain().getByText('Suc. Rufina Medina Medina')).toBeInTheDocument();

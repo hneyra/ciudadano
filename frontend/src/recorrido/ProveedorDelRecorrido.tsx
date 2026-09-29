@@ -38,7 +38,7 @@ import {
  * conceptos y a nombre de quien estan (`DatosLeidos`) se LEEN en cada dibujo: los del artboard en
  * demostracion —los que aporta la fuente, `FuenteDelPortal.demostracion` (issue 58)—, y con plataforma lo que la cache de consultas tenga de `GET /portal/situacion`
  * (`useLaSituacionSinPedir`, que la sigue sin pedirla). Nada los copia: no hay efecto, ni accion
- * `situacionLeida`, ni un dibujo en que la respuesta ya llego y la lista todavia no.
+ * `situacionLeida`, ni un dibujo en que la respuesta llego y la lista no.
  *
  * Las acciones que necesitan la lista —marcar todo, confirmar el pago, entrar— la reciben **con la
  * accion**: `despachar` la envia junto con los datos que la persona tenia delante al pulsar, y el
@@ -116,12 +116,12 @@ export function ProveedorDelRecorrido({ children, inicial }: ProveedorDelRecorri
   const fuente = useLaFuente();
   const [decisiones, enviar] = useReducer(conLoLeido, inicial, (dado) =>
     // La politica, SIEMPRE de la fuente (revision del PR #70): lo que traiga `inicial` no la pisa, y
-    // el tipo ya no la deja traer.
+    // el tipo no la deja traer.
     decisionesDe({ ...(dado ?? estadoInicial(comoEmpiezaCon(fuente))), politica: politicaDe(fuente) }),
   );
   const datos = useLoLeido(fuente);
   // Cambia solo si cambia lo leido: en demostracion, nunca; con plataforma, cuando la cache trae una
-  // respuesta distinta. Un `despachar` que enviara datos viejos sellaria un pago que ya no se ve.
+  // respuesta distinta. Un `despachar` que enviara datos viejos sellaria un pago que no se ve.
   const despachar = useCallback((accion: AccionDelRecorrido) => enviar({ accion, datos }), [datos]);
   const estado = useMemo(() => ({ ...decisiones, ...datos }), [decisiones, datos]);
   // Sin memo, cada render del proveedor daria un objeto nuevo y volveria a dibujar a todos los que

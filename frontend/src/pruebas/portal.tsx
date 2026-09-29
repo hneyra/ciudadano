@@ -112,7 +112,7 @@ const montados: Enrutador[] = [];
  * El precio: un caso que se cuelga de verdad —un `findBy` que no llega nunca— tarda 5 s en salir rojo en
  * vez de 1, y uno que no acaba, 20 en vez de 5.
  *
- * Una cifra que ya no se usa: la primera version de este comentario anclaba los 20 s en «8.7 s de
+ * Una cifra descartada: la primera version de este comentario anclaba los 20 s en «8.7 s de
  * `Comprobante.sesion`, carga 15». Era lo que ese caso tardo en CADUCAR a 5 s en una corrida roja, no lo
  * que necesita para pasar; en la corrida verde de arriba tardo 3.6 s.
  */

@@ -32,7 +32,7 @@ import type {
  * campo, que se puede dibujar y que no, y **lo que no se puede sale `null`**.
  *
  * Y lo medido manda sobre el contrato: `diseno/medidas/situacion-2026-09-16.json` es la respuesta
- * real, con la rama que hoy contesta la plataforma (una municipalidad que no se pudo leer), y
+ * real, con la rama que contesto la plataforma al medir (una municipalidad que no se pudo leer), y
  * `deLaSituacion.test.ts` la lee del disco.
  *
  * <h2>Las cuatro decisiones, y por que</h2>
@@ -166,7 +166,7 @@ function unidadDe(obligacion: ObligacionDelContrato, predios: readonly PredioDel
  *
  * Y es, con todo eso, **una identidad del portal y no del servidor**: el orden de aparicion no es un
  * dato que la municipalidad haya publicado a proposito para distinguir sus multas, es la posicion en
- * la lista que hoy contesta. Si el dia de manana el servidor cambiara ese orden entre dos consultas
+ * la lista que contesta. Si el servidor cambiara ese orden entre dos consultas
  * —cosa que el contrato no promete que no vaya a pasar—, las gemelas podrian intercambiar sus
  * sufijos entre si; lo que no cambia es que sigan siendo dos ids distintos, y no el mismo id dos
  * veces. Lo correcto de verdad —un id opaco por obligacion, publicado por el servidor— es trabajo de

@@ -18,7 +18,7 @@ import { laBanda } from './vista.ts';
  *
  * La del artboard afirma tres hechos —«Pagó …», «Le enviamos el comprobante a …», «La deuda pagada
  * ya se descontó de su cuenta»— y con un pago simulado **no ocurrio ninguno**: no hubo cobro, no se
- * envio nada y la deuda esta donde estaba (el reductor ya no la da por pagada). Un aviso al lado no
+ * envio nada y la deuda esta donde estaba (el reductor no la da por pagada). Un aviso al lado no
  * arregla una afirmacion falsa en el cuerpo: quien la lee se va creyendo que pago.
  *
  * Asi que se dice en condicional y se niegan los tres, uno por uno. Y no va en verde de exito: no

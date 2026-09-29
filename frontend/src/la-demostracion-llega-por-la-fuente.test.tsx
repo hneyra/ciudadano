@@ -13,7 +13,7 @@ import { limpiarElPortal, montarElPortal, plazosDelPortal, remendarJsdomParaElMe
  * Hasta el issue 58 la barra, el paso 2, «Pagar», el comprobante y el reductor importaban los datos de
  * `demostracion.ts`, y «Buscar mi deuda» y «Mis datos» escribian el codigo y el DNI del contribuyente
  * como ejemplo: con eso, los datos del artboard viajaban en el paquete de produccion aunque la fuente de
- * demostracion se quedara fuera. Que ya no viajan lo mide el arnes sobre lo construido
+ * demostracion se quedara fuera. Que no viajan lo mide el arnes sobre lo construido
  * (`e2e/la-demostracion-no-viaja-al-bundle.spec.ts`); esto mide la otra mitad, la que se ve: **que cada
  * pantalla dice lo que le da la fuente, y no lo que tenga a mano**.
  *

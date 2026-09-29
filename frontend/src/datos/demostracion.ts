@@ -23,7 +23,7 @@ import type {
  * vendorizado, evalua esos literales y los compara campo a campo con lo de aqui.
  *
  * **Sin React y sin cuentas.** Aqui no se suma nada: los totales salen de `cuentas.ts`. Un total
- * escrito a mano en los datos cuadraria hoy y seguiria «cuadrando» el dia que se cambiara un
+ * escrito a mano en los datos cuadraria al escribirlo y seguiria «cuadrando» el dia que se cambiara un
  * sumando.
  *
  * <h2>Solo lo importa la fuente de demostracion (issue 58)</h2>

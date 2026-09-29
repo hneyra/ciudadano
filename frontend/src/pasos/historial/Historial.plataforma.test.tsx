@@ -12,11 +12,11 @@ import { crearFuenteDeLaPlataforma } from '../../datos/fuenteDeLaPlataforma.ts';
 import { limpiarElPortal, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
 
 /**
- * **«Mis pagos» con plataforma: lo que SI hay, y lo que todavia no se publica** (issue 28).
+ * **«Mis pagos» con plataforma: lo que SI hay, y lo que no se publica** (issue 28).
  *
  * El backend solo ofrece `GET /portal/situacion`: no hay endpoint de pagos del ciudadano ni de sus
  * unidades. Esta pantalla, entonces, ensena lo que la consulta trajo —lo pendiente y los predios— y
- * **dice** que el historial de pagos no se publica todavia, en vez de dibujar un error de averia que
+ * **dice** que el portal no publica el historial de pagos, en vez de dibujar un error de averia que
  * invita a insistir contra algo que no existe.
  *
  * Y lo pendiente se dibuja sin inventar: el contrato no trae vencimiento ni estado por concepto

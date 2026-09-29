@@ -44,7 +44,7 @@ import { quienEsDeLaDemostracion } from './vista.ts';
  *   `#BBB` (1.92:1): sigue siendo pulsable —avisa—, y lo que dice se tiene que leer (`botonApagado`).
  * · **La ayuda «Marque al menos un concepto…» (linea 298) solo sale si queda deuda.** En el artboard
  *   cuelga de `seleccion.vacio`, que tambien es cierto sin deuda viva, y saldria encima de «No le queda
- *   nada por pagar» pidiendo marcar lo que ya no existe.
+ *   nada por pagar» pidiendo marcar lo que no existe.
  * · **«Va a pagar los N conceptos» con un solo concepto vivo** dice «Va a pagar 1 concepto» (forma
  *   `_one`), y no «los 1 conceptos».
  * · Los colores que no son token, con su porque, en `verificaciones/la-paleta-cuadra-con-el-artboard.test.ts`.

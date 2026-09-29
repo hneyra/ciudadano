@@ -66,7 +66,7 @@ describe('entrar por hash', () => {
    * **La pantalla en blanco** (issue 61). El recorrido en el comprobante SIN pago sellado: el paso es
    * el de la URL, asi que hasta el issue 61 nadie redirigia —el efecto de la ruta solo actuaba cuando
    * cambiaba la URL, y `pasoAlcanzable` daba el comprobante por alcanzable por su posicion—, y
-   * `Comprobante` sin sello no dibuja nada: `main` vacio. Con las acciones de hoy no se llega aqui
+   * `Comprobante` sin sello no dibuja nada: `main` vacio. Con las acciones del reductor no se llega aqui
    * (solo `confirmarPago` pasa al comprobante, y siempre sella); es el estado que lo reproduce.
    */
   it('un paso que no es alcanzable aunque sea el del recorrido redirige, y no deja la pantalla en blanco', async () => {
@@ -87,8 +87,8 @@ describe('entrar por hash', () => {
 
 describe('atras y adelante del navegador', () => {
   /**
-   * **Cambio del issue 61.** Hasta entonces este caso decia lo contrario: «adelante ya no lleva al que
-   * dejo de ser alcanzable». Era el defecto: lo alcanzable se media por la posicion ACTUAL, asi que
+   * **Cambio del issue 61.** Hasta entonces este caso decia lo contrario: que adelante no llevaba al
+   * que dejo de ser alcanzable. Era el defecto: lo alcanzable se media por la posicion ACTUAL, asi que
    * volver atras a `#/buscar` dejaba `#/identificar` fuera, el enrutador lo reemplazaba y el boton
    * Adelante del navegador quedaba muerto. «Mis datos» se abrio con «Iniciar sesión»: es un paso
    * alcanzado, y adelante vuelve a el. Lo que NO se da por hecho es lo que nadie hizo (la franja).

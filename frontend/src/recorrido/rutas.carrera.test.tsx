@@ -13,7 +13,7 @@ import {
 import type { AccionDelRecorrido } from './recorrido.ts';
 
 /**
- * **La URL cambia otra vez mientras el recorrido todavia no ha dibujado el paso que siguio** (issue
+ * **La URL cambia otra vez antes de que el recorrido dibuje el paso que siguio** (issue
  * 74). Determinista: no depende de la carga, sino de PONER a proposito el cambio de URL en el hueco.
  *
  * `useLaUrlYElPaso` sigue a la URL despachando `irA`, y el dibujo con el paso nuevo llega DESPUES, en
