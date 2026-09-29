@@ -8,15 +8,15 @@ import { type CanjeSilencioso, type Silencio, silencio as silencioDelPortal } fr
  * **El arranque del portal: primero quien pregunta, y solo entonces quien dibuja** (issue 13).
  *
  * Sigue a `rentas/frontend/src/arranque.ts` y a `catastro/frontend/src/arranque.ts`, con **una
- * diferencia que es todo el sentido de esta entrega**: aqui NO se va a la puerta.
+ * diferencia que es todo su sentido**: aqui NO se va a la puerta.
  *
  * <h2>El montaje entra como ARGUMENTO, y eso se queda</h2>
  *
  * `arrancar(montar)` recibe el montaje en vez de que el montaje venga en la linea de abajo, porque
  * hay cosas que tienen que pasar **antes de que React monte** y la unica forma de que no puedan
- * colarse despues es que el montaje sea lo ultimo que esta funcion hace. Hoy es el canje del
- * codigo de autorizacion; manana sera otra. La forma aguanta el cambio; una linea suelta debajo,
- * no.
+ * colarse despues es que el montaje sea lo ultimo que esta funcion hace: el canje del codigo de
+ * autorizacion y, con plataforma, la pregunta silenciosa. La forma aguanta que se sumen mas; una
+ * linea suelta debajo, no.
  *
  * <h2>Lo que NO hace, y por que es la decision del issue</h2>
  *
@@ -24,8 +24,8 @@ import { type CanjeSilencioso, type Silencio, silencio as silencioDelPortal } fr
  * ensenar. **Este portal si tiene**: el recorrido entero funciona en modo demostracion, y quien
  * entra a mirar cuanto debe no puede encontrarse un formulario de Keycloak antes de haber visto
  * una pantalla. Asi que aqui no se llama a `entrar()` al arrancar, y por eso `yarn dev`, las
- * pruebas y el arnes siguen sin tocar la plataforma. Cuando el doble modo llegue (issue 15), lo
- * que decidira la ida es la bandera, no la ausencia de token.
+ * pruebas y el arnes no tocan la plataforma. Tampoco con plataforma (issue 27): a la puerta se va
+ * cuando alguien lo pide, con `entrar()`.
  *
  * Lo que si se hace **siempre** es canjear si volvemos: es barato —`canjearSiVuelve()` mira la
  * barra de direcciones y devuelve `sin-vuelta` sin tocar la red ni el almacenamiento cuando no hay
@@ -35,7 +35,7 @@ import { type CanjeSilencioso, type Silencio, silencio as silencioDelPortal } fr
  * <h2>Y desde el issue 35, con plataforma, se PREGUNTA en silencio</h2>
  *
  * El token vive solo en memoria, asi que recargar lo perdia y la persona tenia que volver a la
- * puerta. Ahora, si no se vuelve del emisor, no hay token, hay plataforma y no se acaba de salir,
+ * puerta. Si no se vuelve del emisor, no hay token, hay plataforma y no se acaba de salir,
  * se le pregunta al emisor desde un marco oculto con `prompt=none` si su sesion sigue viva
  * (`src/api/silencio.ts`): si lo esta, se monta ya identificado; si no, se monta anonimo y **sin ir
  * a ningun sitio**. Sigue sin irse a la puerta —la pagina no navega—, y en demostracion no se
@@ -51,10 +51,9 @@ import { type CanjeSilencioso, type Silencio, silencio as silencioDelPortal } fr
  *
  * <h2>Salvo cuando la persona dijo que no (issue 56)</h2>
  *
- * `?error=access_denied` es quien cancelo en el formulario: no es una averia, y hasta el issue 56
- * acababa en la misma pantalla de error, sin mas salida que recargar. Ahora se monta anonimo, con
- * «Entrar» a la vista, como el `login_required` del canje silencioso: la MISMA funcion
- * (`leerElError()`) decide los dos.
+ * `?error=access_denied` es quien cancelo en el formulario: no es una averia, y no acaba en la
+ * pantalla de error, que no tiene mas salida que recargar. Se monta anonimo, con «Entrar» a la vista,
+ * como el `login_required` del canje silencioso: la MISMA funcion (`leerElError()`) decide los dos.
  */
 
 /**
@@ -145,7 +144,7 @@ function hayQuePreguntar(conEmisor: boolean, volvio: boolean): boolean {
 /**
  * **El `?error=` de la barra, leido ANTES del canje** (issue 56): la libreria limpia la URL al
  * canjear y, al traducirlo, pierde el codigo —cualquier error que no conoce sale con el mismo
- * motivo—, asi que despues ya no se puede saber si fue `access_denied`.
+ * motivo—, asi que despues no se puede saber si fue `access_denied`.
  */
 function elErrorDeLaBarra(): string | null {
   // Solo el codigo: el `error_description` no se lee, porque no se ensena (revision del PR #66).
@@ -226,8 +225,8 @@ export async function arrancar(
 }
 
 /**
- * **Manda al formulario del emisor.** Lo llamara «Iniciar sesion» del marco cuando haya plataforma
- * (issue 16); hoy no lo llama nadie, y por eso el portal sigue arrancando en demostracion.
+ * **Manda al formulario del emisor.** Lo llaman, con plataforma, «Iniciar sesión» de la barra, «Entrar»
+ * del primer paso y el boton del peldano 401 de la consulta.
  *
  * Devuelve `null` cuando el navegador se va —que es el caso de siempre— y la falla cuando no se
  * pudo ni llegar al emisor, para que quien llama la explique en vez de dejar la pagina en blanco.
@@ -238,7 +237,7 @@ export function entrar(): Promise<FallaDeLaPuerta | null> {
 }
 
 /**
- * **Cierra la sesion aqui y en el emisor.** La usara el menu de la barra (issue 16).
+ * **Cierra la sesion aqui y en el emisor.** La usa «Cerrar sesión» del menu de la barra, con plataforma.
  *
  * Va con `id_token_hint`: sin el, la sesion del emisor sigue viva y el siguiente arranque entraria
  * solo con la misma cuenta sin que nadie teclee nada — en un equipo compartido, que es donde se

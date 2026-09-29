@@ -42,7 +42,7 @@ export function BandaSimulada({ pago }: { readonly pago: PagoSimulado }) {
 }
 
 /**
- * La banda verde de exito, que no se imprime (lineas 480-489 y 1276-1279). Solo con un pago
+ * La banda verde de exito, que no se imprime (lineas 480-488 y 1276-1278). Solo con un pago
  * registrado, que es el unico que dice con que se pago (issue 58). El visto es el `Icono` de
  * `@kamayuk/ui` (issue 60): el mismo trazo que el artboard, que antes se copiaba aqui a mano.
  */

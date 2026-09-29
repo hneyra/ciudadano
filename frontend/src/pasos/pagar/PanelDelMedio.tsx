@@ -10,7 +10,7 @@ import { ejemploSeTraduce } from './textosDeLosMedios.ts';
 import { pasosDelMedio } from './vista.ts';
 
 /**
- * **El panel del medio elegido** (artboard, lineas 380-449 y 1215-1244): sus campos, su codigo y sus
+ * **El panel del medio elegido** (artboard, lineas 381-446 y 1217-1238): sus campos, su codigo y sus
  * pasos, los bancos donde se paga, y el pie con el boton de confirmar. Solo en demostracion.
  *
  * · **Los campos** son `Etiqueta` + `Campo` con el `Rotulo` y las `MEDIDAS_DE_CONTROL` de «Mis datos»;

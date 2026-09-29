@@ -29,13 +29,12 @@ import { RAIZ } from './artboards.ts';
  *
  * <h2>Lo que NO mide, y por que</h2>
  *
- * Solo `src/pasos/` y `src/piezas/`, que es donde viven las pantallas. Fuera quedan archivos que hoy
- * pasan del tope y no son pantallas (medido en el issue 60): `src/recorrido/recorrido.ts` (el
- * reductor, 694), `src/datos/*` (el adaptador, 341; los tipos, 378; los datos del artboard copiados
- * literalmente, 390), `src/modo/modo.ts` (la politica, 315, que se lee entera o no se entiende) y
- * `src/marco/Barra.tsx` (el marco, no un paso, 324). Y por
+ * Solo `src/pasos/` y `src/piezas/`, que es donde viven las pantallas. Fuera quedan archivos que
+ * pasan del tope y no son pantallas: `src/recorrido/recorrido.ts` (el reductor), `src/datos/*` (el
+ * adaptador, los tipos, los datos del artboard copiados literalmente), `src/modo/modo.ts` (la
+ * politica, que se lee entera o no se entiende) y `src/marco/Barra.tsx` (el marco, no un paso). Y por
  * lo mismo se esquiva: un `vista.ts` o una pieza mudados fuera de estos dos directorios dejan de
- * contarse. Eso ya no es partir una pantalla, sino esconderla; si ocurre, la salida es sumar el
+ * contarse. Eso no es partir una pantalla, sino esconderla; si ocurre, la salida es sumar el
  * directorio aqui, no mover el archivo.
  *
  * <h2>Las excepciones</h2>
@@ -55,8 +54,7 @@ const DIRECTORIOS = ['src/pasos', 'src/piezas'] as const;
  * **Los archivos que pueden pasar del tope, y por que.** Crecer esta lista es una decision que se
  * justifica aqui, no un descuido.
  *
- * Hoy esta vacia: las seis pantallas que pasaban se partieron en el issue 60, y ninguna pieza nueva
- * llego a 300 (la mayor, `src/pasos/historial/vista.ts`, 246). Mientras se partian, cada una estuvo
+ * Las seis pantallas que pasaban se partieron en el issue 60. Mientras se partian, cada una estuvo
  * aqui y la guarda obligo a quitarla en el mismo commit en que bajo del tope.
  */
 const EXCEPCIONES: Readonly<Record<string, string>> = {};

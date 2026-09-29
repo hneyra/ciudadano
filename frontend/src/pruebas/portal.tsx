@@ -130,11 +130,11 @@ export function plazosDelPortal(): void {
 }
 
 /**
- * **Las seis pantallas, cargadas ANTES de montar nada** (issue 11).
+ * **Las pantallas, cargadas ANTES de montar nada** (issue 11).
  *
  * Desde que cada pantalla es un trozo del bundle (`src/pasos/pantallas.tsx`), el portal recien montado
  * dibuja el hueco de `Suspense` y la pantalla llega un turno despues. Las pruebas que preguntan
- * `getByRole` justo tras montar ya no la encontrarian, y esperar en cada una seria cambiar lo que
+ * `getByRole` justo tras montar no la encontrarian, y esperar en cada una seria cambiar lo que
  * miden. Precargadas, `lazy` las dibuja en el mismo render, como antes del reparto.
  *
  * AQUI, con `await` de nivel superior, y no en `vitest.setup.ts`: los `vi.mock` de una prueba (las de
@@ -351,7 +351,7 @@ export function oirAlNavegador(): EscuchaDelNavegador {
     };
     window.addEventListener('popstate', alMoverse);
   });
-  // El rechazo lo recibe quien espere `llego`; esto solo evita que, mientras nadie lo espera todavia,
+  // El rechazo lo recibe quien espere `llego`; esto solo evita que, mientras nadie lo espera,
   // Node lo cuente como un rechazo sin manejar.
   llego.catch(() => {});
   return { llego, dejarDeOir };

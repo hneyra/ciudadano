@@ -27,7 +27,7 @@ import { fuenteDeLaPlataforma } from './fuenteDeLaPlataforma.ts';
  * <h2>Y por que esto no vive en `arranque.ts`, que es donde `rentas` lo tiene</h2>
  *
  * Porque `arranque.ts` de este portal es lo que corre **antes de montar** y no puede arrastrar
- * React: importa `api/identidad.ts` y nada mas, a proposito (ver su cabecera). La eleccion de la
+ * React: importa solo lo de `src/api/` que canjea y pregunta al emisor (ver su cabecera). La eleccion de la
  * fuente, en cambio, termina en un valor que se le pasa a un contexto de React. Separadas, cada
  * una se prueba por lo suyo; juntas, la prueba del arranque tendria que cargar el arbol entero.
  */

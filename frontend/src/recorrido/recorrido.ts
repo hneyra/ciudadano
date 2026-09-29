@@ -33,7 +33,7 @@ import type { DatosLeidos } from './leido.ts';
  *
  * <h2>`pagadas` es la unica verdad sobre la deuda viva</h2>
  *
- * El artboard ya se corrigio una vez por esto (comentario de las lineas 931-934): cada pantalla
+ * El artboard ya se corrigio una vez por esto (comentario de las lineas 931-933): cada pantalla
  * deducia «que sigue siendo deuda» de `marcadas` con un criterio distinto, y acababan
  * contradiciendose. Aqui la deuda viva sale de UN selector, `vivas`, y de el cuelgan la seleccion,
  * el resumen del paso 2 y los pendientes del historial. Ninguna pantalla filtra `DEUDAS` por su cuenta.

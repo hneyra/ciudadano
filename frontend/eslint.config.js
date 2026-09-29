@@ -34,10 +34,9 @@ const EN_TODAS_PARTES = PROHIBICIONES.map(({ selector, message }) => ({ selector
  * Se derivan de los `salvo` en vez de escribirse: una excepcion escrita a mano se olvida de la
  * prohibicion que se anadio ayer, y la deja apagada en un directorio entero.
  *
- * **Hoy la lista sale vacia, y es correcto**: la unica prohibicion con excepcion es
- * `fetch-fuera-del-cliente`, y este portal no llama a `fetch` desde ningun sitio
- * (`SALVO_EN_ESTE_ARBOL` la situa en `[]`). El mecanismo se deja entero porque el dia que exista un
- * cliente, lo que cambia es ese dato y no este archivo.
+ * La unica prohibicion con excepcion es `fetch-fuera-del-cliente`, y `SALVO_EN_ESTE_ARBOL`
+ * (`eslint.prohibiciones.mjs`) la situa en `src/api/`, donde vive el cliente y el canje silencioso.
+ * Lo que cambia de un arbol a otro es ese dato, no este archivo.
  */
 const EXCEPCIONES = [...new Set(PROHIBICIONES.flatMap((p) => p.salvo ?? []))];
 

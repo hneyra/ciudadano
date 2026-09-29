@@ -173,7 +173,7 @@ function tipoConPropiedadDeUnaVariante(tipo: ts.Type, nombre: string): boolean {
 }
 
 /**
- * La `HERRAMIENTA` del modulo del modo que nombra el identificador, siguiendo los alias —`consultaDe`
+ * La herramienta del modulo del modo (`HERRAMIENTAS`) que nombra el identificador, siguiendo los alias —`consultaDe`
  * importada como `preguntar` sigue siendo `consultaDe`—, o `null` si no nombra ninguna.
  */
 function herramientaDe(nodo: ts.Identifier, comprobador: ts.TypeChecker): string | null {

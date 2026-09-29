@@ -14,8 +14,7 @@
 #     `rentas`: copias byte a byte de `src/` y de `diseno/`, el artboard pegado dentro de un `.js` y la
 #     captura del backend.
 #   · **No hay compose ni workflow de publicacion** que pasen el contexto con nombre: publicar y
-#     enrutar la imagen es de `infrastructure`, y la CI de la cuenta esta bloqueada. La orden que la
-#     construye esta en el `README.md`.
+#     enrutar la imagen es de `infrastructure`. La orden que la construye esta en el `README.md`.
 #
 # Se construye desde `frontend/`, con el clon hermano por contexto con nombre:
 #

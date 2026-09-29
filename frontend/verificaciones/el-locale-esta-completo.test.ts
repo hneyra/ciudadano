@@ -29,14 +29,13 @@ import { marcasDeLaDemostracion } from './marcas-de-la-demostracion.ts';
  * <h2>Lo que cambia respecto a `rentas`: de donde salen las claves</h2>
  *
  * En `rentas` la mayoria sale DERIVADA de las 40 definiciones de pantalla (`catalogo-de-claves.ts`)
- * y el resto es una lista de literales. Aqui no hay definiciones todavia: **todas son literales**,
- * las que el codigo escribe como `t('…')`. Que el codigo no use una clave que esta lista no tiene lo
- * dice `i18next-cli status` —`yarn i18n`, dentro de `yarn verificar`—; que la lista y el locale
- * cuadren, esta guarda. Cuando lleguen las pantallas con sus datos, la lista se derivara como alli.
+ * y el resto es una lista de literales. Aqui la mayoria son literales, las que el codigo escribe como
+ * `t('…')`. Que el codigo no use una clave que esta lista no tiene lo dice `i18next-cli status`
+ * —`yarn i18n`, dentro de `yarn verificar`—; que la lista y el locale cuadren, esta guarda.
  *
- * Y la primera ya llego (issue 8): los textos de los cuatro medios de pago viven en `MEDIOS` y la
- * pantalla los traduce con una variable, que `i18next-cli` no ve. Entran DERIVADOS de
- * `clavesDeLosMedios()` (`src/pasos/pagar/textosDeLosMedios.ts`), no copiados aqui.
+ * Lo que una pantalla traduce con una VARIABLE —los medios de pago (issue 8), la escalera de la API,
+ * lo que dice el emisor…— `i18next-cli` no lo ve, asi que entra DERIVADO de la tabla que lo guarda
+ * (`clavesDeLosMedios()`, `clavesDeLaEscalera()`, …), no copiado aqui.
  *
  * <h2>Dos archivos: lo que dice el portal, y lo que dicen los datos de la demostracion (issue 58)</h2>
  *
@@ -440,18 +439,16 @@ const LITERALES = [
   ...Object.keys(PLURALES_DEL_PASO_2),
   ...Object.keys(PLURALES_DE_LA_BUSQUEDA),
 
-  // Lo que dicen los medios de pago (issue 8) y los pagos y las unidades del historial (issue 10) ya
-  // no esta aqui: es de los datos de la demostracion, y va a su propio archivo (issue 58). Ver
+  // Lo que dicen los medios de pago (issue 8) y los pagos y las unidades del historial (issue 10) no
+  // va aqui: es de los datos de la demostracion, y va a su propio archivo (issue 58). Ver
   // `DE_LA_DEMOSTRACION`.
   // Lo que el ADAPTADOR escribe cuando el contrato no deja identificar la unidad (issue 26). La
   // pantalla las traduce con una variable —`unidad` es a veces el predio de verdad, que es dato—,
   // asi que `i18next-cli` no las ve.
   ...clavesDeLaUnidad(),
-  // Lo que dice la escalera de la API (issues 13 y 33), derivado de su tabla: los tres textos de
-  // cada uno de los NUEVE peldanos —los siete de siempre y los dos que trae kamayuk-lib#96,
-  // `conflicto` y `orden-no-admitido`—. La pantalla los traduce con una variable —la clave del
-  // peldano solo se sabe en ejecucion—, asi que `i18next-cli` no los ve y escribirlos aqui a mano
-  // dejaria el olvido sin rojo.
+  // Lo que dice la escalera de la API (issues 13, 33 y 34), derivado de su tabla: los tres textos de
+  // cada peldano. La pantalla los traduce con una variable —la clave del peldano solo se sabe en
+  // ejecucion—, asi que `i18next-cli` no los ve y escribirlos aqui a mano dejaria el olvido sin rojo.
   ...clavesDeLaEscalera(),
   // Lo que la vuelta del emisor —la normal y la silenciosa (issues 35 y 56)— puede llegar a decir, derivado de `TEXTOS_DEL_EMISOR`.
   // La pantalla lo traduce con una variable —el motivo solo se sabe en ejecucion—.
@@ -504,10 +501,9 @@ describe('el locale `es` esta completo y no se aparta', () => {
     expect(Object.keys(esperadoDeLaDemostracion), 'la lista no trae lo que dicen los pagos y las unidades').toEqual(
       expect.arrayContaining(['BCP con código', '8.20 m de frontis', 'Base imponible']),
     );
-    // Y la derivada de la escalera de la API (issues 13 y 33): si la tabla se vaciara, sus 27
-    // claves faltarian del locale sin que el resto de la lista lo notara. Las dos ultimas son las
-    // de los peldanos que trae kamayuk-lib#96: mientras ese PR siga abierto NINGUN fallo llega a
-    // ellos, asi que sin nombrarlos aqui sus seis frases podrian caerse de la tabla en verde.
+    // Y la derivada de la escalera de la API (issues 13 y 33): si la tabla se vaciara, sus claves
+    // faltarian del locale sin que el resto de la lista lo notara. Las dos ultimas son las de los
+    // peldanos del 409 y del orden no admitido, que la unica consulta del portal no provoca.
     expect(Object.keys(esperado), 'la lista no trae lo que dice la escalera').toEqual(
       expect.arrayContaining([
         'Su sesión ya no está abierta',

@@ -6,10 +6,10 @@ import type { FalloDelEmisor } from './api/emisor.ts';
 /**
  * **La pantalla de «no se pudo abrir su sesion»** (issue 13).
  *
- * Es la unica pantalla que esta entrega anade, y **no se ve en ningun recorrido**: solo aparece
- * cuando el portal vuelve del emisor de identidad y el canje falla. Sin esta prueba no la ejercita
- * nadie — ni las 427 del recorrido, ni el arnes, que corren en demostracion y nunca vuelven de
- * ningun sitio—, y una pantalla que no dibuja nadie se rompe sin que nada lo diga.
+ * **No se ve en el recorrido de todos los dias**: solo aparece cuando el portal vuelve del emisor de
+ * identidad y el canje falla, o cuando falla la pregunta silenciosa del arranque. Las pruebas del
+ * recorrido corren en demostracion y nunca vuelven de ningun sitio; aqui se mide la pantalla sola, y
+ * en el navegador la recorre `e2e/recorrido-con-plataforma.spec.ts`.
  *
  * `vi.mock` del arranque y no una vuelta de verdad: lo que se mide aqui es la pantalla. Que la
  * vuelta fallida se detecte y se guarde lo mide `src/arranque.test.ts`, con la barra de direcciones

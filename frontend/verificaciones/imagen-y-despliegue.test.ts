@@ -21,9 +21,9 @@ import { describe, expect, it } from 'vitest';
  *   · **Todo 404 sale sin cache** y por UN sitio (`error_page 404 @no_existe`), no solo el de los
  *     activos: el issue pide «sin cachear errores», y un 404 que se guarda es un 404 que sobrevive al
  *     arreglo.
- *   · **Aqui no hay compose, ni descriptor, ni workflow de publicacion**: eso vive en `infrastructure`
- *     y la CI de la cuenta esta bloqueada. Quien pasa el contexto con nombre hoy es la orden del
- *     `README.md`, y es contra ella contra lo que se cruza el nombre.
+ *   · **Aqui no hay compose, ni descriptor, ni workflow de publicacion**: eso vive en `infrastructure`.
+ *     Quien pasa el contexto con nombre es la orden del `README.md`, y es contra ella contra lo que se
+ *     cruza el nombre.
  *
  * <h2>Lo que NO puede vigilar, y por eso no se finge aqui</h2>
  *

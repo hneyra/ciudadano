@@ -56,20 +56,19 @@ const { PROHIBICIONES: DEL_PRODUCTO, REGLAS_EXIGIDAS: EXIGIDAS } = await delProd
 /**
  * Donde `fetch` es legitimo AQUI: **en `src/api/` y en ningun otro sitio** (issue 13).
  *
- * Hasta el issue 13 la lista estaba **vacia**, y era correcto: el portal era solo demostracion, sus
- * datos salian de `src/datos/` y no habia nada a lo que pedir. Ese dia llego, y lo que cambia es
- * este dato y no `eslint.config.js`, que es para lo que el mecanismo se dejo entero.
+ * Hasta el issue 13 la lista estaba **vacia**: el portal era solo demostracion y no habia nada a lo
+ * que pedir. Lo que cambio fue este dato y no `eslint.config.js`, que es para lo que el mecanismo se
+ * dejo entero.
  *
  * El prefijo es el mismo que en `rentas`, y por el mismo motivo: ahi viven el cliente HTTP y la
  * puerta PKCE. Que sea **UNO** es lo que sostiene todo lo que se enchufa en el —el token, el
  * `problem+json`, la clave de idempotencia—: un `fetch` suelto en una pantalla no se salta una
  * convencion, se salta las tres.
  *
- * Y aqui la excepcion es mas fina de lo que parece: los archivos de `src/api/` **tampoco** llaman a
- * `fetch`. Lo hace `@kamayuk/api` dentro del clon hermano, que tiene su propia excepcion alla. La
- * lista se pone igual porque es donde la llamada tendria su sitio si algun dia hiciera falta, y
- * porque sin ella una pantalla podria colarla en `src/api/` con el mismo rojo que en cualquier otro
- * directorio — o sea, ninguna diferencia entre el sitio pensado y el resto.
+ * Las peticiones a la API las hace `@kamayuk/api` dentro del clon hermano, que tiene su propia
+ * excepcion alla. En `src/api/` hay UN `fetch`, el canje silencioso contra el endpoint de token del
+ * emisor (`src/api/silencio.ts`, issue 35), y `verificaciones/camino-a-la-api.test.ts` exige que sea
+ * el unico.
  *
  * @type {readonly string[]}
  */

@@ -19,17 +19,11 @@ import {
  * pasaria si este archivo se quedara corto: un peldano sin entrada saldria `undefined`, o —peor, si
  * alguien lo «arreglara» con un respaldo— mandaria a un ciudadano a avisar a soporte.
  *
- * <h2>Nueve claves de la libreria, y la enlazada puede distinguir solo siete</h2>
+ * <h2>Las nueve claves de la libreria, medidas</h2>
  *
- * `conflicto` y `orden-no-admitido` los trae kamayuk-lib#96, que se mezcla **pareado** con la rama
- * de este issue. Mientras ese PR siga abierto, la libreria enlazada aqui manda el 409 a `averia` y
- * el 422 `ORDEN_NO_ADMITIDO` a `no-valido`, y **afirmarlo distinto seria afirmar un hecho que no
- * ocurre**.
- *
- * Por eso `DISTINGUIDAS` se **mide** llamando a `peldanoDe`, y no se escribe: lo que depende de la
- * libreria se comprueba sobre lo que la libreria da hoy, y lo que es decision del portal —los
- * textos, que esten todos, que ninguno hable como la ventanilla— se comprueba sobre todos.
- * Asi este archivo dice la verdad a los dos lados del pareado y no hay que tocarlo cuando #96 entre.
+ * `DISTINGUIDAS` se **mide** llamando a `peldanoDe`, y no se escribe: lo que depende de la libreria
+ * se comprueba sobre lo que la libreria enlazada da, y lo que es decision del portal —los textos,
+ * que esten todos, que ninguno hable como la ventanilla— se comprueba sobre todos.
  *
  * <h2>Y una decima que no dara ninguna libreria: `respuesta-ilegible` (issue 34)</h2>
  *
@@ -46,16 +40,9 @@ const falloDeLaApi = (estado: number, codigo?: string, mensaje?: string) =>
     ...(mensaje === undefined ? {} : { mensaje }),
   });
 
-/**
- * Un fallo con miembros que la libreria ENLAZADA puede no declarar todavia.
- *
- * `incidencia`, `detalles` y `parametroQueFalta` entran en `CuerpoDeProblema` con kamayuk-lib#96.
- * Escribirlos en un literal tipado daria un rojo de compilacion con la libreria de hoy —y el rojo
- * seria del andamiaje, no del portal—, asi que el cuerpo se arma suelto y se afirma al entrar: lo
- * que se mide es que el portal no los ensena, y para eso basta con que viajen.
- */
-const falloConCuerpo = (estado: number, cuerpo: object) =>
-  new ErrorDeLaApi(estado, 'GET /portal/situacion', cuerpo as CuerpoDeProblema);
+/** Un fallo con el cuerpo entero del `problem+json`, `incidencia`, `detalles` y `parametroQueFalta` incluidos. */
+const falloConCuerpo = (estado: number, cuerpo: CuerpoDeProblema) =>
+  new ErrorDeLaApi(estado, 'GET /portal/situacion', cuerpo);
 
 /**
  * Una respuesta que no tiene la forma del contrato (issue 34), con un fallo de `zod` como el de
@@ -88,14 +75,6 @@ const UN_FALLO_POR_CLAVE: Readonly<Record<ClaveDelPeldano, unknown>> = {
 const CLAVES = Object.keys(UN_FALLO_POR_CLAVE) as readonly ClaveDelPeldano[];
 
 /**
- * Los dos peldanos que decide este portal ANTES de que la libreria los de (issue 33).
- *
- * Son los unicos que se admite que la libreria enlazada todavia no distinga. Cualquier otro que
- * falte es una clave inventada en la tabla del portal, y eso se pone rojo abajo.
- */
-const LOS_PAREADOS: readonly ClaveDelPeldano[] = ['conflicto', 'orden-no-admitido'];
-
-/**
  * Los peldanos que decide el portal y que **ninguna libreria dara nunca** (issue 34).
  *
  * `respuesta-ilegible` no sale de un codigo HTTP sino de la frontera de este portal: el servidor
@@ -104,7 +83,7 @@ const LOS_PAREADOS: readonly ClaveDelPeldano[] = ['conflicto', 'orden-no-admitid
  */
 const LAS_DEL_PORTAL: readonly ClaveDelPeldano[] = ['respuesta-ilegible'];
 
-/** Las claves que la libreria ENLAZADA distingue hoy. Medido, no escrito: ver la cabecera. */
+/** Las claves que la libreria ENLAZADA distingue. Medido, no escrito: ver la cabecera. */
 const DISTINGUIDAS = CLAVES.filter((clave) => peldanoDe(UN_FALLO_POR_CLAVE[clave]).clave === clave);
 
 /** El traductor de verdad, el que usarian las pantallas. */
@@ -123,16 +102,14 @@ describe('EL CENTINELA: la tabla cubre la escalera entera', () => {
     expect(caidas).toEqual(DISTINGUIDAS);
   });
 
-  it('y lo unico que la libreria enlazada puede no distinguir son los dos de kamayuk-lib#96 y los del portal', () => {
-    // El centinela del centinela. `DISTINGUIDAS` se mide, asi que una clave inventada en la tabla
-    // del portal —una que ningun fallo real produce— se caeria de la lista y las pruebas de arriba
-    // ni la mirarian: pasarian en verde sobre una entrada que no existe en ninguna escalera.
-    const pendientes = CLAVES.filter((clave) => !DISTINGUIDAS.includes(clave));
+  it('y lo unico que la libreria enlazada no distingue son los del portal', () => {
+    // El centinela del centinela, en los dos sentidos. `DISTINGUIDAS` se mide, asi que una clave
+    // inventada en la tabla del portal —una que ningun fallo real produce— se caeria de la lista y
+    // las pruebas de abajo ni la mirarian; y si la libreria dejara de dar uno de los suyos,
+    // `DISTINGUIDAS` encogeria sin ruido y media docena de pruebas dejarian de medir nada.
+    const sinDistinguir = CLAVES.filter((clave) => !DISTINGUIDAS.includes(clave));
 
-    expect(
-      pendientes.filter((clave) => !LOS_PAREADOS.includes(clave) && !LAS_DEL_PORTAL.includes(clave)),
-      'Hay peldanos en la tabla del portal que ninguna libreria produce',
-    ).toEqual([]);
+    expect(sinDistinguir, 'Hay peldanos en la tabla del portal que ninguna libreria produce').toEqual(LAS_DEL_PORTAL);
   });
 
   it('y los del portal los produce EL PORTAL, medido, y la libreria no', () => {
@@ -143,16 +120,6 @@ describe('EL CENTINELA: la tabla cubre la escalera entera', () => {
       expect(peldanoDelPortal(UN_FALLO_POR_CLAVE[clave], traducir).clave, clave).toBe(clave);
       expect(peldanoDe(UN_FALLO_POR_CLAVE[clave]).clave, clave).not.toBe(clave);
     }
-  });
-
-  it('y los siete de siempre estan distinguidos, con la libreria que sea', () => {
-    // Al reves que el anterior: si la libreria dejara de dar uno de los siete de hoy, `DISTINGUIDAS`
-    // encogeria sin ruido y media docena de pruebas dejarian de medir nada.
-    expect(DISTINGUIDAS).toEqual(
-      expect.arrayContaining(
-        CLAVES.filter((clave) => !LOS_PAREADOS.includes(clave) && !LAS_DEL_PORTAL.includes(clave)),
-      ),
-    );
   });
 
   it('y la tabla del portal decide las diez, ni una mas', () => {
@@ -204,12 +171,13 @@ describe('las diez tienen texto propio, y ninguno es el de la libreria', () => {
     expect(sinSalida).toEqual([]);
   });
 
-  it('y los dos de kamayuk-lib#96 NO prometen que insistir arregle nada', () => {
-    // El defecto entero que trae el issue 33: hasta #96 el 409 caia en `averia`, o sea en «vuelva a
-    // intentarlo en unos minutos», y volver a mandar lo mismo trae el mismo 409 — el remedio
-    // CONTRARIO. Lo mismo con el orden que el servidor no admite: pedirlo otra vez no lo admite.
-    // Estos dos remedios mandan a mirar como esta la cuenta y, si sigue igual, a la ventanilla.
-    const prometen = LOS_PAREADOS.filter((clave) =>
+  it('y el 409 y el orden no admitido NO prometen que insistir arregle nada', () => {
+    // El defecto entero que trae el issue 33: con el remedio de `averia` —«vuelva a intentarlo en
+    // unos minutos»— volver a mandar lo mismo trae el mismo 409: el remedio CONTRARIO. Lo mismo con
+    // el orden que el servidor no admite: pedirlo otra vez no lo admite. Estos dos remedios mandan a
+    // mirar como esta la cuenta y, si sigue igual, a la ventanilla.
+    const noCambianPorInsistir: readonly ClaveDelPeldano[] = ['conflicto', 'orden-no-admitido'];
+    const prometen = noCambianPorInsistir.filter((clave) =>
       /vuelva a intentarlo|reintente|insista|en unos minutos/i.test(TEXTOS_DEL_PORTAL[clave].remedio),
     );
 
@@ -220,7 +188,7 @@ describe('las diez tienen texto propio, y ninguno es el de la libreria', () => {
   });
 
   it('y el de `orden-no-admitido` no le pide al ciudadano que corrija nada', () => {
-    // Hasta #96 compartia texto con `no-valido`, que dice «Revise lo que escribió». Aqui no hay
+    // No comparte texto con `no-valido`, que dice «Revise lo que escribió». Aqui no hay
     // nada escrito por el ciudadano: el orden lo pidio la pantalla. Mandarle a revisar algo suyo
     // seria mandarle a dar vueltas por un defecto que no es suyo.
     const textos = TEXTOS_DEL_PORTAL['orden-no-admitido'];
@@ -236,9 +204,8 @@ describe('la clasificacion sigue siendo la de la libreria', () => {
     // Los textos son de aqui; **que hacer** con ellos, no: si la pantalla ofrece volver a entrar y
     // si esto es una averia lo decide el codigo del contrato, igual en los cinco sistemas.
     //
-    // Sobre `DISTINGUIDAS` y no sobre `CLAVES`: mientras kamayuk-lib#96 no este mezclado, la
-    // libreria manda el 409 a `averia`, y exigir aqui `nuestro.clave === 'conflicto'` seria exigir
-    // que la libreria enlazada haga algo que todavia no hace.
+    // Sobre `DISTINGUIDAS` y no sobre `CLAVES`: `respuesta-ilegible` no tiene peldano de la libreria
+    // con el que compararse.
     const suyo = peldanoDe(UN_FALLO_POR_CLAVE[clave]);
     const nuestro = peldanoDelPortal(UN_FALLO_POR_CLAVE[clave], traducir);
 
@@ -280,7 +247,7 @@ describe('la respuesta que no se entiende (issue 34)', () => {
 
   it('y no dice nada de lo que `zod` encontro: ni la ruta, ni el motivo, ni el mensaje', () => {
     // `fallos` y `message` son para quien depura. Al ciudadano, «municipalidades.0.obligaciones»
-    // no le dice nada y «expected number» todavia menos.
+    // no le dice nada, y «expected number» menos.
     const peldano = peldanoDelPortal(RESPUESTA_ILEGIBLE, traducir);
     const enPantalla = `${peldano.titulo} ${peldano.detalle} ${peldano.remedio}`;
     const escapados = [RESPUESTA_ILEGIBLE.message, 'municipalidades', 'ejercicio', 'expected', 'Invalid', 'GET /'].filter(

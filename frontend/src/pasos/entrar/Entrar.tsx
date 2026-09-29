@@ -9,8 +9,8 @@ import { AvisoDeAmnistia, QuePuedeHacerAqui } from '../../piezas/PortadaDelPorta
  *
  * <h2>Por que este paso existe, y por que sustituye a «Buscar mi deuda»</h2>
  *
- * El artboard empieza por buscar por documento, y **el backend ya no ofrece eso**: el ADR-0020
- * retiro `GET /portal/deuda?doc=` —cualquiera podia preguntar por el documento de cualquiera, que es
+ * El artboard empieza por buscar por documento, y **el backend no ofrece eso**: el ADR-0020 de
+ * `infrastructure` retiro `GET /portal/deuda?doc=` —cualquiera podia preguntar por el documento de cualquiera, que es
  * una enumeracion de contribuyentes— y lo reemplazo por `GET /portal/situacion` **sin parametros**,
  * donde el sujeto sale del token. Sin parametro que escribir no hay formulario que ensenar: lo
  * primero que hace falta es saber quien pregunta, y eso es entrar.
@@ -36,7 +36,7 @@ import { AvisoDeAmnistia, QuePuedeHacerAqui } from '../../piezas/PortadaDelPorta
  * `entrar()` se llama y no se espera a que vuelva: cuando todo va bien, el navegador se va de esta
  * pagina. La promesa solo trae algo cuando **no se pudo ni llegar al emisor**, y eso se avisa en vez
  * de dejar el boton pulsado sin que ocurra nada visible. Es el mismo trato que en la barra
- * (`src/marco/Barra.tsx`) y en el peldano de la consulta (`src/pasos/deudas/LaConsulta.tsx`).
+ * (`src/marco/Barra.tsx`) y en el peldano de la consulta (`src/pasos/deudas/FinalesDeLaConsulta.tsx`).
  */
 export function Entrar() {
   const { t } = useTranslation();

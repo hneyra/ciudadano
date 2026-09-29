@@ -3,7 +3,7 @@ import { type Locator, type Page, expect, test } from '@playwright/test';
 
 /**
  * **Como se recorre el portal en el navegador**, por rol y nombre accesible, como lo recorre quien usa
- * un lector de pantalla. Lo comparten las cuatro especificaciones de `e2e/`.
+ * un lector de pantalla. Lo comparten las especificaciones de `e2e/` que recorren el portal.
  *
  * <h2>Por que se recorre y no se entra por el hash</h2>
  *

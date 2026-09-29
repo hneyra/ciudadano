@@ -15,9 +15,9 @@ import { ARTBOARDS, rutaDe } from './artboards.ts';
  *
  * Portada de `rentas`. Alli nacio porque cuatro barreras leian el artboard en el top-level del
  * modulo: el dia que el archivo no estuviera, morian durante la RECOLECCION con un `ENOENT` y sus
- * 77 `it` no llegaban a existir. Aqui todavia no hay barreras que lo lean —llegan con las
- * pantallas—, y por eso esta guarda va primero: cuando lleguen, el rojo que diga que falta el
- * artboard ya estara escrito.
+ * 77 `it` no llegaban a existir. Aqui tambien hay guardas que lo leen —la paleta, los datos de la
+ * demostracion, los trazos de los iconos—, y esta es la que dice que falta el artboard cuando falta,
+ * en vez de dejar que ellas mueran al recolectar.
  *
  * <h2>Por que este archivo no importa nada que pueda faltar</h2>
  *

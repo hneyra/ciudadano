@@ -37,7 +37,9 @@ export const TOPE_DE_UN_TROZO_KB = 500;
  *
  * El orden importa: gana la primera que case. Lo que no case con ninguna se queda donde Rollup lo
  * ponga —en el trozo de entrada o en el de la pantalla que lo use—, que es lo correcto para lo que
- * solo usa una pantalla (`zod` y `react-hook-form` viajan con los formularios, no con la barra).
+ * solo usa una pantalla (`react-hook-form` viaja con los formularios, no con la barra). `zod` no es
+ * de esos: lo importa de forma estatica la frontera del contrato (`src/datos/contrato.ts`, issue 34),
+ * asi que entra en el arranque del paquete de produccion.
  */
 const FAMILIAS: readonly (readonly [trozo: string, paquetes: RegExp])[] = [
   ['react', /^(react|react-dom|scheduler)$/],

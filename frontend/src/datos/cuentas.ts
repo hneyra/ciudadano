@@ -10,7 +10,7 @@ import type { TonoDeInsignia } from './tipos.ts';
  * (1108-1127) y los `suma`/`recargo` de cada concepto (1133-1134)— a sumas exactas con
  * `sumarImportes`. **Ninguna pantalla suma por su cuenta**: el paso 2, el resumen, el carrito, el
  * comprobante y los pendientes del historial piden la cifra aqui, y por eso no pueden discrepar
- * entre si (que es lo que el propio artboard dice haber sufrido, lineas 930-933).
+ * entre si (que es lo que el propio artboard dice haber sufrido, lineas 931-933).
  *
  * <h2>Por que se suma, si la regla dice «el total lo calcula el backend»</h2>
  *

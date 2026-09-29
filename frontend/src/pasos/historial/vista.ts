@@ -17,7 +17,7 @@ import { selloDeLaDemostracion } from '../comprobante/sello.ts';
  * **Lo que «Mis pagos» dibuja, preparado sin React** (issue 60).
  *
  * El modelo de vista del historial: funciones puras del estado del recorrido, de lo que contestaron la
- * fuente y la consulta, y de `t`. Las secciones (`PagoReciente.tsx`, `PagosRealizados.tsx`,
+ * fuente y la consulta, y de `t`. Las secciones (`PagoReciente` y `PagosRealizados` de `LosPagos.tsx`,
  * `LoQueQuedaPendiente.tsx`, `DeDondeSale.tsx`) solo colocan lo que devuelven. Se prueban solas en
  * `vista.test.ts`.
  *
