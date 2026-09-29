@@ -43,6 +43,10 @@ import { type EstadoDelRecorrido, laDemostracion } from '../recorrido/recorrido.
  *   la opacidad de Tailwind, que no escribe ningun color.
  * · Los grises de la cabecera del menu (`#777`) son `--tinta-3`, el azul de enlace de las opciones
  *   (`AZUL_TXT`) es `--azul` y su hover (`#F6F9FC`) es `--sup`: ninguno de los tres tiene token propio.
+ * · Con el menu abierto o el puntero encima, el documento pasa a `--sobre-azul` y el disco de las
+ *   iniciales a `--azul` (issue 75): sobre el velo abierto, `--sobre-barra-2` y `--barra-realce` no
+ *   llegan a AA (axe midio 3.59:1 y 3.81:1). Son los tokens de la barra mas cercanos al artboard que
+ *   llegan en claro y en oscuro, calculados en `EL_DISPARADOR_ABIERTO` de la tabla de la paleta.
  * · El nombre y el documento del disparador, ocultos a ≤ 880 px en el artboard, pasan a `sr-only`:
  *   la vista es la misma y el boton no se queda con «MC» por todo nombre accesible.
  * · **«Iniciar sesión» NO desaparece a ≤ 880 px** (nota del revisor del issue 11). El artboard lo
@@ -57,9 +61,9 @@ import { type EstadoDelRecorrido, laDemostracion } from '../recorrido/recorrido.
  * historial que deje el foco en «De dónde sale lo que paga» (`verPrediosYVehiculos`, issue 10).
  *
  * El pedido sale **cuando el menu ya se cerro** (`onCloseAutoFocus`), y no al elegir la opcion. Mientras
- * esta abierto, el menu de Radix atrapa el foco: medido estando ya en el historial, el titulo enfocado
- * al elegir lo perdia y el foco acababa en `body`. Y al cerrarse, Radix devuelve el foco a su disparador;
- * esa vez no se le deja, o se lo quitaria a la seccion.
+ * esta abierto, el foco es del menu: medido estando ya en el historial (issue 10, con el menu modal),
+ * el titulo enfocado al elegir lo perdia y el foco acababa en `body`. Y al cerrarse, Radix devuelve el
+ * foco a su disparador —modal o no—; esa vez no se le deja, o se lo quitaria a la seccion.
  *
  * `max-[881px]` y no `max-[880px]`: Tailwind v4 lo emite como `width < 881px`, que es el
  * `max-width: 880px` del artboard.
@@ -208,23 +212,29 @@ export function Barra() {
       </button>
 
       {quien !== null ? (
-        <Menu>
+        // No modal (issue 75): el modal de Radix pone `aria-hidden` a la pagina entera mientras la lista
+        // esta abierta, y lo oculto sigue siendo enfocable (axe: `aria-hidden-focus`). Sin el, Tab se
+        // queda en la lista igual —el menu de Radix lo cancela— y pulsar fuera lo cierra.
+        <Menu modal={false}>
           <DisparadorDelMenu
             className={cn(
-              'flex shrink-0 cursor-pointer items-center gap-[10px] border-0 border-l border-barra-realce bg-transparent px-4 py-2 text-sobre-azul',
+              'group flex shrink-0 cursor-pointer items-center gap-[10px] border-0 border-l border-barra-realce bg-transparent px-4 py-2 text-sobre-azul',
               'hover:bg-barra-hover data-[state=open]:bg-barra-hover',
               CONTORNO_DE_FOCO_EN_LA_BARRA,
             )}
           >
+            {/* Sobre el velo abierto, el disco y el documento cambian de token para llegar a AA (issue 75). */}
             <span
               aria-hidden="true"
-              className="grid size-[30px] shrink-0 place-items-center rounded-full bg-barra-realce text-[12px] font-bold"
+              className="grid size-[30px] shrink-0 place-items-center rounded-full bg-barra-realce text-[12px] font-bold group-hover:bg-azul group-data-[state=open]:bg-azul"
             >
               {quien.iniciales}
             </span>
             <span className="text-left leading-[1.2] max-[881px]:sr-only">
               <span className="block whitespace-nowrap text-[13.5px] font-bold">{quien.nombre}</span>
-              <span className="block whitespace-nowrap text-[11.5px] text-sobre-barra-2">{quien.documento}</span>
+              <span className="block whitespace-nowrap text-[11.5px] text-sobre-barra-2 group-hover:text-sobre-azul group-data-[state=open]:text-sobre-azul">
+                {quien.documento}
+              </span>
             </span>
             <Icono nombre="chevronAbajo" tamano={12} grosor={2.6} />
           </DisparadorDelMenu>

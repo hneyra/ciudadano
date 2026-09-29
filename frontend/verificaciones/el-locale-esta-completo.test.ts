@@ -317,6 +317,8 @@ const LITERALES = [
   'Pagos realizados',
   'Fecha',
   'Medio',
+  // Linea 1338: la columna de la accion, sin rotulo a la vista; para un lector de pantalla (issue 75).
+  'Acción',
   'Comprobante {{numero}}',
   'Se descargaría el comprobante {{numero}}.',
   'Un pago aplicado ya descontó la cuota. Si pagó y la deuda sigue apareciendo, traiga el comprobante: se resuelve el mismo día.',

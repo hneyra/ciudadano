@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { ARTBOARDS, rutaDe } from './artboards.ts';
-import { UMBRAL_DE_TEXTO, conDosDecimales, contraste } from './contraste.ts';
+import { UMBRAL_DE_TEXTO, apilar, componer, conDosDecimales, contraste } from './contraste.ts';
 import { temasDeUi } from './especificadores.ts';
 import {
   type Correspondencia,
@@ -15,6 +15,7 @@ import {
   constantesDeColor,
   delHelmet,
   discrepancias,
+  distanciaDeColor,
   enElMarcado,
   masCercanos,
   normalizar,
@@ -63,6 +64,28 @@ const ARTBOARD = readFileSync(HOJA_DEL_ARTBOARD, 'utf8');
 
 /** `clasico/claro`, tal como llega al navegador. */
 const CLASICO = paletaDeLaIdentidad(reglasDe(readFileSync(temasDeUi(), 'utf8')), 'clasico');
+
+/**
+ * `clasico/oscuro` para quien lo eligio (`[data-tema='clasico'][data-modo='oscuro']`, fuera de todo
+ * `@media`): el que se pinta en oscuro. Lo leen las pruebas que miden un par en los dos modos.
+ */
+const CLASICO_OSCURO = (() => {
+  const oscuro = new Map<string, string>();
+  for (const regla of reglasDe(readFileSync(temasDeUi(), 'utf8'))) {
+    if (regla.dentroDe.length > 0 || !regla.selectores.includes("[data-tema='clasico'][data-modo='oscuro']")) continue;
+    for (const [propiedad, valor] of regla.declaraciones) oscuro.set(propiedad, valor);
+  }
+  return oscuro;
+})();
+
+/** El disco de las iniciales del menu de sesion (linea 80). */
+const DISCO_DEL_AVATAR = enElMarcado(/border-radius:50%; background:(rgba\([^)]*\))/);
+
+/** El velo del disparador del menu de sesion mientras esta abierto (linea 1050, `menuStyle`). */
+const VELO_DEL_MENU_ABIERTO = enElMarcado(/\(s\.menuSesion \? '(rgba\([^)]*\))' : 'transparent'\)/);
+
+/** El documento bajo el nombre, en el disparador del menu de sesion (linea 83). */
+const DOCUMENTO_DEL_DISPARADOR = enElMarcado(/font-size:11\.5px; color:(#[0-9A-Fa-f]{3,6}); white-space:nowrap">\{\{ usuario\.doc \}\}/);
 
 /** Las constantes de color que el issue 2 nombra, y que la tabla tiene que traer si o si. */
 const LAS_QUE_PIDE_EL_ISSUE = [
@@ -261,13 +284,15 @@ const TABLA: readonly Correspondencia[] = [
         'Los tres velos de la barra bajan por contraste (`kamayuk-lib`#56, historia de #41): con ' +
         'los del artboard, las iniciales del avatar con hover dan 3.55:1 y lo secundario sobre el ' +
         'hover 4.22:1. El hover se queda en el techo de `--sobre-barra-2` (15 %), el reposo baja ' +
-        'para seguir distinguiendose de el (6 %) y el disco toma lo que queda (12 %).',
+        'para seguir distinguiendose de el (6 %) y el disco toma lo que queda (12 %). Con los de la ' +
+        'libreria, sobre el azul de `clasico`, tampoco llegan: axe midio 3.81:1 y 3.59:1 con el menu ' +
+        'abierto, y lo que se pinta encima lo decide `EL_DISPARADOR_ABIERTO` (issue 75).',
     },
   },
   {
     delArtboard: 'velo del disco del avatar',
     donde: 'linea 80',
-    leer: enElMarcado(/border-radius:50%; background:(rgba\([^)]*\))/),
+    leer: DISCO_DEL_AVATAR,
     decision: {
       tipo: 'desviacion',
       token: '--color-barra-realce',
@@ -286,6 +311,20 @@ const TABLA: readonly Correspondencia[] = [
       elArtboardDice: 'rgba(255,255,255,.18)',
       laLibreriaDice: 'rgba(255, 255, 255, 0.15)',
       porQue: 'Ver el velo en reposo: los tres se decidieron juntos.',
+    },
+  },
+  {
+    delArtboard: 'velo del menu de sesion abierto',
+    donde: 'linea 1050: `menuStyle` con `menuSesion`',
+    leer: VELO_DEL_MENU_ABIERTO,
+    decision: {
+      tipo: 'desviacion',
+      token: '--color-barra-hover',
+      elArtboardDice: 'rgba(255,255,255,.18)',
+      laLibreriaDice: 'rgba(255, 255, 255, 0.15)',
+      porQue:
+        'El mismo velo que con hover (linea 79), con la misma decision. Lo que se lee encima de el lo ' +
+        'decide `EL_DISPARADOR_ABIERTO` (issue 75), mas abajo.',
     },
   },
 
@@ -1233,6 +1272,89 @@ const TABLA: readonly Correspondencia[] = [
  */
 const BOTON_VERDE = { fondo: '--color-ok-tinta', texto: '--color-sobre-azul' } as const;
 
+/** El valor de un token en una paleta, normalizado; revienta si la identidad no lo declara. */
+function valorEn(paleta: ReadonlyMap<string, string>, token: string): string {
+  const valor = paleta.get(token);
+  if (valor === undefined) throw new Error(`La identidad no declara ${token}.`);
+  return normalizar(valor);
+}
+
+/** El papel del disparador del menu de sesion abierto (o con el puntero encima): `--barra-hover` sobre `--azul`. */
+const papelDelDisparadorAbierto = (paleta: ReadonlyMap<string, string>): string =>
+  apilar(valorEn(paleta, '--color-azul'), valorEn(paleta, '--color-barra-hover'));
+
+/** Una decision por contraste entre tokens candidatos, medida en claro y en oscuro. */
+interface DecisionPorContraste {
+  readonly que: string;
+  /** El color que el artboard dibuja (en claro), contra el que se mide la cercania; `null` si no esta donde se lee. */
+  readonly delArtboard: (artboard: string) => string | null;
+  /** El token de la pieza en reposo, que sobre el velo abierto no llega. */
+  readonly enReposo: string;
+  /** El token decidido para la pieza con el menu abierto o el puntero encima. */
+  readonly abierto: string;
+  /** Entre cuales se elige: los de la barra, no la paleta entera. */
+  readonly candidatos: readonly string[];
+  /** La razon de contraste de la pieza con un candidato puesto, en una paleta. */
+  readonly razon: (candidato: string, paleta: ReadonlyMap<string, string>) => number;
+  /** Lo que se ve con un candidato puesto, en claro: se compara con `delArtboard`. */
+  readonly seVe: (candidato: string) => string;
+}
+
+/**
+ * **El disparador del menu de sesion, abierto o con el puntero encima** (issue 75).
+ *
+ * El artboard le pone un velo blanco —`rgba(255,255,255,.18)`, lineas 79 y 1050— que la identidad
+ * rebaja a `--barra-hover` (filas «velo…» de la tabla). Encima de ese velo el documento
+ * (`--sobre-barra-2`) y las iniciales sobre su disco (`--barra-realce`) no llegan a AA: axe los midio en
+ * Chromium, 3.59:1 y 3.81:1. El texto de la barra en claro ya es blanco y no se aclara mas, asi que para
+ * cada pieza se decide el token MAS CERCANO al artboard que SI llega en claro y en oscuro, entre los que
+ * la barra ya usa:
+ *
+ *   · al documento se le cambia la tinta. De las tintas de la barra solo `--sobre-azul` llega en los dos
+ *     modos: en oscuro la barra es un azul claro y su texto es el oscuro.
+ *   · al disco se le cambia el papel. Sin papel el disco desaparece, asi que no es candidato; de los
+ *     papeles de la barra —sus tres velos y sus tres azules— llegan `--azul` y `--azul-hover`, y `--azul`
+ *     es el mas cercano al disco del artboard.
+ *
+ * `src/marco/Barra.tsx` los pone con `group-hover:` y `group-data-[state=open]:`. Que el navegador los
+ * pinte asi lo mide axe en el arnes, con el puntero encima y con el menu abierto
+ * (`seVeBienConLaListaAbierta`, `e2e/portal.ts`).
+ */
+const EL_DISPARADOR_ABIERTO: readonly DecisionPorContraste[] = [
+  {
+    que: 'el documento del disparador (linea 83)',
+    delArtboard: (artboard) => {
+      const tinta = DOCUMENTO_DEL_DISPARADOR(artboard);
+      return tinta === null ? null : normalizar(tinta);
+    },
+    enReposo: '--color-sobre-barra-2',
+    abierto: '--color-sobre-azul',
+    candidatos: ['--color-sobre-barra-2', '--color-sobre-barra', '--color-sobre-azul'],
+    razon: (tinta, paleta) => contraste(valorEn(paleta, tinta), papelDelDisparadorAbierto(paleta)),
+    seVe: (tinta) => valorEn(CLASICO, tinta),
+  },
+  {
+    que: 'las iniciales sobre su disco (lineas 80 y 1050)',
+    delArtboard: (artboard) => {
+      const [azul, velo, disco] = [constante('AZUL')(artboard), VELO_DEL_MENU_ABIERTO(artboard), DISCO_DEL_AVATAR(artboard)];
+      return azul === null || velo === null || disco === null ? null : apilar(normalizar(azul), velo, disco);
+    },
+    enReposo: '--color-barra-realce',
+    abierto: '--color-azul',
+    candidatos: [
+      '--color-barra-control',
+      '--color-barra-realce',
+      '--color-barra-hover',
+      '--color-azul',
+      '--color-azul-hover',
+      '--color-azul-oscuro',
+    ],
+    razon: (papel, paleta) =>
+      contraste(valorEn(paleta, '--color-sobre-azul'), componer(valorEn(paleta, papel), papelDelDisparadorAbierto(paleta))),
+    seVe: (papel) => componer(valorEn(CLASICO, papel), papelDelDisparadorAbierto(CLASICO)),
+  },
+];
+
 describe('la identidad `clasico` es la paleta del artboard', () => {
   it('EL CENTINELA: las dos lecturas traen algo, y la tabla cubre cada constante de color', () => {
     // Sin esto, un cambio de formato en `temas.css` dejaria la paleta VACIA y todas las filas
@@ -1321,12 +1443,7 @@ describe('la identidad `clasico` es la paleta del artboard', () => {
   });
 
   it('el boton verde de confirmar se lee: su texto sobre `--ok-tinta` llega a AA en claro y en oscuro', () => {
-    const temas = reglasDe(readFileSync(temasDeUi(), 'utf8'));
-    const oscuro = new Map<string, string>();
-    for (const regla of temas) {
-      if (regla.dentroDe.length > 0 || !regla.selectores.includes("[data-tema='clasico'][data-modo='oscuro']")) continue;
-      for (const [propiedad, valor] of regla.declaraciones) oscuro.set(propiedad, valor);
-    }
+    const oscuro = CLASICO_OSCURO;
     expect(oscuro.size, "`temas.css` no trae `[data-tema='clasico'][data-modo='oscuro']`").toBeGreaterThan(0);
 
     const medidas = (
@@ -1346,6 +1463,52 @@ describe('la identidad `clasico` es la paleta del artboard', () => {
       noLlegan,
       `El texto del boton verde de confirmar no llega a ${UMBRAL_DE_TEXTO}:1:\n${noLlegan.join('\n')}\n\n` +
         '  Busca otro par de tokens y escribe aqui su porque.',
+    ).toEqual([]);
+  });
+
+  it('el disparador de la sesion abierto se lee: cada pieza lleva el token mas cercano al artboard que llega a AA en claro y en oscuro', () => {
+    expect(CLASICO_OSCURO.size, "`temas.css` no trae `[data-tema='clasico'][data-modo='oscuro']`").toBeGreaterThan(0);
+    const modos = [
+      ['claro', CLASICO],
+      ['oscuro', CLASICO_OSCURO],
+    ] as const;
+
+    const problemas = EL_DISPARADOR_ABIERTO.flatMap((pieza) => {
+      const delArtboard = pieza.delArtboard(ARTBOARD);
+      if (delArtboard === null) return [`  ${pieza.que}: el artboard no lo escribe donde se lee`];
+      if (!pieza.candidatos.includes(pieza.enReposo) || !pieza.candidatos.includes(pieza.abierto)) {
+        return [`  ${pieza.que}: ${pieza.enReposo} y ${pieza.abierto} tienen que estar entre los candidatos`];
+      }
+      const llegaEnLosDos = (token: string) => modos.every(([, paleta]) => pieza.razon(token, paleta) >= UMBRAL_DE_TEXTO);
+      const lleganEnLosDos = pieza.candidatos.filter(llegaEnLosDos);
+      const distancias = lleganEnLosDos.map((token) => [token, distanciaDeColor(pieza.seVe(token), delArtboard)] as const);
+      const menor = Math.min(...distancias.map(([, d]) => d));
+      const masCercanosQueLlegan = distancias.filter(([, d]) => d === menor).map(([token]) => token);
+
+      const salida: string[] = [];
+      if (llegaEnLosDos(pieza.enReposo)) {
+        salida.push(`  ${pieza.que}: ${pieza.enReposo} ya llega sobre el velo abierto en los dos modos; la desviacion sobra`);
+      }
+      if (!llegaEnLosDos(pieza.abierto)) {
+        salida.push(`  ${pieza.que}: ${pieza.abierto} no llega a ${UMBRAL_DE_TEXTO}:1 en los dos modos`);
+      } else if (!masCercanosQueLlegan.includes(pieza.abierto)) {
+        salida.push(
+          `  ${pieza.que}: ${pieza.abierto} llega, pero lo mas cercano al artboard (${delArtboard}) que llega es ` +
+            `${masCercanosQueLlegan.join(', ')} (ΔE ${conDosDecimales(menor)})`,
+        );
+      }
+      if (salida.length === 0) return [];
+      const cuentas = pieza.candidatos.map(
+        (token) =>
+          `      ${token}: ${modos.map(([modo, paleta]) => `${modo} ${conDosDecimales(pieza.razon(token, paleta))}:1`).join(', ')}, ` +
+          `ΔE ${conDosDecimales(distanciaDeColor(pieza.seVe(token), delArtboard))}`,
+      );
+      return [...salida, ...cuentas];
+    });
+    expect(
+      problemas,
+      `El disparador de la sesion abierto no se decide como dice \`EL_DISPARADOR_ABIERTO\`:\n${problemas.join('\n')}\n\n` +
+        '  Revisa la decision y `src/marco/Barra.tsx`.',
     ).toEqual([]);
   });
 

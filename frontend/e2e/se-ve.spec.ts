@@ -13,6 +13,8 @@ import {
   pagarLoElegido,
   principal,
   seVeBien,
+  seVeBienConElAviso,
+  seVeBienConLaListaAbierta,
 } from './portal.ts';
 
 /**
@@ -69,6 +71,10 @@ for (const ancho of ANCHURAS) {
     await test.step('buscar', async () => {
       await abrirElPortal(page);
       await seVeBien(page, `buscar a ${ancho} px`);
+      // Lo que se abre y lo que avisa (issue 75): la lista de «Buscar por» y el aviso de un paso futuro.
+      await seVeBienConLaListaAbierta(page, `buscar a ${ancho} px`, main.getByRole('combobox', { name: 'Buscar por' }), 'listbox');
+      await page.getByRole('navigation').getByRole('button', { name: 'Pagar', exact: true }).click();
+      await seVeBienConElAviso(page, `buscar a ${ancho} px`, 'Complete primero los pasos anteriores.');
     });
 
     await test.step('elegir qué pago, con los cuatro desgloses abiertos', async () => {
@@ -106,6 +112,15 @@ for (const ancho of ANCHURAS) {
       await expect(main.getByRole('region', { name: 'Pagos realizados' }).getByRole('table')).toBeVisible();
       await expect(main.getByRole('region', { name: 'De dónde sale lo que paga' }).getByRole('listitem').first()).toBeVisible();
       await seVeBien(page, `mis pagos a ${ancho} px`);
+      // La columna de la accion tiene rotulo para un lector de pantalla, y a la vista sigue sin el (issue 75).
+      const rotulo = main.getByRole('region', { name: 'Pagos realizados' }).getByRole('columnheader', { name: 'Acción' });
+      expect(await noSeVe(rotulo.locator('span')), `mis pagos a ${ancho} px: el rotulo de la columna de la accion se ve`).toBe(true);
+      await seVeBienConLaListaAbierta(
+        page,
+        `mis pagos a ${ancho} px, el menu de la sesion`,
+        page.getByRole('banner').getByRole('button', { name: /María E\. Castillo/ }),
+        'menu',
+      );
     });
   });
 }

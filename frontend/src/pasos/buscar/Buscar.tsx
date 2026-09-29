@@ -47,6 +47,9 @@ import { type TipoDeDocumento, laDemostracion, vivas } from '../../recorrido/rec
  *   tokens: `--linea` y `--atencion-tinta` al 25 %. Estan en la tabla de
  *   `verificaciones/la-paleta-cuadra-con-el-artboard.test.ts`.
  * · **La sombra de la tarjeta** es `--shadow-sombra-1` y no el `rgba(0,0,0,.04)` literal.
+ * · **Cada opcion de «Buscar por» mide 44 px de alto** (issue 75). El artboard usa un `select` nativo,
+ *   cuya lista dibuja el sistema; la de `Desplegable` media 34, por debajo del area tactil que el
+ *   arnes exige a lo que se toca (`seVeBienConLaListaAbierta`).
  *
  * Los ejemplos del placeholder son DATO, como el documento de la barra: el mismo numero en cualquier
  * idioma, y no pasan por `t()`. Y son de una persona —el codigo y el DNI del contribuyente del
@@ -161,7 +164,7 @@ export function Buscar() {
                       className={cn(MEDIDAS_DE_CONTROL, '[&>span]:truncate')}
                     >
                       {TIPOS.map((opcion) => (
-                        <Opcion key={opcion} value={opcion}>
+                        <Opcion key={opcion} value={opcion} className="min-h-[44px]">
                           {rotuloDelTipo[opcion]}
                         </Opcion>
                       ))}

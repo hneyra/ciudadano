@@ -68,3 +68,25 @@ export function contraste(uno: string, otro: string): number {
 
 /** Con dos decimales, que es como se lee en un rojo y como lo publica el issue. */
 export const conDosDecimales = (razon: number): string => razon.toFixed(2);
+
+/**
+ * **Una capa sobre un papel, como la compone el navegador** (issue 75): `rgba(255, 255, 255, 0.15)`
+ * sobre `#0d5fa8` da `#3177b5`.
+ *
+ * `canalesDe` lee tres canales y descarta el alfa, y de un velo lo que cuenta es justo el alfa: medido
+ * a pelo, el texto sobre el disparador abierto de la barra saldria contra el blanco del velo. Una capa
+ * opaca (`#rrggbb`, `rgb()`) tapa el papel. Cada canal se redondea, como el papel que axe lee en Chromium.
+ */
+export function componer(capa: string, papel: string): string {
+  const alfa = /^rgba\(\s*[0-9.]+[\s,]+[0-9.]+[\s,]+[0-9.]+[\s,/]+([0-9.]+)\s*\)$/i.exec(capa.trim());
+  const opacidad = alfa === null ? 1 : Number(alfa[1]);
+  const arriba = canalesDe(capa);
+  const abajo = canalesDe(papel);
+  const mezcla = arriba.map((canal, i) => Math.round(canal * opacidad + (abajo[i] as number) * (1 - opacidad)));
+  return `#${mezcla.map((canal) => canal.toString(16).padStart(2, '0')).join('')}`;
+}
+
+/** Varias capas, de abajo arriba, sobre un papel: `apilar(azul, velo, disco)`. */
+export function apilar(papel: string, ...capas: readonly string[]): string {
+  return capas.reduce((debajo, capa) => componer(capa, debajo), papel);
+}
