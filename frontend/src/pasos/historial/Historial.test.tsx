@@ -174,14 +174,17 @@ describe('sin haber pagado nada en esta visita', () => {
       enMain().getByText('Todos sus pagos, con sus comprobantes. Abajo está lo que le queda pendiente.'),
     ).toBeInTheDocument();
     const pagos = within(seccion('Pagos realizados'));
+    // La columna de la accion no tiene rotulo a la vista en el artboard (linea 1338); para un lector de
+    // pantalla lo tiene (issue 75, axe `empty-table-header`). Que no se vea lo mide el arnes.
     expect(pagos.getAllByRole('columnheader').map((th) => th.textContent)).toEqual([
       'Fecha',
       'Concepto',
       'Medio',
       'Comprobante',
       'Importe S/',
-      '',
+      'Descargar comprobante',
     ]);
+    expect(pagos.getByRole('columnheader', { name: 'Descargar comprobante' })).toBeInTheDocument();
     expect(
       pagos.getByText(
         'Un pago aplicado ya descontó la cuota. Si pagó y la deuda sigue apareciendo, traiga el comprobante: se resuelve el mismo día.',
@@ -436,6 +439,7 @@ describe('todo lo que se lee pasa por `t()`', () => {
       expect(enMain().getByRole('button', { name: marcado(boton) }), boton).toBeInTheDocument();
     }
     expect(enMain().getByRole('button', { name: marcado('Comprobante 0003-0041182') })).toHaveTextContent(marcado('Comprobante'));
+    expect(enMain().getByRole('columnheader', { name: marcado('Descargar comprobante') })).toBeInTheDocument();
     fireEvent.click(enMain().getByRole('button', { name: marcado('Comprobante 0003-0041182') }));
     expect(await screen.findByText(marcado('Se descargaría el comprobante 0003-0041182.'))).toBeInTheDocument();
   });

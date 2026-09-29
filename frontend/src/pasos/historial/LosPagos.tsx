@@ -139,8 +139,13 @@ export function PagosRealizados() {
                 {columna.rotulo}
               </TablaRotulo>
             ))}
-            {/* La columna de la accion no tiene rotulo, como en el artboard (linea 1338). */}
-            <TablaRotulo className="px-[18px]" />
+            {/* La columna de la accion no tiene rotulo a la vista, como en el artboard (linea 1338); para un
+                lector de pantalla si (issue 75): una cabecera vacia no dice que hay en la columna (axe,
+                `empty-table-header`). `relative` encierra al `sr-only`, que es `absolute`: sin el, su caja
+                se salia del marco que desplaza la tabla, y a 400 px la pagina crecia a 746 (medido en el arnes). */}
+            <TablaRotulo className="relative px-[18px]">
+              <span className="sr-only">{t('Descargar comprobante')}</span>
+            </TablaRotulo>
           </tr>
         </TablaCabecera>
         <TablaCuerpo>
