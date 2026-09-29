@@ -7,15 +7,9 @@ import { type DatosLeidos, datosDeLaDemostracion, datosDeLaSituacion } from '../
  *
  * <h2>Por que un modulo, y por que es el UNICO que lee el modo</h2>
  *
- * Hasta el issue 59 el modo era un booleano repartido: `conPlataforma` aparecia 57 veces en el codigo
- * de produccion, se leia de dos sitios —`estado.conPlataforma` y `hayPlataforma(fuente)`— y se
- * resolvia de tres formas, con una docena de ternarios `simulado ? null : …` en las pantallas. Las
- * frases falsas del issue 49 se escaparon por ramas que nadie miro, y el tipo admitia estados que no
- * existen: una fuente sin plataforma y sin demostracion arrancaba en demostracion y reventaba en la
- * primera pantalla, y con plataforma el reductor podia sellar un comprobante con numero de operacion
- * que luego la vista tenia que esconder.
- *
- * Ahora hay dos cosas, y las dos viven aqui:
+ * Un booleano repartido por las pantallas se lee de varias formas, se escapa por las ramas que nadie
+ * mira y admite estados que no existen (lo que habia hasta el issue 59, medido:
+ * `docs/adr/CIU-0005-el-modo-es-una-politica.md`). Aqui hay dos cosas:
  *
  *   · **`Modo`, una union discriminada**: en demostracion, con sus datos (`demostracion`); con
  *     plataforma, sin ellos. «Sin plataforma y sin demostracion» no es un valor del tipo. La fuente
@@ -32,7 +26,7 @@ import { type DatosLeidos, datosDeLaDemostracion, datosDeLaSituacion } from '../
  * <h2>Lo que NO es del modo, aunque cambie con el</h2>
  *
  * **La amnistia** (issue 49) la dice la FUENTE (`FuenteDelPortal.amnistia`) y el recorrido la copia al
- * arrancar: hoy la de demostracion la trae y la de la plataforma no, pero el dia que el contrato de
+ * arrancar: la de demostracion la trae y la de la plataforma no, pero el dia que el contrato de
  * `GET /portal/situacion` traiga una, saldra de la respuesta y no del modo. Por eso `estado.amnistia`
  * sigue siendo un dato, y se pregunta en un solo sitio (`aCobrar`).
  *
@@ -71,7 +65,7 @@ export const PASOS_DE_LA_DEMOSTRACION = ['buscar', 'deudas', 'identificar', 'pag
 /**
  * **Los cuatro pasos numerados con plataforma** (issue 28).
  *
- * · `buscar` se cae porque el backend ya no ofrece buscar: el ADR-0020 retiro
+ * · `buscar` se cae porque el backend no ofrece buscar: el infrastructure ADR-0020 retiro
  *   `GET /portal/deuda?doc=` —era una enumeracion de contribuyentes— y lo reemplazo por
  *   `GET /portal/situacion` **sin parametros**, donde el sujeto sale del token. Sin parametro que
  *   escribir, el primer paso no es buscar: es **entrar**.

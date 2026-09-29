@@ -24,7 +24,7 @@ import type { PagoDelHistorial, SituacionDelServidor, Unidad } from './tipos.ts'
  *
  * <h2>La peticion NO lleva parametros, y no es un olvido</h2>
  *
- * ADR-0020 retiro `GET /portal/deuda?doc=` por ser una enumeracion de contribuyentes: cualquiera
+ * infrastructure ADR-0020 retiro `GET /portal/deuda?doc=` por ser una enumeracion de contribuyentes: cualquiera
  * podia preguntar por el documento de cualquiera. Lo reemplazo por esta, **sin parametros**, donde
  * el sujeto sale de los claims del token. Por eso la fuente no recibe un documento que pasarle: no
  * hay donde ponerlo, y ponerlo seria volver a abrir lo que el ADR cerro.

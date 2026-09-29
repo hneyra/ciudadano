@@ -5,69 +5,24 @@ import { RespuestaQueNoEntiendo } from '../datos/respuestaQueNoEntiendo.ts';
 /**
  * **La escalera de identidad, dicha al CIUDADANO** (issue 13).
  *
- * <h2>Que se toma de la libreria y que no</h2>
+ * De `peldanoDe` se toma **la clasificacion**: en que peldano se quedo la peticion (`clave`), si hay que
+ * volver a la puerta (`pideIdentidad`) y si esto es el sistema roto o el sistema funcionando
+ * (`esAveria`). Eso sale del `codigo` del contrato y es igual en los cinco sistemas del producto.
  *
- * De `peldanoDe` se toma **la clasificacion**, que es lo que de verdad cuesta y lo que el backend
- * distingue: en que peldano se quedo la peticion (`clave`), si hay que volver a la puerta
- * (`pideIdentidad`) y si esto es el sistema roto o el sistema funcionando (`esAveria`). Eso sale
- * del `codigo` del contrato —`NO_AUTENTICADO`, `SIN_MUNICIPALIDAD`, `SIN_PRIVILEGIO`—, es igual en
- * los cinco sistemas del producto y no tiene por que escribirse dos veces.
+ * De la libreria **no** se toman los textos: estan escritos para quien atiende en ventanilla («avise a
+ * soporte», «lo asigna el administrador del sistema», «pida el permiso a quien administre los
+ * perfiles»), y a quien entra a pagar su predial no le sirve ninguno. Los de aqui son DATO, como los
+ * medios de pago: `peldanoDelPortal` recibe `t()` y devuelve el peldano ya traducido, y el locale los
+ * deriva de `clavesDeLaEscalera()`.
  *
- * De la libreria **no** se toman los textos, y ese es todo el motivo de que este archivo exista.
- * Los suyos estan escritos para quien atiende en ventanilla y lo dicen sin disimulo:
+ * **Lo que dijo el backend no se ensena**: ni el `mensaje` del `problem+json` —escrito para la
+ * ventanilla—, ni los tres miembros que `ErrorDeLaApi` conserva desde kamayuk-lib#96. `incidencia` es
+ * para soporte, y aqui no hay soporte al que darla ni un `console` o telemetria donde registrarla;
+ * `detalles` lleva el campo de un orden que el ciudadano no pidio; `parametroQueFalta` distingue dos 404
+ * de la hoja de Publicacion de `normativa`, que este portal no dibuja. Se conservan en el error; no
+ * llegan a la pantalla, y `escalera.test.ts` lo mide por igualdad con la tabla.
  *
- *   · «Reintente en unos segundos. Si sigue igual, **avise a soporte** con este mensaje.»
- *   · «Lo asigna **el administrador del sistema** en el emisor de identidad.»
- *   · «**Revise con que cuenta esta trabajando.**»
- *   · «Pida el permiso a quien administre **los perfiles**.»
- *
- * A quien entra a pagar su predial no hay soporte al que avisar, ni administrador que conozca, ni
- * perfiles que pedir: hay una ventanilla a la que ir con el DNI. Un remedio que nombra a gente que
- * el ciudadano no tiene es indistinguible de no dar remedio.
- *
- * <h2>Por que los textos son DATO y los traduce quien los dibuja</h2>
- *
- * Igual que los cuatro medios de pago (`src/pasos/pagar/textosDeLosMedios.ts`, issue 8): el texto
- * se elige por una `clave` que solo se conoce en tiempo de ejecucion, asi que la pantalla lo pasa
- * por `t()` con una variable y ninguna extraccion estatica lo sigue. Por eso el inventario del
- * locale no los copia a mano —un olvido ahi no daria ningun rojo— sino que los DERIVA de
- * `clavesDeLaEscalera()`.
- *
- * Y para que no haya que acordarse de traducir los tres, `peldanoDelPortal` recibe el traductor y
- * devuelve el peldano **ya traducido**: quien lo llama no puede olvidarse de uno.
- *
- * <h2>Lo que el backend dijo no se ensena, y es una decision</h2>
- *
- * La libreria usa el `mensaje` del `problem+json` como `detalle`. Aqui no: ese texto tambien esta
- * escrito para la ventanilla, y el unico endpoint que este portal consulta —`GET
- * /portal/situacion`, sin parametros— no tiene forma de contestar nada que el ciudadano pueda
- * corregir leyendolo. La nota que SI se ensena tal cual es otra —`notaDelTotal`, que viene en un
- * 200 y explica por que falta un total— y es del issue 14, no de esta escalera.
- *
- * <h2>Y los TRES miembros que `ErrorDeLaApi` conserva desde kamayuk-lib#96 (issue 33)</h2>
- *
- * `incidencia`, `detalles` y `parametroQueFalta` llegaban por el cable y se tiraban en el cliente;
- * ahora se conservan. **Aqui no se ensena ninguno de los tres**, y no es un olvido: cada uno tiene
- * su motivo, y los tres son el mismo motivo de arriba dicho tres veces.
- *
- *   · **`incidencia`** — el identificador con el que SOPORTE encuentra la causa de un 500 en el
- *     registro del servidor. Este portal no tiene soporte al que avisar: ante una averia su remedio
- *     es esperar unos minutos o ir a la ventanilla, y treinta y seis caracteres que no hay a quien
- *     dar son ruido encima de una mala noticia. Tampoco **se registra**: aqui no hay ni un
- *     `console` ni telemetria a donde mandarlo (medido en `src/`, issue 33), asi que «registrarlo»
- *     seria escribirlo donde nadie va a leerlo. El dia que este portal tenga a donde avisar, el
- *     dato sigue en el error.
- *   · **`detalles`** — es donde viaja el campo por el que se pidio ordenar («Campo pedido: …»).
- *     Son nombres de campos de la API, redactados para quien programa; y el ciudadano no pidio
- *     ningun orden ni tiene como cambiarlo, asi que ensenarselo seria darle un dato del que no se
- *     sale.
- *   · **`parametroQueFalta`** — `{ ejercicio, llave }`, la cifra normativa que no esta publicada.
- *     Distingue dos 404 de la hoja de Publicacion de `normativa` (normativa#66 y #67), que es una
- *     pantalla de back-office: este portal no la dibuja y no pide ningun ejercicio.
- *
- * Los tres **se conservan en el error** y quien los quiera leer los tiene; lo que no hacen es
- * llegar a la pantalla. Que no lleguen lo mide `escalera.test.ts`, y no por ausencia: la prueba
- * comprueba que los tres textos que salen son EXACTAMENTE los de la tabla, traducidos.
+ * Por que, y que se descarto: `docs/adr/CIU-0009-la-escalera-del-ciudadano.md`.
  */
 
 /**

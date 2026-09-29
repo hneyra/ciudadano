@@ -39,7 +39,7 @@ import { type CanjeSilencioso, type Silencio, silencio as silencioDelPortal } fr
  * se le pregunta al emisor desde un marco oculto con `prompt=none` si su sesion sigue viva
  * (`src/api/silencio.ts`): si lo esta, se monta ya identificado; si no, se monta anonimo y **sin ir
  * a ningun sitio**. Sigue sin irse a la puerta —la pagina no navega—, y en demostracion no se
- * pregunta nada.
+ * pregunta nada. Ver `docs/adr/CIU-0003-recargar-no-echa-el-canje-silencioso.md`.
  *
  * <h2>Y cuando la vuelta falla, se dice: nunca una pagina en blanco</h2>
  *

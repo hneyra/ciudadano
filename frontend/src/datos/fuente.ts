@@ -69,7 +69,7 @@ export interface FuenteConPlataforma extends ConPlataforma, LoQueTodaFuenteSabe 
   /**
    * La situacion del ciudadano **tal como la cuenta el servidor**.
    *
-   * Sin parametros a proposito: ADR-0020 retiro `GET /portal/deuda?doc=` —era una enumeracion de
+   * Sin parametros a proposito: infrastructure ADR-0020 retiro `GET /portal/deuda?doc=` —era una enumeracion de
    * contribuyentes— y lo reemplazo por `GET /portal/situacion`, donde el sujeto sale del token. Por
    * eso la fuente ya no ofrece «la deuda de este documento»: el servidor no lo ofrece.
    */

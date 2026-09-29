@@ -373,7 +373,7 @@ const LITERALES = [
 
   // ── El recorrido con plataforma (issue 28) ──────────────────────────────────────────────────
   // Paso 1 · Entrar (`src/pasos/entrar/Entrar.tsx`). No esta en el artboard: alli el paso 1 es
-  // buscar por documento, y el backend ya no ofrece eso (ADR-0020).
+  // buscar por documento, y el backend no ofrece eso (infrastructure ADR-0020).
   'Entre con su cuenta del portal',
   'Su deuda está a nombre de su documento, así que lo primero es saber quién pregunta. Al entrar verá lo que debe en todas las municipalidades del sistema.',
   'Entrar con mi cuenta',

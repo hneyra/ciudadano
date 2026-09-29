@@ -20,7 +20,7 @@ const BACKEND = process.env.KAMAYUK_BACKEND ?? 'http://localhost:18080';
 /**
  * El empaquetado de `ciudadano-web`, portado de `rentas/frontend/vite.config.ts`.
  *
- * `base` es `/portal/` y no `/`: igual que en `rentas` (ADR-0030 §2), el sistema va delante de la
+ * `base` es `/portal/` y no `/`: igual que en `rentas` (infrastructure ADR-0030 §2), el sistema va delante de la
  * ruta y el mismo proxy sirve varias interfaces. Con `base: '/'` el bundle pediria `/assets/…`,
  * que en el cluster es de otro — y el fallo no aparece en desarrollo, donde todo cuelga de la raiz.
  *

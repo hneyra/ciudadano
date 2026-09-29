@@ -153,6 +153,9 @@ frontend/                 Vite 7, React 19, TypeScript 5.9, con yarn. `ciudadano
   verificaciones/         las guardas del árbol, sus `muestras/` que las violan y `tipos/`;
                           `colores-propios/` es la muestra de `sin-colores-propios`
 .github/workflows/        la CI del frontend
+docs/adr/                 las decisiones de este portal, `CIU-NNNN`, con su historia: qué se midió y qué se descartó
+                          (issue 64). Su `README.md` tiene el índice y la plantilla; los del producto son
+                          `infrastructure ADR-NNNN`
 ```
 
 **El frontend no funciona sin `kamayuk-lib` clonado al lado**, y en `main`: `package.json` declara
@@ -295,9 +298,12 @@ usa en `allowDefaultProject`.
 ## Idioma
 
 Español en el dominio, inglés en lo técnico. **Sin tildes ni eñe en identificadores** (lo prohíbe
-ESLint). Comentarios, pruebas, commits y PR en castellano. Los comentarios explican **el porqué**, y
-cuando algo viene de `rentas` lo dicen con su número (`rentas#113`): esa procedencia es la medición
-que se hizo.
+ESLint). Comentarios, pruebas, commits y PR en castellano. Los comentarios explican **el porqué
+operativo**, en pocas líneas y en presente, y cuando algo viene de `rentas` lo dicen con su número
+(`rentas#113`): esa procedencia es la medición que se hizo. **La historia** —qué se midió, qué se probó
+y se descartó— va a un ADR de `docs/adr/` (issue 64), y el comentario lo enlaza por su ruta
+(`docs/adr/CIU-0001-la-raiz-de-la-api-escrita-una-vez.md`); `verificaciones/los-adr-citados-existen.test.ts`
+exige que el ADR citado exista y que cada ADR lo cite alguien.
 
 ## Comandos
 
@@ -320,7 +326,8 @@ VITEST_MAX_FORKS=3 yarn test       # medir la suite con otro tope de procesos, s
 ### Topes del entorno
 
 La máquina de desarrollo tiene 4 núcleos y es **compartida** (`k3s-server`, otras sesiones con sus
-suites), así que la carga cambia sola. `yarn verificar` se corre **tal cual, sin variables**:
+suites), así que la carga cambia sola. `yarn verificar` se corre **tal cual, sin variables** (la
+decisión y sus medidas, en `docs/adr/CIU-0008-los-topes-de-la-suite.md`):
 
 - **2 procesos de prueba** (`maxWorkers: 2` en `vitest.config.ts`, issue 42). Sin tope eran `núcleos − 1`
   = 3. Con la máquina libre 2 cuesta lo mismo que 3 (212 s y 222 s) y 1 casi dobla (410 s). **`VITEST_MAX_THREADS`

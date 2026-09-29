@@ -42,7 +42,7 @@ import type { DatosLeidos } from './leido.ts';
  *
  * `confirmarPago` guarda en `ultimo` lo que se pago, con los importes ya calculados por `cuentaDe`
  * (texto decimal, nunca `number`). Volver a marcar o desmarcar despues no lo mueve: el comprobante
- * dice lo que se cobro, no lo que hoy esta marcado.
+ * dice lo que se cobro, no lo que esta marcado despues.
  *
  * <h2>Lo que NO vive aqui, y por que</h2>
  *
@@ -53,51 +53,28 @@ import type { DatosLeidos } from './leido.ts';
  * · `toast`: los avisos son `avisar` de `@kamayuk/ui` (sonner). Un reductor puro no levanta avisos;
  *   quien despacha, avisa.
  *
- * <h2>De donde salen los conceptos: `estado.deudas`, que se LEE y no se guarda (issues 28 y 50)</h2>
- *
- * Hasta el issue 27 el reductor leia `DEUDAS` de `src/datos/demostracion.ts` en cada selector. Con
- * plataforma los conceptos los trae `GET /portal/situacion`, y el recorrido tiene que poder marcar,
- * pagar y sellar **esos**.
- *
- * Entre los issues 28 y 50 la lista vivia DENTRO del estado del reductor: un `useEffect` de
- * `LaConsulta` la copiaba de la cache de consultas con la accion `situacionLeida`. Dos copias del
- * mismo dato del servidor daban tres defectos (issue 50): un dibujo con la respuesta ya llegada y la
- * lista todavia vacia, una consulta repetida que volvia a marcarlo todo, y un error en ella que
- * borraba la lista a mitad de la eleccion. Ahora hay **una sola verdad** para lo que manda el
- * servidor, la cache de React Query, y el estado se parte en dos:
+ * <h2>Lo que decide la persona se guarda; lo que manda el servidor se LEE (issue 50)</h2>
  *
  *   · `DecisionesDelRecorrido`: lo que decide la persona —en que paso esta, que marco (por id), que
  *     pago y con que medio—. Es lo UNICO que guarda el reductor montado (`ProveedorDelRecorrido`).
- *   · `DatosLeidos`: los conceptos y a nombre de quien estan. En demostracion son los del artboard
- *     (`datosDeLaDemostracion`, que desde el issue 58 los toma de la FUENTE y no de un `import`);
- *     con plataforma, `datosDeLaSituacion` de lo que la cache tenga en ese momento. **No se guardan**: el proveedor los pone al lado de las decisiones en cada
- *     dibujo, y en cada accion que los necesita.
+ *   · `DatosLeidos`: los conceptos y a nombre de quien estan. En demostracion, los del artboard, que
+ *     trae la FUENTE (`datosDeLaDemostracion`); con plataforma, `datosDeLaSituacion` de lo que la cache
+ *     de consultas tenga en ese momento. **No se guardan**: el proveedor los pone al lado de las
+ *     decisiones en cada dibujo, y en cada accion que los necesita.
  *
- * `EstadoDelRecorrido` es la suma de las dos, y es lo que leen los selectores y las pantallas. Por
- * eso este reductor sigue siendo una funcion pura sobre el estado entero —se prueba igual que
- * antes—, y lo que cambio es quien la llama: con los datos de ESE momento, no con una copia.
+ * `EstadoDelRecorrido` es la suma de las dos, y es lo que leen los selectores y las pantallas: este
+ * reductor es una funcion pura sobre el estado entero, llamada con los datos de ESE momento. Por que
+ * no una copia: `docs/adr/CIU-0006-una-sola-verdad-para-lo-que-dice-el-servidor.md`.
  *
- * <h2>Dos recorridos, y el estado lleva la POLITICA del modo, no el modo (issue 59)</h2>
+ * <h2>El estado lleva la POLITICA del modo, no el modo (issue 59)</h2>
  *
- * La politica del modo (`PoliticaDelModo`, en `src/modo/modo.ts`) entra en el estado **una vez, al
- * montar** (`estadoInicial`, desde `ProveedorDelRecorrido`), y los selectores le preguntan a ella que
- * pasos hay, cual es el primero, que vale un concepto sin marcar y si el pago es simulado. Se guarda
- * aqui en vez de preguntarsela a la fuente en cada selector porque el reductor es puro y se prueba
- * llamandolo: con la politica dentro del estado, los dos recorridos se prueban con datos y sin montar
- * nada.
+ * La politica (`PoliticaDelModo`, `src/modo/modo.ts`) entra en el estado **una vez, al montar**
+ * (`estadoInicial`, desde `ProveedorDelRecorrido`), y los selectores le preguntan a ella que pasos hay,
+ * cual es el primero, que vale un concepto sin marcar y si el pago es simulado. Dentro del estado, y no
+ * preguntada a la fuente en cada selector, porque asi los dos recorridos se prueban con datos y sin
+ * montar nada. Ver `docs/adr/CIU-0005-el-modo-es-una-politica.md`.
  *
- * Hasta el issue 59 lo que entraba era el booleano `conPlataforma`, y cada selector lo resolvia a su
- * manera. Ningun selector sabe ya en que modo esta: un modo nuevo es una politica nueva.
- *
- * <h2>El recorrido es una maquina de estados, y se dice (issue 61)</h2>
- *
- * Hasta el issue 61 lo era sin decirlo. Las pantallas despachaban `irA` con el destino ya decidido
- * —trece sitios: la barra de pago escogia entre «Mis datos» y pagar, el resumen entre buscar y
- * elegir, la marca entre el historial y el primer paso— y el reductor lo aceptaba sin preguntar. Y lo
- * alcanzable se media por la posicion ACTUAL (`i <= actual`, la regla de la franja del artboard): tras
- * «Iniciar sesión» sin haber buscado, «Mis datos» es el paso 3 y la franja daba por hechos el 1 y el
- * 2; y volver atras dejaba fuera lo recien recorrido, asi que el boton Adelante del navegador no
- * llevaba a ninguna parte. Ahora:
+ * <h2>El recorrido es una maquina de estados (issue 61)</h2>
  *
  *   · **Cada transicion es una accion con nombre** que dice lo que la persona hizo —`buscar`,
  *     `confirmarEleccion`, `continuarConCorreo`, `entrar`, `confirmarPago`, `volverAElegir`,
@@ -113,8 +90,7 @@ import type { DatosLeidos } from './leido.ts';
  *     cada transicion; volver atras no lo toca.
  *   · **La URL y el paso, de acuerdo en un solo sitio**: `useLaUrlYElPaso` (`rutas.ts`).
  *
- * Sin librerias de maquinas de estados (XState): el reductor ya era la maquina; faltaba que las
- * transiciones fueran suyas.
+ * Lo que habia antes y por que se cambio: `docs/adr/CIU-0002-el-recorrido-es-una-maquina-de-estados.md`.
  */
 
 // Viven en `src/modo/modo.ts` desde el issue 59 —cada recorrido es de un modo— y se siguen exportando
@@ -653,7 +629,7 @@ export function alcanzadoHasta(estado: DecisionesDelRecorrido, paso: Paso): Alca
  * · El historial exige sesion.
  * · **Un paso que no esta en la franja de este recorrido, nunca**: `buscar` e `identificar` con
  *   plataforma, `entrar` sin ella. Es lo que hace que escribir `#/buscar` con plataforma no
- *   ensene un formulario que el backend ya no atiende (ADR-0020).
+ *   ensene un formulario que el backend no atiende (infrastructure ADR-0020).
  * · **El comprobante, siempre que haya un pago sellado** (issue 9), y sin sello nunca (issue 61). Es la
  *   constancia que se conserva: volver a elegir qué pago y regresar a `#/comprobante` tiene que
  *   ensenar el MISMO recibo. Sin sello no hay recibo que ensenar, y hasta el issue 61 un comprobante

@@ -70,7 +70,7 @@ describe('la consulta', () => {
     expect(pedidas).toHaveLength(1);
     expect(pedidas[0]?.ruta).toBe('/portal/situacion');
     expect(RUTA_DE_LA_SITUACION).toBe('/portal/situacion');
-    // Ni parametros de consulta ni cuerpo: el sujeto sale del token (ADR-0020). Un `?doc=` aqui
+    // Ni parametros de consulta ni cuerpo: el sujeto sale del token (infrastructure ADR-0020). Un `?doc=` aqui
     // volveria a abrir la enumeracion de contribuyentes que el ADR cerro.
     expect(pedidas[0]?.ruta).not.toContain('?');
     expect(pedidas[0]?.opciones?.cuerpo).toBeUndefined();

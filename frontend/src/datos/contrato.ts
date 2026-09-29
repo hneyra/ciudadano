@@ -34,7 +34,7 @@ import { RespuestaQueNoEntiendo } from './respuestaQueNoEntiendo.ts';
  * puede casar con el suyo). Lo que el portal hace con esos huecos lo decide `deLaSituacion.ts`, y
  * la regla es la misma en todos: **ausente es `null`, nunca un valor inventado**.
  *
- * <h2>Desde el issue 34, los tipos SALEN del esquema</h2>
+ * <h2>Los tipos SALEN del esquema (issue 34)</h2>
  *
  * Cada tipo de abajo es `z.infer` de su esquema, no una declaracion aparte: una forma escrita dos
  * veces acaba diciendo dos cosas, y la que se desvia es la que nadie mira —el tipo dice `number` y
@@ -52,9 +52,11 @@ import { RespuestaQueNoEntiendo } from './respuestaQueNoEntiendo.ts';
  *     redesplegar el portal. Y se DESCARTA en vez de pasar (`.passthrough()`) para que ninguna
  *     pantalla empiece a leer un campo que la frontera no conoce: lo que no se valido no sigue.
  *   · **un campo DE MENOS, o de otro tipo, si rompe**, con {@link RespuestaQueNoEntiendo}. Ahi el
- *     portal ya no sabe que esta leyendo: un importe que falta se dibujaria como un hueco que parece
+ *     portal no sabe que esta leyendo: un importe que falta se dibujaria como un hueco que parece
  *     un cero, y un `ejercicio` en texto llegaria a una cuenta como si fuera numero. Esto es dinero de
  *     una persona: mejor decir «no pudimos leerlo» que ensenar una cifra equivocada.
+ *
+ * Lo que habia antes, lo que se midio y lo descartado: `docs/adr/CIU-0004-la-frontera-del-contrato-con-zod.md`.
  */
 
 /**
@@ -64,10 +66,10 @@ import { RespuestaQueNoEntiendo } from './respuestaQueNoEntiendo.ts';
  * `IMPORTE_SERVIDO` de `formatearImporte` y de `sumarImportes`, que la libreria no exporta: se
  * repite aqui y `contrato.test.ts` mide, contra la libreria misma, que las dos aceptan lo mismo.
  *
- * Endurecer aqui no es mas exigente que hoy: cualquier otra forma ya revienta, solo que DESPUES,
+ * Endurecer aqui no exige mas que la libreria: cualquier otra forma revienta igual, solo que DESPUES,
  * al dibujarla, con un `Error` suelto en mitad de la pantalla. Y no se exigen dos decimales justos
- * porque el backend no los garantiza: `Dinero` sale por `toPlainString()` y su escala es la D-03a,
- * todavia abierta en `rentas`.
+ * porque el backend no los garantiza: `Dinero` sale por `toPlainString()`, y su escala es la decision
+ * D-03a de `rentas`, abierta cuando se escribio esto (issue 34).
  */
 const IMPORTE_SERVIDO = /^-?\d+(\.\d{1,2})?$/;
 
@@ -159,7 +161,7 @@ export type ObligacionDelContrato = z.infer<typeof ESQUEMA_DE_LA_OBLIGACION>;
  * **Sin `predioId`**, y esta decidido asi en el servidor: el identificador interno no le sirve a
  * quien mira su propia ficha y publicarlo invitaria a usarlo como parametro de otra llamada. La
  * consecuencia para el portal es que una obligacion con `predioId` **no se puede casar** con su
- * predio; lo unico que los une hoy es que la municipalidad tenga uno solo.
+ * predio; lo unico que los une es que la municipalidad tenga uno solo.
  *
  * `porcentajeTitularidad` es **texto**, no numero, por la misma regla 1 que los importes.
  */
