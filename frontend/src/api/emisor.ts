@@ -263,7 +263,7 @@ export function deLaVuelta(vuelta: Extract<Vuelta, { estado: 'fallo' }>): FalloD
  * `TEXTOS_DE_LA_SONDA.noContestoEn` y la lee `deLaSonda()`; ningun navegador empieza asi un mensaje.
  */
 const PLAZO_DE_LA_SONDA = 'plazo-de-la-sonda:';
-const PLAZO_LEIDO = /^plazo-de-la-sonda:(\d+(?:\.\d+)?)$/;
+const PLAZO_LEIDO = new RegExp(`^${PLAZO_DE_LA_SONDA}(\\d+(?:\\.\\d+)?)$`);
 
 /**
  * **Los dos textos de la SONDA de `entrar()`**, que la libreria pone en `FallaDeLaPuerta.motivo`

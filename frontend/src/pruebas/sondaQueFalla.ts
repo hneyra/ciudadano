@@ -67,7 +67,7 @@ const LO_CRUDO: readonly (string | RegExp)[] = [
 ];
 
 /** Lo crudo que aparece en `texto`, para un `toEqual([])` que diga cual. */
-export function loCrudoEn(texto: string): readonly string[] {
+function loCrudoEn(texto: string): readonly string[] {
   return LO_CRUDO.filter((crudo) => (typeof crudo === 'string' ? texto.includes(crudo) : crudo.test(texto))).map(String);
 }
 
