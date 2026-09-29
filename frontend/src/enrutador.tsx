@@ -2,7 +2,9 @@ import { Suspense, useEffect } from 'react';
 import { type RouteObject, createHashRouter } from 'react-router-dom';
 
 import { Marco } from './marco/Marco.tsx';
+import { NoSePudoMostrar } from './marco/NoSePudoMostrar.tsx';
 import { PANTALLAS, precargarLasPantallas } from './pasos/pantallas.tsx';
+import { APantallaEntera } from './piezas/AvisoDeAveria.tsx';
 import { useRecorrido } from './recorrido/ProveedorDelRecorrido.tsx';
 import { type Paso, TODOS_LOS_PASOS, pasoAlcanzable } from './recorrido/recorrido.ts';
 import { RUTA_DEL_PASO } from './recorrido/rutas.ts';
@@ -25,7 +27,7 @@ function PantallaDelPaso({ paso }: { readonly paso: Paso }) {
   useEffect(() => {
     void precargarLasPantallas().catch(() => {
       // Sin red no hay nada que hacer aqui: al abrir ese paso, `lazy` lo vuelve a pedir y, si falla,
-      // lo dice el limite de errores del enrutador.
+      // lo dice el `errorElement` de su ruta.
     });
   }, []);
 
@@ -42,9 +44,23 @@ function PantallaDelPaso({ paso }: { readonly paso: Paso }) {
   );
 }
 
+/**
+ * **Lo que revienta al dibujar se dice con palabras del portal** (issue 67). Sin `errorElement` lo
+ * recoge el limite por omision de React Router: «Unexpected Application Error!», en ingles, sin el
+ * tema y con la pila del error a la vista.
+ *
+ *   · En cada PASO, el aviso queda dentro del marco: la barra y la franja siguen, y moverse a otro
+ *     paso deja atras el error (React Router lo olvida al cambiar de ruta).
+ *   · En el MARCO, a pagina entera: si revento el marco, no queda marco en el que ponerlo.
+ */
 export const RUTAS: RouteObject[] = [
   {
     element: <Marco />,
+    errorElement: (
+      <APantallaEntera>
+        <NoSePudoMostrar />
+      </APantallaEntera>
+    ),
     children: [
       // La raiz y lo que no es ninguna ruta no dibujan nada: el gancho del marco las lleva al paso en
       // que esta el recorrido, con `replace`.
@@ -54,6 +70,7 @@ export const RUTAS: RouteObject[] = [
       ...TODOS_LOS_PASOS.map((paso) => ({
         path: RUTA_DEL_PASO[paso].slice(1),
         element: <PantallaDelPaso paso={paso} />,
+        errorElement: <NoSePudoMostrar />,
       })),
       { path: '*', element: null },
     ],

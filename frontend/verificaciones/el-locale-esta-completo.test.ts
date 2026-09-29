@@ -350,6 +350,10 @@ const LITERALES = [
   // dice «Volvimos» porque nadie fue a ningun sitio (revision del PR #45).
   'Comprobando su sesión…',
   'Al abrir la página quisimos comprobar si ya había entrado, y no se pudo: {{motivo}}. {{detalle}}',
+  // Lo que queda si algo revienta al dibujar (issue 67): el limite de la raiz y el `errorElement` del
+  // enrutador (`src/marco/NoSePudoMostrar.tsx`). El remedio es el de arriba.
+  'No se pudo mostrar esta pantalla',
+  'Volver a cargar',
 
   // ── El doble modo y los estados de la consulta (issue 27) ───────────────────────────────────
   // No estan en el artboard: el artboard no consulta a ningun servidor. Son los cinco finales que

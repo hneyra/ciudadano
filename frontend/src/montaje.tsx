@@ -3,13 +3,15 @@ import { type ReactNode, StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { I18nextProvider } from 'react-i18next';
 
-import { Aplicacion, ComprobandoLaSesion } from './aplicacion.tsx';
+import { Aplicacion, ComprobandoLaSesion, NoSePudoDibujar } from './aplicacion.tsx';
 import { arrancar } from './arranque.ts';
 import { crearClienteDeConsultas } from './datos/consultas.ts';
 import { FuenteActiva, type FuenteDelPortal } from './datos/fuente.ts';
 import { laFuente } from './datos/laFuente.ts';
 import { type Enrutador, crearEnrutador } from './enrutador.tsx';
 import i18n, { sumarLosTextosDeLaFuente } from './i18n/i18n.ts';
+import { avisarQueNoSeCargo } from './inicio.ts';
+import { LimiteDeErrores } from './marco/NoSePudoMostrar.tsx';
 import { politicaDe } from './modo/modo.ts';
 
 /**
@@ -80,17 +82,42 @@ function elEnrutador(): Enrutador {
  * Dentro de una funcion que se llama cuando el modulo YA se evaluo, el ciclo no existe. En el paquete
  * de produccion el `import()` se pliega y tampoco, asi que esto solo se ve con la bandera encendida:
  * por eso lo encontro el arnes y no `yarn build`.
+ *
+ * <h2>Y lo que revienta DESPUES de montar tampoco deja la pagina en blanco (issue 67)</h2>
+ *
+ * El `.catch` de abajo solo ve lo que rechaza al montar: `render` no devuelve nada que rechazar, y
+ * un error en un dibujo posterior subia hasta la raiz, que React 19 desmonta entera. Dos redes:
+ *
+ *   · **el limite de errores de la raiz** (`LimiteDeErrores`), dentro de i18next para que su aviso
+ *     pase por `t()`, y por fuera de todo lo demas: dibuja «No se pudo mostrar esta pantalla» con su
+ *     propio tema (`NoSePudoDibujar`);
+ *   · y si hasta ese aviso revienta, **`onUncaughtError`**: React ya vacio la raiz, y se escribe en
+ *     ella el aviso de la entrada, el que no necesita ni React ni i18next (`src/inicio.ts`). En una
+ *     microtarea, cuando React termino de desmontar: dentro de la llamada, soltar la raiz avisa de una
+ *     carrera y lo escrito se borra.
+ *
+ * Lo que revienta dentro del enrutador lo recoge antes su `errorElement` (`src/enrutador.tsx`), que
+ * deja el marco en pie cuando lo que revento es una pantalla.
  */
 export function montar(raiz: HTMLElement): Promise<void> {
-  const laRaiz = createRoot(raiz);
+  const laRaiz = createRoot(raiz, {
+    onUncaughtError: (error) => {
+      queueMicrotask(() => {
+        laRaiz.unmount();
+        avisarQueNoSeCargo(raiz, error);
+      });
+    },
+  });
 
   function dibujar(fuente: FuenteDelPortal, contenido: ReactNode): void {
     laRaiz.render(
       <StrictMode>
         <I18nextProvider i18n={i18n}>
-          <QueryClientProvider client={consultas}>
-            <FuenteActiva value={fuente}>{contenido}</FuenteActiva>
-          </QueryClientProvider>
+          <LimiteDeErrores alFallar={<NoSePudoDibujar />}>
+            <QueryClientProvider client={consultas}>
+              <FuenteActiva value={fuente}>{contenido}</FuenteActiva>
+            </QueryClientProvider>
+          </LimiteDeErrores>
         </I18nextProvider>
       </StrictMode>,
     );
