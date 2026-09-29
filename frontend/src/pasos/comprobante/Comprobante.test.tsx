@@ -78,14 +78,14 @@ describe('el recibo, tras pagar los cuatro conceptos con tarjeta', () => {
    * **La tabla se desplaza, y el teclado llega a desplazarla** (issue 62). Por debajo de su ancho
    * minimo la tabla se desplaza dentro de su marco (`overflow-x-auto`), y sin nada enfocable dentro
    * quien no usa raton no podia verla entera: axe, `scrollable-region-focusable` (serious), medido a
-   * 320 px. El marco entra en el orden del tabulador como una region con nombre.
+   * 320 px. El marco entra en el orden del tabulador como una region con nombre. Que desplace ella y no
+   * la pagina lo mide `seVeBien` en el arnes, a 400 y 320 px (issue 63).
    */
   it('el marco que desplaza la tabla se enfoca con el teclado y se llama «Conceptos del comprobante»', async () => {
     await pagar();
 
     const marco = within(recibo()).getByRole('region', { name: 'Conceptos del comprobante' });
     expect(marco).toHaveAttribute('tabindex', '0');
-    expect(marco.className).toContain('overflow-x-auto');
     expect(marco).toContainElement(within(recibo()).getByRole('table'));
   });
 
@@ -433,15 +433,14 @@ describe('las medidas del artboard', () => {
     expect(clases(recibo().querySelector('img'))).toContain('h-[46px]');
   });
 
-  it('las acciones, en columna y a todo el ancho a ≤ 700 px', async () => {
+  // Que a ≤ 700 px vayan en columna y a lo ancho lo mide `e2e/se-ve.spec.ts` («700: las acciones del
+  // comprobante van en columna, a lo ancho») en Chromium, a 701 y a 700 px (issue 63).
+  it('los botones de las acciones, con los 46 px de alto del artboard', async () => {
     await pagar();
 
     const acciones = principal().querySelector('[data-acciones]');
-    expect(clases(acciones)).toEqual(
-      expect.arrayContaining(['flex', 'flex-wrap', 'max-[701px]:flex-col', 'max-[701px]:items-stretch']),
-    );
     for (const boton of within(acciones as HTMLElement).getAllByRole('button')) {
-      expect(clases(boton), boton.textContent ?? '').toEqual(expect.arrayContaining(['min-h-[46px]', 'max-[701px]:w-full']));
+      expect(clases(boton), boton.textContent ?? '').toContain('min-h-[46px]');
     }
   });
 });

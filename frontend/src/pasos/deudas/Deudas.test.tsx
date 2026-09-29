@@ -79,10 +79,7 @@ describe('con los cuatro conceptos marcados', () => {
     expect(enMain().getByText('Código 00000025673 · DNI 03593174 · 2 predios y 1 vehículo')).toBeInTheDocument();
     expect(enMain().getByRole('heading', { level: 1, name: 'Lo que debe, por concepto' })).toBeInTheDocument();
 
-    // A ≤ 520 px, de dos en dos: `max-[521px]`, porque Tailwind v4 emite `max-[520px]` como `width < 520px`
-    // y el artboard dice `max-width: 520px` (el mismo pixel que el arnes destapo en pagar, issue 11). Que
-    // se reacomode de verdad lo mide `e2e/se-ve.spec.ts` a 520 y a 360 px.
-    expect([...(principal().querySelector('[data-cifras]')?.classList ?? [])]).toContain('max-[521px]:grid-cols-2');
+    // Que a ≤ 520 px vayan de dos en dos lo mide `e2e/se-ve.spec.ts` a 520 y a 360 px (issue 63).
     const cifras = within(principal().querySelector('[data-cifras]') as HTMLElement).getAllByRole('listitem');
     expect(cifras.map((c) => Array.from(c.children).map((hijo) => hijo.textContent))).toEqual([
       ['Impuesto y arbitrios', 'S/ 3,041.92', 'Lo que no se condona'],
@@ -239,8 +236,8 @@ describe('el desglose de un concepto', () => {
     expect(within(filas[0] as HTMLElement).getAllByRole('cell')[0]?.className).toContain('whitespace-nowrap');
     // El ancho minimo del dato, y el desplazamiento dentro de su contenedor, que el teclado alcanza
     // (issue 62: sin nada enfocable dentro, axe `scrollable-region-focusable`, serious, a 320 px).
+    // Que desplace el marco y no la pagina lo mide `seVeBien` en el arnes, con el desglose abierto a 320 px.
     expect(tabla.style.minWidth).toBe('580px');
-    expect(tabla.parentElement?.className).toContain('overflow-x-auto');
     expect(fila.getByRole('region', { name: 'Cuotas del impuesto predial 2026' })).toBe(tabla.parentElement);
     expect(tabla.parentElement).toHaveAttribute('tabindex', '0');
     expect(

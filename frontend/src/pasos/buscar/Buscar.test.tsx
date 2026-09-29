@@ -177,18 +177,6 @@ describe('lo que la pantalla dice', () => {
     expect(amnistia.parentElement).not.toHaveAttribute('role');
   });
 
-  it('los tres controles miden al menos 44 px de alto', () => {
-    montarElPortal();
-    // jsdom no maqueta: se comprueba la clase aqui y la medida en el navegador (capturas del PR).
-    for (const control of [
-      within(principal()).getByRole('combobox', { name: 'Buscar por' }),
-      campoNumero(),
-      botonBuscar(),
-    ]) {
-      expect(control.className.split(/\s+/)).toContain('min-h-[44px]');
-    }
-  });
-
   it('y todo pasa por `t()`: con el idioma marcado sale envuelto', async () => {
     await i18n.changeLanguage(IDIOMA_MARCADO);
     montarElPortal();

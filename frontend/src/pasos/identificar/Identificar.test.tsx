@@ -274,14 +274,12 @@ describe('lo que la pantalla dice y mide', () => {
 
     const campoCorreo = correo().getByRole('textbox', { name: 'Correo electrónico' });
     const documento = cuenta().getByRole('textbox', { name: 'Documento de identidad' });
-    const clave = cuenta().getByLabelText('Clave');
+    expect(cuenta().getByLabelText('Clave')).toBeInTheDocument();
     expect(campoCorreo).toHaveAttribute('placeholder', 'nombre@example.com');
     expect(documento).toHaveAttribute('placeholder', '03593174');
 
-    // jsdom no maqueta: se comprueba la clase aqui y la medida en el navegador (capturas del PR).
-    for (const control of [campoCorreo, documento, clave]) {
-      expect(control.className.split(/\s+/)).toContain('min-h-[44px]');
-    }
+    // Los 44 px de los tres campos los mide `lasAreasTactilesLleganA44` en el arnes (issue 63); los 48 de
+    // los botones, que ninguna especificacion mide, quedan aqui.
     for (const boton of [
       correo().getByRole('button', { name: 'Continuar al pago' }),
       cuenta().getByRole('button', { name: 'Entrar y pagar' }),

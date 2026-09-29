@@ -129,7 +129,8 @@ describe('«Pagos realizados» con plataforma', () => {
    * **La tabla vacia tambien se desplaza, y sin un boton dentro** (issue 62). Con plataforma no hay
    * pagos: la tabla lleva solo su cabecera, de 760 px, y a 400 px se desplaza dentro de su marco sin
    * nada enfocable que deje al teclado llegar a ella (axe, `scrollable-region-focusable`, serious,
-   * medido en el arnes a 400 y 320 px). El marco entra en el tabulador como region con nombre.
+   * medido en el arnes a 400 y 320 px). El marco entra en el tabulador como region con nombre. Que
+   * desplace el marco y no la pagina lo mide `seVeBien` en `e2e/recorrido-con-plataforma.spec.ts`.
    */
   it('el marco que desplaza la tabla se enfoca con el teclado, aunque no haya ningun pago', async () => {
     await enElHistorial();
@@ -137,7 +138,6 @@ describe('«Pagos realizados» con plataforma', () => {
     const pagos = within(enMain().getByRole('region', { name: 'Pagos realizados' }));
     const marco = pagos.getByRole('region', { name: 'Tabla de los pagos realizados' });
     expect(marco).toHaveAttribute('tabindex', '0');
-    expect(marco.className).toContain('overflow-x-auto');
     expect(marco).toContainElement(pagos.getByRole('table'));
     expect(within(marco).queryAllByRole('button')).toEqual([]);
   });
