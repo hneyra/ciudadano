@@ -391,6 +391,39 @@ test.describe('el recorrido con plataforma', () => {
     expect(backend.consultas()).toBe(0);
   });
 
+  test('si el emisor se cae antes de «Entrar con mi cuenta», se dice con palabras del portal y sin «Failed to fetch» (issue 67)', async ({
+    page,
+  }) => {
+    const backend = await backendFalso(page);
+    await abrirConPlataforma(page);
+    // Despues de arrancar: la sonda de `entrar()` ya no llega. Una ruta puesta despues gana a la del
+    // backend falso.
+    await page.route(`${EMISOR}/.well-known/openid-configuration`, (ruta) => ruta.abort('failed'));
+
+    await principal(page).getByRole('button', { name: 'Entrar con mi cuenta' }).click();
+
+    const aviso = page.getByText(/^No pudimos llevarle al acceso/);
+    await expect(aviso).toBeVisible();
+    // Leidos UNA vez, con el aviso a la vista: un `not.toContainText` reintenta hasta que el aviso se
+    // cierra solo, y entonces pasaria aunque hubiera dicho «Failed to fetch».
+    const cuerpo = (await page.locator('body').textContent()) ?? '';
+    // Lo que dijo Chromium de verdad, y la frase de la libreria, no llegan a la pantalla.
+    expect(cuerpo).not.toContain('Failed to fetch');
+    expect(cuerpo).not.toMatch(/\bcontesto\b/);
+    expect(await aviso.textContent()).toBe(
+      'No pudimos llevarle al acceso: el sistema de identidad no contesta. Puede estar apagado o no ser alcanzable desde este equipo; vuelva a intentarlo en unos minutos.',
+    );
+    // Y no se fue a ningun sitio: sigue en el paso 1, con el boton para volver a intentarlo.
+    expect(backend.conFormulario()).toBe(0);
+    await expect(page).toHaveURL(/#\/entrar$/);
+    // La captura, con el aviso ya entrado: a mitad de su transicion sale medio transparente.
+    await page.evaluate(async () => {
+      const finitas = document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity);
+      await Promise.all(finitas.map((a) => a.finished.catch(() => undefined)));
+    });
+    await test.info().attach('la ida que no llega al emisor', { body: await page.screenshot(), contentType: 'image/png' });
+  });
+
   test('si el emisor no contesta al arrancar, se dice «No se pudo abrir su sesión» (issue 35)', async ({ page }) => {
     // El marco hacia un emisor caido carga la pagina de error del navegador y no avisa de nada: lo
     // que lo delata es el tope de ocho segundos, y aqui se espera entero.

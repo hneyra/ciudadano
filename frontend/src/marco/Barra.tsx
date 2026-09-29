@@ -13,8 +13,9 @@ import { useTranslation } from 'react-i18next';
 
 import escudo from '../../diseno/escudo-catacaos.png';
 import { claimsDelCiudadano, haySesion } from '../api/claims.ts';
-import { entrar, salir } from '../arranque.ts';
+import { salir } from '../arranque.ts';
 import { useModo } from '../modo/useModo.ts';
+import { useIrALaPuerta } from '../piezas/irALaPuerta.ts';
 import { useRecorrido } from '../recorrido/ProveedorDelRecorrido.tsx';
 import { type EstadoDelRecorrido, laDemostracion } from '../recorrido/recorrido.ts';
 
@@ -143,6 +144,7 @@ export function Barra() {
   const { estado, despachar } = useRecorrido();
   // De quien es la sesion lo decide el modo (issue 59): la del emisor, o la de la demostracion.
   const delEmisor = useModo().sesion.laAbreUnEmisor;
+  const irALaPuerta = useIrALaPuerta();
   // Se lee cuando el menu ya se cerro: un `ref`, y no el estado de un dibujo que ya no es el ultimo.
   const elFocoVaALasUnidades = useRef(false);
 
@@ -159,18 +161,15 @@ export function Barra() {
   /**
    * **«Iniciar sesión»**: la puerta de verdad cuando hay plataforma, el paso «Mis datos» cuando no.
    *
-   * `entrar()` se llama y no se espera: cuando todo va bien el navegador se va de esta pagina, y la
-   * promesa solo trae algo cuando **no se pudo ni llegar al emisor** (`FallaDeLaPuerta`). Eso se
-   * avisa, porque si no el boton se pulsa y no ocurre nada visible.
+   * Con plataforma, `useIrALaPuerta`: si no se llega al emisor, lo avisa con palabras del portal
+   * (issue 67).
    */
   const iniciarSesion = () => {
     if (!delEmisor) {
       despachar({ tipo: 'identificarse' });
       return;
     }
-    void entrar().then((falla) => {
-      if (falla !== null) avisar(t('No pudimos llevarle al acceso: {{motivo}}.', { motivo: falla.motivo }));
-    });
+    irALaPuerta();
   };
 
   /**

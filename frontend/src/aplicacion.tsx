@@ -5,6 +5,8 @@ import { RouterProvider } from 'react-router-dom';
 import type { FalloDelEmisor } from './api/emisor.ts';
 import { preguntaFallida, vueltaFallida } from './arranque.ts';
 import type { Enrutador } from './enrutador.tsx';
+import { NoSePudoMostrar } from './marco/NoSePudoMostrar.tsx';
+import { APantallaEntera, AvisoDeAveria, RemedioDeLaAveria } from './piezas/AvisoDeAveria.tsx';
 import { ProveedorDelRecorrido } from './recorrido/ProveedorDelRecorrido.tsx';
 import type { DecisionesDePartida } from './recorrido/recorrido.ts';
 
@@ -89,17 +91,29 @@ function AvisoDeLaSesion({ children }: { readonly children: string }) {
   const { t } = useTranslation();
 
   return (
-    <div className="grid min-h-screen place-items-center bg-fondo p-[30px]">
-      <div className="max-w-[64ch] border border-mal-borde bg-mal-fondo p-[20px] text-[14px] leading-[1.6]">
-        <p className="m-0 font-bold text-mal-tinta">{t('No se pudo abrir su sesión')}</p>
+    <APantallaEntera>
+      <AvisoDeAveria titulo={t('No se pudo abrir su sesión')}>
         <p className="mt-[10px] mb-0 text-tinta-2">{children}</p>
-        <p className="mt-[10px] mb-0 text-tinta-2 text-pretty">
-          {t(
-            'Vuelva a cargar la página e inténtelo otra vez. Si sigue igual, puede consultar y pagar en la ventanilla de la municipalidad.',
-          )}
-        </p>
-      </div>
-    </div>
+        <RemedioDeLaAveria />
+      </AvisoDeAveria>
+    </APantallaEntera>
+  );
+}
+
+/**
+ * **Lo que queda si algo revienta al dibujar, por fuera del enrutador** (issue 67): lo dibuja el
+ * limite de errores de la raiz (`src/montaje.tsx`).
+ *
+ * Con su propio tema, como `ComprobandoLaSesion`: lo que revento puede ser cualquier cosa de dentro
+ * de `Aplicacion`, el proveedor del tema incluido, y sin el el aviso saldria con la paleta de otro.
+ */
+export function NoSePudoDibujar() {
+  return (
+    <ProveedorDeTema configuracion={TEMA}>
+      <APantallaEntera>
+        <NoSePudoMostrar />
+      </APantallaEntera>
+    </ProveedorDeTema>
   );
 }
 

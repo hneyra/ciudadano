@@ -1,7 +1,7 @@
-import { Boton, avisar } from '@kamayuk/ui';
+import { Boton } from '@kamayuk/ui';
 import { useTranslation } from 'react-i18next';
 
-import { entrar } from '../../arranque.ts';
+import { useIrALaPuerta } from '../../piezas/irALaPuerta.ts';
 import { AvisoDeAmnistia, QuePuedeHacerAqui } from '../../piezas/PortadaDelPortal.tsx';
 
 /**
@@ -33,19 +33,13 @@ import { AvisoDeAmnistia, QuePuedeHacerAqui } from '../../piezas/PortadaDelPorta
  *
  * <h2>El boton</h2>
  *
- * `entrar()` se llama y no se espera a que vuelva: cuando todo va bien, el navegador se va de esta
- * pagina. La promesa solo trae algo cuando **no se pudo ni llegar al emisor**, y eso se avisa en vez
- * de dejar el boton pulsado sin que ocurra nada visible. Es el mismo trato que en la barra
- * (`src/marco/Barra.tsx`) y en el peldano de la consulta (`src/pasos/deudas/LaConsulta.tsx`).
+ * Va a la puerta con `useIrALaPuerta`, como la barra y el peldano de la consulta: si no se llega al
+ * emisor, se avisa con palabras del portal en vez de dejar el boton pulsado sin que ocurra nada
+ * visible (issue 67).
  */
 export function Entrar() {
   const { t } = useTranslation();
-
-  const alEntrar = () => {
-    void entrar().then((falla) => {
-      if (falla !== null) avisar(t('No pudimos llevarle al acceso: {{motivo}}.', { motivo: falla.motivo }));
-    });
-  };
+  const alEntrar = useIrALaPuerta();
 
   return (
     <div>

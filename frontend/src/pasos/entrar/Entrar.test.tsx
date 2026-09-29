@@ -6,6 +6,7 @@ import { identidad } from '../../api/identidad.ts';
 import { crearFuenteDeLaPlataforma } from '../../datos/fuenteDeLaPlataforma.ts';
 import i18n, { ABRE, CIERRA, IDIOMA_MARCADO } from '../../i18n/i18n.ts';
 import { limpiarElPortal, marcado, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
+import { LAS_SONDAS_QUE_FALLAN, laSondaFallaCon, seAvisaSinNadaCrudo } from '../../pruebas/sondaQueFalla.ts';
 
 /**
  * **Paso 1 con plataforma: «Entrar», y la franja renumerada** (issue 28, AC1).
@@ -47,6 +48,7 @@ const etiquetasDeLaFranja = () =>
 afterEach(async () => {
   identidad.fijarToken(null);
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   await limpiarElPortal();
 });
 
@@ -155,19 +157,40 @@ describe('la pantalla de entrar', () => {
     expect(principal().textContent).not.toMatch(/podrá pagar/);
   });
 
-  it('y si no se pudo ni llegar al emisor, se dice en vez de no hacer nada visible', async () => {
-    vi.spyOn(identidad, 'entrar').mockResolvedValue({
-      emisor: 'http://localhost:18180/realms/kamayuk-ciudadano',
-      url: 'http://localhost:18180/realms/kamayuk-ciudadano/.well-known/openid-configuration',
-      motivo: 'la peticion no llego a completarse',
-    });
+  it.each(LAS_SONDAS_QUE_FALLAN)(
+    'y si no se pudo ni llegar al emisor (%s), se dice con palabras del portal y sin nada crudo (issue 67)',
+    async (_caso, falla, aviso) => {
+      laSondaFallaCon(falla());
+      montarElPortal({ hash: '#/entrar', fuente: conPlataforma() });
+
+      fireEvent.click(await enMain().findByRole('button', { name: 'Entrar con mi cuenta' }));
+
+      await seAvisaSinNadaCrudo(aviso);
+    },
+  );
+
+  it.each(LAS_SONDAS_QUE_FALLAN)('y ese aviso (%s) pasa por `t()` entero', async (_caso, falla, aviso) => {
+    await i18n.changeLanguage(IDIOMA_MARCADO);
+    laSondaFallaCon(falla());
+    montarElPortal({ hash: '#/entrar', fuente: conPlataforma() });
+
+    fireEvent.click(await enMain().findByRole('button', { name: marcado('Entrar con mi cuenta') }));
+
+    await seAvisaSinNadaCrudo(marcado(aviso));
+  });
+
+  it('y si la ida REVIENTA antes de salir, tambien se dice, y sin el mensaje de la excepcion (issue 67)', async () => {
+    vi.spyOn(identidad, 'entrar').mockRejectedValue(new TypeError("Cannot read properties of undefined (reading 'digest')"));
     montarElPortal({ hash: '#/entrar', fuente: conPlataforma() });
 
     fireEvent.click(await enMain().findByRole('button', { name: 'Entrar con mi cuenta' }));
 
     expect(
-      await screen.findByText('No pudimos llevarle al acceso: la peticion no llego a completarse.'),
+      await screen.findByText(
+        'No pudimos llevarle al acceso: algo falló en este navegador al preparar la entrada. Vuelva a cargar la página e inténtelo otra vez.',
+      ),
     ).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/digest|Cannot read/);
   });
 
   it('todo lo que se lee pasa por `t()`', async () => {
