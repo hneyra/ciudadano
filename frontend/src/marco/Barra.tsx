@@ -57,9 +57,9 @@ import { type EstadoDelRecorrido, laDemostracion } from '../recorrido/recorrido.
  * historial que deje el foco en «De dónde sale lo que paga» (`verPrediosYVehiculos`, issue 10).
  *
  * El pedido sale **cuando el menu ya se cerro** (`onCloseAutoFocus`), y no al elegir la opcion. Mientras
- * esta abierto, el menu de Radix atrapa el foco: medido estando ya en el historial, el titulo enfocado
- * al elegir lo perdia y el foco acababa en `body`. Y al cerrarse, Radix devuelve el foco a su disparador;
- * esa vez no se le deja, o se lo quitaria a la seccion.
+ * esta abierto, el foco es del menu: medido estando ya en el historial (issue 10, con el menu modal),
+ * el titulo enfocado al elegir lo perdia y el foco acababa en `body`. Y al cerrarse, Radix devuelve el
+ * foco a su disparador —modal o no—; esa vez no se le deja, o se lo quitaria a la seccion.
  *
  * `max-[881px]` y no `max-[880px]`: Tailwind v4 lo emite como `width < 881px`, que es el
  * `max-width: 880px` del artboard.
@@ -208,7 +208,10 @@ export function Barra() {
       </button>
 
       {quien !== null ? (
-        <Menu>
+        // No modal (issue 75): el modal de Radix pone `aria-hidden` a la pagina entera mientras la lista
+        // esta abierta, y lo oculto sigue siendo enfocable (axe: `aria-hidden-focus`). Sin el, Tab se
+        // queda en la lista igual —el menu de Radix lo cancela— y pulsar fuera lo cierra.
+        <Menu modal={false}>
           <DisparadorDelMenu
             className={cn(
               'flex shrink-0 cursor-pointer items-center gap-[10px] border-0 border-l border-barra-realce bg-transparent px-4 py-2 text-sobre-azul',
