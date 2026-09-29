@@ -2,7 +2,7 @@ import { screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { POLITICA_CON_PLATAFORMA } from '../modo/modo.ts';
-import { limpiarElPortal, montarElPortal, plazosDelPortal } from '../pruebas/portal.tsx';
+import { limpiarElPortal, montarElPortal } from '../pruebas/portal.tsx';
 import type { DecisionesDePartida } from './recorrido.ts';
 
 /**
@@ -14,9 +14,6 @@ import type { DecisionesDePartida } from './recorrido.ts';
  */
 
 afterEach(limpiarElPortal);
-
-// Monta el portal entero: sus plazos, en `src/pruebas/portal.tsx`.
-plazosDelPortal();
 
 describe('la politica la fija la fuente', () => {
   it('pisarla desde las decisiones de partida no compila', () => {

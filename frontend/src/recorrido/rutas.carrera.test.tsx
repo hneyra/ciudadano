@@ -8,7 +8,6 @@ import {
   montarElPortal,
   moverElNavegador,
   oirAlNavegador,
-  plazosDelPortal,
 } from '../pruebas/portal.tsx';
 import type { AccionDelRecorrido } from './recorrido.ts';
 
@@ -63,8 +62,6 @@ afterEach(async () => {
   trampa.alSeguir = null;
   await limpiarElPortal();
 });
-
-plazosDelPortal();
 
 describe('la URL cambia otra vez antes de que se dibuje el paso que el recorrido siguio', () => {
   it('manda la ultima URL, y el gancho no mete en el historial una entrada que nadie dio', async () => {

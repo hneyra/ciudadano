@@ -8,7 +8,7 @@ import { identidad } from './api/identidad.ts';
 import { arrancar } from './arranque.ts';
 import { crearFuenteDeLaPlataforma } from './datos/fuenteDeLaPlataforma.ts';
 import i18n, { ABRE, CIERRA, IDIOMA_MARCADO } from './i18n/i18n.ts';
-import { limpiarElPortal, montarElPortal, plazosDelPortal } from './pruebas/portal.tsx';
+import { limpiarElPortal, montarElPortal } from './pruebas/portal.tsx';
 
 /**
  * **Volver del sistema de identidad: lo que la persona VE** (issue 56).
@@ -60,9 +60,6 @@ afterEach(async () => {
   vi.restoreAllMocks();
   await limpiarElPortal();
 });
-
-// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
-plazosDelPortal();
 
 describe('AC3 — cancelar en el sistema de identidad no es un callejon sin salida', () => {
   it('volver con `error=access_denied` monta el portal ANONIMO, con «Entrar» a la vista y sin aviso de error', async () => {

@@ -8,7 +8,6 @@ import {
   limpiarElPortal,
   montarElPortal,
   remendarJsdomParaElMenu,
-  plazosDelPortal,
 } from '../../pruebas/portal.tsx';
 
 /**
@@ -45,9 +44,6 @@ async function queSeCierreElMenu(): Promise<void> {
     await new Promise((listo) => setTimeout(listo, 20));
   });
 }
-
-// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
-plazosDelPortal();
 
 describe('el menu de la sesion lleva al historial', () => {
   it('«Mis predios y vehículos»: `#/historial`, con el foco y la vista en «De dónde sale lo que paga»', async () => {

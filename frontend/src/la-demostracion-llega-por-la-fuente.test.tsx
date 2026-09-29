@@ -5,7 +5,7 @@ import { COMPROBANTE, CONTRIBUYENTE, MEDIOS, USUARIO } from './datos/demostracio
 import type { FuenteDelPortal } from './datos/fuente.ts';
 import { LA_DEMOSTRACION, fuenteDeDemostracion } from './datos/fuenteDeDemostracion.ts';
 import type { LaDemostracion } from './datos/tipos.ts';
-import { limpiarElPortal, montarElPortal, plazosDelPortal, remendarJsdomParaElMenu } from './pruebas/portal.tsx';
+import { limpiarElPortal, montarElPortal, remendarJsdomParaElMenu } from './pruebas/portal.tsx';
 
 /**
  * **Todo lo que es dato de una persona llega por la fuente** (issue 58).
@@ -24,7 +24,6 @@ import { limpiarElPortal, montarElPortal, plazosDelPortal, remendarJsdomParaElMe
 
 beforeAll(remendarJsdomParaElMenu);
 afterEach(limpiarElPortal);
-plazosDelPortal();
 
 const OTRA: LaDemostracion = {
   ...LA_DEMOSTRACION,

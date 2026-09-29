@@ -7,7 +7,6 @@ import {
   marcado,
   montarElPortal,
   remendarJsdomParaElMenu,
-  plazosDelPortal,
 } from '../pruebas/portal.tsx';
 import { ICONO_SOLO_EN_EL_CELULAR } from './Barra.tsx';
 
@@ -33,9 +32,6 @@ function abrirElMenu(): HTMLElement[] {
   expect(disparador).toHaveAttribute('aria-expanded', 'true');
   return screen.getAllByRole('menuitem');
 }
-
-// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
-plazosDelPortal();
 
 describe('la barra sin sesion', () => {
   it('ofrece «Iniciar sesión», que lleva a «Mis datos»', async () => {

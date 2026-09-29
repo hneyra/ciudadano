@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { DEUDAS } from '../../datos/demostracion.ts';
 import { LA_DEMOSTRACION } from '../../datos/fuenteDeDemostracion.ts';
-import { limpiarElPortal, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
+import { limpiarElPortal, montarElPortal } from '../../pruebas/portal.tsx';
 import { type PagoSimulado, datosDeLaDemostracion } from '../../recorrido/recorrido.ts';
 
 /**
@@ -38,9 +38,6 @@ const SIMULADO: PagoSimulado = {
 const principal = () => screen.getByRole('main');
 
 afterEach(limpiarElPortal);
-
-// Monta el portal entero: sus plazos, en `src/pruebas/portal.tsx`.
-plazosDelPortal();
 
 describe('un pago simulado, en el modo que sea, lleva el aviso Y la banda simulada', () => {
   it('en demostracion: «Así se vería su comprobante» con el aviso arriba, y nada de «Su pago se registró»', async () => {

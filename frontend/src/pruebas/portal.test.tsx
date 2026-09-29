@@ -1,8 +1,9 @@
 import { avisar } from '@kamayuk/ui';
-import { act, cleanup, screen } from '@testing-library/react';
+import { act, cleanup, getConfig, screen } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { limpiarElPortal, montarElPortal, moverElNavegador, plazosDelPortal, remendarJsdomParaElMenu } from './portal.tsx';
+import { ESPERA_DEL_PORTAL } from './plazos.ts';
+import { limpiarElPortal, montarElPortal, moverElNavegador, remendarJsdomParaElMenu } from './portal.tsx';
 
 /**
  * **Limpiar el portal no deja ningun temporizador vivo** (revision del PR #46, issue 42).
@@ -29,9 +30,6 @@ import { limpiarElPortal, montarElPortal, moverElNavegador, plazosDelPortal, rem
 
 beforeAll(remendarJsdomParaElMenu);
 afterEach(limpiarElPortal);
-
-// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
-plazosDelPortal();
 
 describe('limpiar el portal', () => {
   it('con un aviso a la vista, no programa ningun temporizador que sobreviva al entorno', async () => {
@@ -84,5 +82,16 @@ describe('moverElNavegador', () => {
       poner.mockRestore();
       quitar.mockRestore();
     }
+  });
+});
+
+/**
+ * **La espera del proyecto `portal` se aplica** (issue 63). La guarda de la suite comprueba que el
+ * proyecto nombra su preparacion; esto, que la preparacion hace lo que dice, desde un archivo del
+ * propio proyecto. Sin ella, Testing Library espera su segundo de siempre.
+ */
+describe('los plazos del proyecto «portal»', () => {
+  it('cada espera de Testing Library dura la del portal, no el segundo por omision', () => {
+    expect(getConfig().asyncUtilTimeout).toBe(ESPERA_DEL_PORTAL);
   });
 });

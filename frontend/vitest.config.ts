@@ -2,6 +2,10 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
 import { LO_QUE_PONE_EL_CONSUMIDOR } from './resolucion.ts';
+import { PLAZO_DEL_PORTAL } from './src/pruebas/plazos.ts';
+
+/** Lo que ningun proyecto corre: lo instalado y lo construido. */
+const FUERA = ['**/node_modules/**', '**/dist/**'];
 
 export default defineConfig({
   /**
@@ -22,7 +26,6 @@ export default defineConfig({
     dedupe: [...LO_QUE_PONE_EL_CONSUMIDOR],
   },
   test: {
-    environment: 'jsdom',
     /**
      * **Dos procesos de prueba, y no uno por nucleo** (issue 42).
      *
@@ -38,8 +41,8 @@ export default defineConfig({
      * Con la maquina libre, 2 cuesta lo mismo que 3 —la CPU ya estaba repartida— y 1 casi dobla el
      * tiempo. 2 deja un nucleo a lo demas de la maquina en vez de quitarselo. Lo que NO arregla el tope
      * por si solo: con carga 15 puesta desde fuera, los casos que montan el portal caducaban igual con 2
-     * que con 3 (10 y 7 rojos). Eso lo arreglan sus plazos, dichos en cada archivo
-     * (`PLAZO_DEL_PORTAL`, `src/pruebas/portal.tsx`).
+     * que con 3 (10 y 7 rojos). Eso lo arreglan sus plazos, que declara el proyecto `portal`
+     * (`PLAZO_DEL_PORTAL`, `src/pruebas/plazos.ts`).
      *
      * `maxWorkers` y no `poolOptions.threads.maxThreads`: el `pool` es `forks`, y el tope de hilos
      * —como la variable `VITEST_MAX_THREADS`— **no se aplica a los procesos**. Medido: con
@@ -66,10 +69,48 @@ export default defineConfig({
     // Sin globales: un `describe` que aparece de la nada no dice de donde sale, y el
     // compilador tampoco. Aqui cada cosa se importa.
     globals: false,
-    // Las pruebas del codigo viven JUNTO al codigo; las de las barreras, en
-    // `verificaciones/`, porque no prueban una unidad sino una propiedad del arbol.
-    include: ['{src,verificaciones}/**/*.test.{ts,tsx}'],
-    exclude: ['**/node_modules/**', '**/dist/**', 'verificaciones/muestras/**'],
     setupFiles: ['./vitest.setup.ts'],
+    /**
+     * **Tres proyectos, uno por clase de prueba** (issue 63). Las pruebas del codigo viven JUNTO al
+     * codigo; las de las barreras, en `verificaciones/`, porque no prueban una unidad sino una
+     * propiedad del arbol.
+     *
+     *   · `guardas`: las barreras, en Node. Leen el arbol, no dibujan; las pocas que necesitan un
+     *     `window` de verdad lo piden en su primera linea.
+     *   · `unidad`: los `.test.ts` de `src/`, en jsdom salvo las que piden Node.
+     *   · `portal`: los `.test.tsx` de `src/`, que montan el portal entero, con los plazos de
+     *     `src/pruebas/plazos.ts` —el del caso aqui y el de las esperas en su preparacion—. Hasta el
+     *     issue 63 cada archivo los pedia con una llamada, y una guarda por texto vigilaba la llamada.
+     *
+     * **Sin `include` en la raiz**, a proposito: con `extends: true` Vite FUSIONA las listas, y un
+     * `include` de la raiz se sumaria al de cada proyecto —medido: los tres corrian todos los
+     * archivos—. Lo vigila `verificaciones/la-suite-tiene-tope.test.ts`, preguntandole a Vitest.
+     */
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'guardas',
+          include: ['verificaciones/**/*.test.ts'],
+          exclude: [...FUERA, 'verificaciones/muestras/**'],
+          environment: 'node',
+        },
+      },
+      {
+        extends: true,
+        test: { name: 'unidad', include: ['src/**/*.test.ts'], exclude: FUERA, environment: 'jsdom' },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'portal',
+          include: ['src/**/*.test.tsx'],
+          exclude: FUERA,
+          environment: 'jsdom',
+          testTimeout: PLAZO_DEL_PORTAL,
+          setupFiles: ['./src/pruebas/esperaDelPortal.ts'],
+        },
+      },
+    ],
   },
 });

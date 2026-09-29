@@ -5,7 +5,7 @@ import { DEUDAS, HISTORIAL, UNIDADES, USUARIO } from '../../datos/demostracion.t
 import type { FuenteDelPortal } from '../../datos/fuente.ts';
 import { LA_DEMOSTRACION } from '../../datos/fuenteDeDemostracion.ts';
 import i18n, { ABRE, CIERRA, IDIOMA_MARCADO } from '../../i18n/i18n.ts';
-import { limpiarElPortal, marcado, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
+import { limpiarElPortal, marcado, montarElPortal } from '../../pruebas/portal.tsx';
 import { type EstadoDelRecorrido, datosDeLaDemostracion } from '../../recorrido/recorrido.ts';
 import { textosDeLaUnidad, textosDelPago } from './textosDelHistorial.ts';
 
@@ -76,9 +76,6 @@ const LAS_CINCO_DEL_ARTBOARD = [
   ['04/12/2024', 'Arbitrios 2024 — cuotas 9 a 12', 'Ventanilla', '0003-0031044', '148.60', 'Comprobante'],
   ['22/02/2024', 'Impuesto predial 2024 — cuota 1', 'pagalo.pe', '0003-0028801', '460.65', 'Comprobante'],
 ];
-
-// Monta el portal entero: sus plazos, y la medida que los justifica, en `src/pruebas/portal.tsx`.
-plazosDelPortal();
 
 describe('tras entrar y pagar los cuatro conceptos', () => {
   it('la banda «Pago de S/ 3,149.92 registrado hoy», 6 filas con la primera resaltada y «Sin deuda pendiente»', async () => {
