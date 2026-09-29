@@ -1,10 +1,10 @@
-import { execFileSync } from 'node:child_process';
-import { readFileSync, readdirSync, rmSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { expect, test } from '@playwright/test';
 
+import { DIST_CON_PLATAFORMA } from '../puerto-del-arnes.mjs';
 import { enQueArchivosEsta } from '../verificaciones/marcas-de-la-demostracion.ts';
 
 /**
@@ -16,11 +16,15 @@ import { enQueArchivosEsta } from '../verificaciones/marcas-de-la-demostracion.t
  * dentro y el trozo que lo pide lo nombra para pedirlo. Si Rollup lo plego, no hay ni trozo ni
  * mencion.
  *
- * <h2>Por que construye aqui, en vez de mirar el `dist/` que ya hay</h2>
+ * <h2>Que paquete de produccion mira</h2>
  *
- * Porque el `dist/` que sirve este arnes **es el de demostracion** a proposito (`playwright.config.ts`,
- * `build:arnes`): lo que el arnes recorre es el recorrido del artboard. Asi que este camino construye
- * el de produccion en OTRO directorio y compara los dos.
+ * El `dist/` que sirve este arnes **es el de demostracion** a proposito (`playwright.config.ts`,
+ * `build:arnes`): lo que el arnes recorre es el recorrido del artboard. El de produccion es el que
+ * construye y sirve el segundo servidor del arnes, `dist-con-plataforma/`, con la orden y la bandera
+ * del `Dockerfile` (issue 63). Hasta el issue 63 este camino construia otro igual en su directorio:
+ * medido, los tres paquetes de produccion del arnes salian identicos byte a byte. Que lea el mismo que
+ * se sirve, y que ese se construya como la imagen, lo vigila
+ * `verificaciones/el-arnes-construye-produccion-una-vez.test.ts`.
  *
  * Y comparar los dos es lo que hace que la prueba valga: sin la mitad que exige el trozo **dentro**
  * del paquete de demostracion, «no esta en el de produccion» pasaria en verde el dia que el modulo
@@ -53,8 +57,8 @@ const FRONTEND = join(AQUI, '..');
 /** El nombre del modulo. Si el `import()` sobrevive, Vite bautiza su trozo con el. */
 const MODULO = 'fuenteDeDemostracion';
 
-/** Donde se construye el de produccion. No se versiona (`.gitignore`) y se borra al acabar. */
-const DE_PRODUCCION = join(FRONTEND, 'dist-de-produccion');
+/** El de produccion: el que construye y sirve el segundo servidor del arnes, antes de cualquier camino. */
+const DE_PRODUCCION = join(FRONTEND, DIST_CON_PLATAFORMA);
 
 /** El de demostracion, que es el que este arnes sirve y ya esta construido cuando esto corre. */
 const DEL_ARNES = join(FRONTEND, 'dist');
@@ -65,17 +69,6 @@ function trozosDe(dist: string): readonly string[] {
   // en `vite.config.ts`), asi que ahi el nombre aparece por otro motivo y no dice nada del paquete.
   return readdirSync(join(dist, 'assets')).filter((archivo) => archivo.endsWith('.js'));
 }
-
-test.beforeAll(() => {
-  rmSync(DE_PRODUCCION, { recursive: true, force: true });
-  // El de produccion, con la orden de siempre y sin `NODE_ENV` delante: es exactamente lo que
-  // construiria una imagen o la CI.
-  execFileSync('npx', ['vite', 'build', '--outDir', DE_PRODUCCION], { cwd: FRONTEND, stdio: 'pipe' });
-});
-
-test.afterAll(() => {
-  rmSync(DE_PRODUCCION, { recursive: true, force: true });
-});
 
 test('EL CENTINELA: el paquete del arnes SI trae la fuente de demostracion', () => {
   // La otra mitad de la prueba de abajo. Sin esta, «no esta en produccion» seria verde tambien con

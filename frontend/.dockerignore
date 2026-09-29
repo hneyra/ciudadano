@@ -16,8 +16,8 @@ node_modules
 # de otro commit sin que nada lo dijera.
 dist
 
-# Y los otros paquetes que el arnes deja en el disco: el de produccion, el CON PLATAFORMA y el de la
-# imagen (`.gitignore` los nombra uno por uno; `imagen-y-despliegue.test.ts` los cruza con este).
+# Y los otros paquetes que el arnes deja en el disco: el CON PLATAFORMA, y los dos que construia
+# hasta el issue 63 (`.gitignore` los nombra uno por uno; `imagen-y-despliegue.test.ts` los cruza con este).
 dist-*
 
 # ── LOS ARCHIVOS DE ENTORNO. Todos, y este es el bloque que mas importa ──────────────────
