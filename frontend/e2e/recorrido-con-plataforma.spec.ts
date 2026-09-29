@@ -402,17 +402,25 @@ test.describe('el recorrido con plataforma', () => {
 
     await principal(page).getByRole('button', { name: 'Entrar con mi cuenta' }).click();
 
-    await expect(
-      page.getByText(
-        'No pudimos llevarle al acceso: el sistema de identidad no contesta. Puede estar apagado o no ser alcanzable desde este equipo; vuelva a intentarlo en unos minutos.',
-      ),
-    ).toBeVisible();
+    const aviso = page.getByText(/^No pudimos llevarle al acceso/);
+    await expect(aviso).toBeVisible();
+    // Leidos UNA vez, con el aviso a la vista: un `not.toContainText` reintenta hasta que el aviso se
+    // cierra solo, y entonces pasaria aunque hubiera dicho «Failed to fetch».
+    const cuerpo = (await page.locator('body').textContent()) ?? '';
     // Lo que dijo Chromium de verdad, y la frase de la libreria, no llegan a la pantalla.
-    await expect(page.locator('body')).not.toContainText('Failed to fetch');
-    await expect(page.locator('body')).not.toContainText(/\bcontesto\b/);
+    expect(cuerpo).not.toContain('Failed to fetch');
+    expect(cuerpo).not.toMatch(/\bcontesto\b/);
+    expect(await aviso.textContent()).toBe(
+      'No pudimos llevarle al acceso: el sistema de identidad no contesta. Puede estar apagado o no ser alcanzable desde este equipo; vuelva a intentarlo en unos minutos.',
+    );
     // Y no se fue a ningun sitio: sigue en el paso 1, con el boton para volver a intentarlo.
     expect(backend.conFormulario()).toBe(0);
     await expect(page).toHaveURL(/#\/entrar$/);
+    // La captura, con el aviso ya entrado: a mitad de su transicion sale medio transparente.
+    await page.evaluate(async () => {
+      const finitas = document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity);
+      await Promise.all(finitas.map((a) => a.finished.catch(() => undefined)));
+    });
     await test.info().attach('la ida que no llega al emisor', { body: await page.screenshot(), contentType: 'image/png' });
   });
 
