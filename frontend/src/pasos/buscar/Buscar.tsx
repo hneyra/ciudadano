@@ -56,7 +56,7 @@ import { type TipoDeDocumento, laDemostracion, vivas } from '../../recorrido/rec
  * <h2>Esta pantalla es SOLO de demostracion (issue 28)</h2>
  *
  * Con plataforma, `buscar` deja de ser un paso alcanzable (`src/recorrido/recorrido.ts`) y el primer
- * paso es «Entrar»: el backend ya no ofrece buscar por documento —el ADR-0020 retiro
+ * paso es «Entrar»: el backend no ofrece buscar por documento —el infrastructure ADR-0020 retiro
  * `GET /portal/deuda?doc=` por ser una enumeracion de contribuyentes— y un formulario que nadie
  * puede atender es peor que no tenerlo. Lo que las dos puertas de entrada comparten —«Qué puede
  * hacer aquí» y el aviso de la amnistia— esta en `src/piezas/PortadaDelPortal.tsx`.
@@ -115,7 +115,7 @@ export function Buscar() {
   const alEnviar = ({ tipoDeDocumento, numero }: ValoresDeLaBusqueda) => {
     despachar({ tipo: 'buscar', tipoDeDocumento, numero });
     // Lo que queda por pagar es la deuda viva, y no los cuatro del artboard (linea 1006): tras
-    // «Consultar otra deuda» lo pagado ya no esta pendiente (nota del revisor del issue 9). Buscar no
+    // «Consultar otra deuda» lo pagado deja de estar pendiente (nota del revisor del issue 9). Buscar no
     // cambia `pagadas`, asi que contarla antes de despachar da lo mismo que despues.
     const pendientes = vivas(estado).length;
     avisar(

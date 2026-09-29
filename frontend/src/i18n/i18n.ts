@@ -38,7 +38,7 @@ import es from './locales/es.json' with { type: 'json' };
  * · **`es`** — el de verdad.
  * · **`marcado`** — no es un idioma: es el arnes de las pruebas de cobertura. Envuelve TODO lo que
  *   traduce entre `⟦` y `⟧`, de modo que lo que llegue al DOM sin marcar es texto que se escapo de
- *   `t()`. Lo usa hoy `src/aplicacion.test.tsx`.
+ *   `t()`. Lo usan las pruebas que miden que una pantalla no deja texto sin traducir.
  *
  * <h2>Por que el marcado es un POST-PROCESADOR y no un «no encontre la clave»</h2>
  *

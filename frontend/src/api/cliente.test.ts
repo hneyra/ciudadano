@@ -43,7 +43,7 @@ afterEach(() => {
 
 describe('el prefijo es uno, y es el que enruta el proxy', () => {
   it('vale `/rentas/api/v1` y sale del archivo hoja', () => {
-    // `/rentas/` y no `/ciudadano/`: ADR-0030 §2 pone delante el sistema que RESPONDE. Quien
+    // `/rentas/` y no `/ciudadano/`: infrastructure ADR-0030 §2 pone delante el sistema que RESPONDE. Quien
     // contesta `GET /portal/situacion` es el backend de `rentas`; este portal no tiene backend.
     expect(PREFIJO).toBe('/rentas/api/v1');
     // Reexportado, no escrito dos veces: dos cadenas se separan y cada mitad funciona sola.
@@ -98,8 +98,8 @@ describe('el token viaja, y se lee en cada peticion', () => {
 
 describe('no se compone nada mas que la ruta', () => {
   it('ni inquilino, ni parametros: el sujeto sale del claim del token', async () => {
-    // Regla 2 de ADR-0005. `GET /portal/situacion` no lleva NINGUN parametro —lo retiro el
-    // ADR-0020, porque `?doc=` era una enumeracion de contribuyentes—, y `OpcionesDeSolicitud` no
+    // Regla 2 de infrastructure ADR-0005. `GET /portal/situacion` no lleva NINGUN parametro —lo retiro el
+    // infrastructure ADR-0020, porque `?doc=` era una enumeracion de contribuyentes—, y `OpcionesDeSolicitud` no
     // tiene ninguna cabecera libre por donde colar el inquilino.
     const espia = espiarLaRed();
     identidad.fijarToken('con-claims');

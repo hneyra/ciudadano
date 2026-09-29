@@ -141,7 +141,7 @@ describe('AC4 — el paso 4, «Pagar»', () => {
     expect(enMain().getByText(/no se cobra nada y su deuda no cambia/)).toBeInTheDocument();
     // El boton de confirmar, que es lo ultimo que se lee antes de pulsar.
     expect(enMain().getByRole('button', { name: 'Simular el pago: no se cobra nada' })).toBeInTheDocument();
-    // Y el texto del medio, que promete un cobro, ya no esta.
+    // Y el texto del medio, que promete un cobro, no esta.
     expect(enMain().queryByRole('button', { name: 'Pagar ahora' })).toBeNull();
   });
 

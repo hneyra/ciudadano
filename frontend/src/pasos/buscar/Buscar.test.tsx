@@ -26,8 +26,8 @@ function escribir(campo: HTMLElement, texto: string): void {
 }
 
 /**
- * Deja correr lo pendiente: la validacion de `react-hook-form` es asincrona. Mirar «el error ya no
- * esta» justo despues de escribir pasaba en verde con `reValidateMode: 'onChange'`, que lo quita y
+ * Deja correr lo pendiente: la validacion de `react-hook-form` es asincrona. Mirar que el error
+ * desaparecio justo despues de escribir pasaba en verde con `reValidateMode: 'onChange'`, que lo quita y
  * un instante despues lo VUELVE A PONER; solo se ve si se espera a que termine.
  */
 async function queTermineLaValidacion(): Promise<void> {

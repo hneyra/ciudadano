@@ -26,8 +26,8 @@
  *
  * `servida` -> `de la construccion` -> `por omision`. El ultimo son las senias de la plataforma
  * local, que es donde corre `yarn dev` y donde corren las pruebas: fallar ahi obligaria a que todo
- * arnes montara un `window.__KAMAYUK_CIUDADANO__` para dibujar una pantalla que —en esta entrega—
- * no entra a ninguna puerta.
+ * arnes montara un `window.__KAMAYUK_CIUDADANO__`, tambien los que corren en demostracion y no
+ * entran a ninguna puerta.
  *
  * Lo que **no** hace la cadena es tratar la cadena vacia como un valor: una llave puesta con el
  * valor en blanco es un error de despliegue, y heredar de el una URL vacia daria un rebote a

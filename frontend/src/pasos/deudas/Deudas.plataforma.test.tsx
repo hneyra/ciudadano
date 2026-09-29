@@ -3,7 +3,6 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { ErrorDeLaApi, type Cliente } from '@kamayuk/api';
-import { peldanoDe } from '@kamayuk/sesion';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -97,7 +96,7 @@ function importesEnPantalla(): string[] {
   return (principal().textContent ?? '').match(/S\/\s?[\d,]+\.\d{2}/g) ?? [];
 }
 
-/** Una respuesta del contrato con las ramas que la plataforma local todavia no produce. */
+/** Una respuesta del contrato con las ramas que la plataforma local no produjo al medir. */
 function respuesta(cambios: Partial<SituacionDelContrato>): SituacionDelContrato {
   return {
     tipoDocumento: 'DNI',
@@ -196,8 +195,8 @@ describe('AC5 — la respuesta MEDIDA de la plataforma local (no se pudo consult
       importesEnPantalla(),
       'Un total donde falto una municipalidad es una cifra plausible y equivocada.',
     ).toEqual([]);
-    // Y lo que NO se dice: que no figura en ningun padron. La medida trae `sinRegistros: true` y aun
-    // asi eso no se afirma, porque no se pudo comprobar (`deLaSituacion.ts`).
+    // Y lo que NO se dice: que no figura en ningun padron. La medida trae `sinRegistros: true` y, aun
+    // asi, eso no se afirma, porque no se pudo comprobar (`deLaSituacion.ts`).
     expect(enMain().queryByText(/No encontramos deuda a su nombre/)).toBeNull();
     expect(rutas).toEqual(['/portal/situacion']);
 
@@ -428,23 +427,18 @@ describe('cuando la peticion falla', () => {
   });
 
   /**
-   * Los dos estados de fallo que trae el issue 33, en la pantalla de verdad.
-   *
-   * El titulo esperado se PIDE a la escalera en vez de escribirse: mientras kamayuk-lib#96 siga
-   * abierto, la libreria enlazada manda el 409 a `averia` y el 422 `ORDEN_NO_ADMITIDO` a
-   * `no-valido`, y escribir aqui «Eso ya no se puede hacer ahora» seria afirmar un final que hoy no
-   * ocurre. Lo que se mide es lo que no cambia con el pareado: que sale **un texto de la tabla del
-   * portal** —ni el de la libreria, ni `undefined`— y que no hay ni una cifra.
+   * Los dos estados de fallo que trae el issue 33, en la pantalla de verdad: su titulo escrito, su
+   * remedio el de la tabla del portal —ni el de la libreria, ni `undefined`— y ni una cifra.
    */
   it.each([
-    [409, 'CONFLICTO'],
-    [422, 'ORDEN_NO_ADMITIDO'],
-  ])('un %s %s sale con un texto del portal y sin una sola cifra', async (estado, codigo) => {
+    [409, 'CONFLICTO', 'conflicto', 'Eso ya no se puede hacer ahora'],
+    [422, 'ORDEN_NO_ADMITIDO', 'orden-no-admitido', 'No pudimos ordenar la lista así'],
+  ] as const)('un %s %s sale con su texto del portal y sin una sola cifra', async (estado, codigo, clave, titulo) => {
     const fallo = () => new ErrorDeLaApi(estado, 'GET /portal/situacion', { codigo });
-    const textos = TEXTOS_DEL_PORTAL[peldanoDe(fallo()).clave];
+    const textos = TEXTOS_DEL_PORTAL[clave];
     conSesion(() => Promise.reject(fallo()));
 
-    expect(await enMain().findByRole('heading', { level: 1, name: textos.titulo })).toBeInTheDocument();
+    expect(await enMain().findByRole('heading', { level: 1, name: titulo })).toBeInTheDocument();
     expect(enMain().getByText(textos.remedio)).toBeInTheDocument();
     // Lo que diria la libreria, que a quien entra a pagar su predial no le sirve de nada.
     expect(principal().textContent).not.toMatch(/soporte|administrador|perfiles/i);

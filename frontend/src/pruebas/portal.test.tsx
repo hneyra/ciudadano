@@ -16,13 +16,13 @@ import { limpiarElPortal, montarElPortal, moverElNavegador, plazosDelPortal, rem
  *     This error originated in "src/marco/Barra.test.tsx" … caught after test environment was torn down.
  *
  * La ultima prueba de `Barra.test.tsx` deja un aviso a la vista, y `limpiarElPortal` lo retiraba con
- * `avisar.dismiss()` **con el portal aun montado**. Con el `requestAnimationFrame` sincrono de
+ * `avisar.dismiss()` **con el portal montado**. Con el `requestAnimationFrame` sincrono de
  * `remendarJsdomParaElMenu`, `sonner` marca el aviso para borrar y programa `removeToast` a 200 ms
  * (`TIME_BEFORE_UNMOUNT`) con el `setTimeout` de Node, que sobrevive a jsdom. Si el entorno se
  * desmonta dentro de esos 200 ms, el `setState` de React lee `window.event` y revienta: intermitente,
  * segun cuanto tarde el desmontaje.
  *
- * El arreglo es el orden: desmontar primero (`cleanup`) y retirar los avisos despues, cuando ya no hay
+ * El arreglo es el orden: desmontar primero (`cleanup`) y retirar los avisos despues, cuando no queda
  * un `Toaster` que los anime. Aqui se mide la causa, no el sintoma: durante la limpieza no se programa
  * ni un temporizador. Sin el arreglo salen `[4000, 200]`.
  */

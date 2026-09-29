@@ -123,7 +123,7 @@ describe('el estado inicial', () => {
     expect(conOtra.contribuyente?.nombre).toBe('Otra Persona');
     expect(conOtra.demostracion).toBe(otra);
 
-    // Y una demostracion SIN datos ya no se puede pedir (issue 59): hasta entonces arrancaba con
+    // Y una demostracion SIN datos no se puede pedir (issue 59): hasta entonces arrancaba con
     // nada que marcar ni que pagar, y la primera pantalla de la demostracion reventaba en
     // `laDemostracion(estado)`. Es el estado que el tipo del modo deja fuera.
     // @ts-expect-error — un modo de demostracion sin `demostracion` no es un `Modo`.
@@ -505,7 +505,7 @@ describe('`pasoAlcanzable`', () => {
       { tipo: 'irA', paso: 'deudas' },
     ]);
     expect(pasoAlcanzable(sellado, 'comprobante')).toBe(true);
-    // «Mis datos» se recorrio para pagar (revision del PR #72: el pago ya no se confirma desde elegir).
+    // «Mis datos» se recorrio para pagar (revision del PR #72: el pago no se confirma desde elegir).
     expect(pasoAlcanzable(sellado, 'identificar')).toBe(true);
     expect(pasoAlcanzable(recorrido(sellado, { tipo: 'consultarOtra' }), 'comprobante')).toBe(true);
 

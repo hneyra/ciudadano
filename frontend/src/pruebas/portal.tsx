@@ -112,7 +112,7 @@ const montados: Enrutador[] = [];
  * El precio: un caso que se cuelga de verdad —un `findBy` que no llega nunca— tarda 5 s en salir rojo en
  * vez de 1, y uno que no acaba, 20 en vez de 5.
  *
- * Una cifra que ya no se usa: la primera version de este comentario anclaba los 20 s en «8.7 s de
+ * Una cifra descartada: la primera version de este comentario anclaba los 20 s en «8.7 s de
  * `Comprobante.sesion`, carga 15». Era lo que ese caso tardo en CADUCAR a 5 s en una corrida roja, no lo
  * que necesita para pasar; en la corrida verde de arriba tardo 3.6 s.
  */
@@ -130,11 +130,11 @@ export function plazosDelPortal(): void {
 }
 
 /**
- * **Las seis pantallas, cargadas ANTES de montar nada** (issue 11).
+ * **Las pantallas, cargadas ANTES de montar nada** (issue 11).
  *
  * Desde que cada pantalla es un trozo del bundle (`src/pasos/pantallas.tsx`), el portal recien montado
  * dibuja el hueco de `Suspense` y la pantalla llega un turno despues. Las pruebas que preguntan
- * `getByRole` justo tras montar ya no la encontrarian, y esperar en cada una seria cambiar lo que
+ * `getByRole` justo tras montar no la encontrarian, y esperar en cada una seria cambiar lo que
  * miden. Precargadas, `lazy` las dibuja en el mismo render, como antes del reparto.
  *
  * AQUI, con `await` de nivel superior, y no en `vitest.setup.ts`: los `vi.mock` de una prueba (las de
@@ -351,7 +351,7 @@ export function oirAlNavegador(): EscuchaDelNavegador {
     };
     window.addEventListener('popstate', alMoverse);
   });
-  // El rechazo lo recibe quien espere `llego`; esto solo evita que, mientras nadie lo espera todavia,
+  // El rechazo lo recibe quien espere `llego`; esto solo evita que, mientras nadie lo espera,
   // Node lo cuente como un rechazo sin manejar.
   llego.catch(() => {});
   return { llego, dejarDeOir };

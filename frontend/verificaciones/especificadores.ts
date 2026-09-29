@@ -11,8 +11,8 @@ import { remedioDelEnlace } from './remedio.mjs';
 /**
  * **Alcanzar lo de `@kamayuk/*` POR SU ESPECIFICADOR, y no por su sitio en el disco** (rentas#138).
  *
- * Portado de `rentas/frontend/verificaciones/especificadores.ts`, sin `hermanaDe` —que alli leen
- * las guardas de la paleta y aqui todavia no lee nadie—. Las mediciones son de `rentas`.
+ * Portado de `rentas/frontend/verificaciones/especificadores.ts`, con `hermanaDe`, que usa `temasDeUi`
+ * para llegar a `temas.css` desde la hoja publicada (issue 2). Las mediciones son de `rentas`.
  *
  * <h2>De que defecto viene</h2>
  *

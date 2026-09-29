@@ -117,7 +117,7 @@ describe('cada prohibicion tiene su muestra, y ESLint la senala', () => {
         `Se esperaba el mensaje del config:\n  ${message}\n` +
         `Se obtuvo:\n${mensajes.length === 0 ? '  (ninguno)' : mensajes.map((m) => `  · ${m}`).join('\n')}`,
     ).toContain(message);
-    // Sin tiempo propio: el arranque en frio lo paga `beforeAll`, asi que los veinte casos
+    // Sin tiempo propio: el arranque en frio lo paga `beforeAll`, asi que los casos
     // caben en los 5 s de Vitest con dos ordenes de magnitud de margen (rentas#36).
   });
 });

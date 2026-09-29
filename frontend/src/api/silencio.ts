@@ -13,45 +13,24 @@ import { configuracionDeLaPuerta, identidad } from './identidad.ts';
 /**
  * **El canje silencioso: al recargar, se le pregunta al emisor si ya se habia entrado** (issue 35).
  *
- * <h2>El problema</h2>
+ * El token vive **solo en memoria** (`verificaciones/el-token-vive-en-memoria.test.ts`), asi que
+ * recargar lo pierde. En vez de guardarlo, se vuelve a pedir sin molestar mientras la sesion del EMISOR
+ * siga viva: un `<iframe>` oculto hacia su autorizacion con `prompt=none` (OIDC Core §3.1.2.1), que
+ * contesta al instante con un `code` o con `login_required` (o uno de sus tres parientes). La vuelta cae
+ * en `public/silencio.html`, que solo le pasa su barra de direcciones a esta ventana por
+ * `postMessage`, y desde aqui se canjea como cualquier otro codigo. La pagina no se va: no hay bucle
+ * posible, ni parpadeo, ni cambio en la barra.
  *
- * El token vive **solo en memoria** —la regla `token-en-almacenamiento` y la guarda
- * `verificaciones/el-token-vive-en-memoria.test.ts`—, asi que recargar la pagina lo pierde. En un
- * portal al que la gente llega de un enlace, recarga, o vuelve del banco, eso se vive como «me
- * echo». Guardar el token es justo lo prohibido; lo correcto es **volver a pedirlo sin molestar**
- * mientras la sesion del EMISOR siga viva, que es la que se guarda en su cookie y no en la nuestra.
- *
- * <h2>Como: un marco oculto con `prompt=none`, como el `check-sso` de keycloak-js</h2>
- *
- * Se abre un `<iframe>` invisible hacia la autorizacion del emisor con `prompt=none` (OIDC Core
- * §3.1.2.1): el emisor NO puede ensenar su formulario, asi que contesta al instante — con un `code`
- * si hay sesion, o con `error=login_required` (o uno de sus tres parientes) si no la hay. La vuelta
- * cae en `public/silencio.html`, que solo le pasa su barra de direcciones a esta ventana por
- * `postMessage`, y desde aqui se canjea como cualquier otro codigo.
- *
- * Marco y no redireccion de la pagina entera (decision del 2026-09-23): la pagina no se va, asi
- * que **no hay bucle posible** —nada vuelve a arrancar el portal—, no hay parpadeo de ida y vuelta,
- * y la barra de direcciones no cambia.
- *
- * <h2>Por que se compone aqui y no en `@kamayuk/sesion`</h2>
- *
- * La libreria no trae `prompt=none`, y la regla del repositorio es no tocarla. Lo que SI expone, se
- * usa: la configuracion de la puerta (`configuracionDeLaPuerta()`, el mismo realm, cliente, alcance
- * y retorno) y `fijarToken(token, idToken)`, que es lo que su propio canje llama al terminar —
- * token, `id_token` y `quienEntro()` quedan juntos, como tras una entrada con formulario—. Lo que no
- * expone (el reto S256, el base64url y el canje) se escribe aqui, pequeno y probado en
- * `silencio.test.ts`; son las mismas lineas que `paquetes/sesion/identidad.ts` de kamayuk-lib
- * `a6ea6fa`, y si un dia la libreria publica el canje silencioso, este archivo se borra.
- *
- * <h2>Nada va al almacenamiento</h2>
+ * Se compone aqui porque `@kamayuk/sesion` no trae `prompt=none`: de la libreria se usan
+ * `configuracionDeLaPuerta()` y `fijarToken(token, idToken)`, lo mismo que deja su propio canje; el reto
+ * S256, el base64url y el canje se escriben aqui, probados en `silencio.test.ts`. Si la libreria publica
+ * un canje silencioso, este archivo se borra.
  *
  * El verificador PKCE y el `state` viven en la closure de `intentar()`: la pregunta y la respuesta
- * ocurren en la MISMA carga, asi que no hay rebote que sobrevivir y `sessionStorage` no hace falta.
- * La lista de lo que se guarda (`el-token-vive-en-memoria.test.ts`) no crece.
+ * ocurren en la MISMA carga, y `sessionStorage` no hace falta. Fuera de aqui: refrescar el token a mitad
+ * de sesion y cerrar la del emisor.
  *
- * <h2>Lo que no se hace</h2>
- *
- * Refrescar el token a mitad de sesion, y cerrar la del emisor: fuera del issue.
+ * Lo que se decidio, lo que se midio y lo descartado: `docs/adr/CIU-0003-recargar-no-echa-el-canje-silencioso.md`.
  */
 
 /** Lo que paso al preguntar. */

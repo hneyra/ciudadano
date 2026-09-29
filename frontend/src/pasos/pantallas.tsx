@@ -25,7 +25,7 @@ import type { Paso } from '../recorrido/recorrido.ts';
  *   y en mitad de un pago con mala cobertura ese hueco es donde se pierde la conexion. Por eso el
  *   enrutador las pide todas en cuanto se dibuja la primera (`precargarLasPantallas`).
  * · **En las pruebas de `vitest`**, que montan el portal y preguntan `getByRole` en el acto, la
- *   pantalla aun no estaria. `src/pruebas/portal.tsx` las precarga todas antes de montar.
+ *   pantalla no estaria a tiempo. `src/pruebas/portal.tsx` las precarga todas antes de montar.
  *
  * Y para que precargar sirva de algo, el cargador que ve `lazy` devuelve, cuando el modulo ya llego,
  * una **promesa ya cumplida que contesta en el acto** (`cumplida`): `lazy` la da por resuelta dentro de

@@ -34,7 +34,7 @@ export function laBanda(estado: EstadoDelRecorrido, pago: PagoSellado, t: TFunct
     'Pagó {{importe}} con {{medio}}. Le enviamos el comprobante a {{destino}}, y puede descargarlo aquí mismo. La deuda pagada ya se descontó de su cuenta.',
     {
       importe,
-      // «con tarjeta»: el artboard lo pone en minusculas (linea 1279).
+      // «con tarjeta»: el artboard lo pone en minusculas (linea 1277).
       medio: t(selloDeLaDemostracion(estado, pago).medio).toLowerCase(),
       destino: pago.destino ?? t('su correo'),
     },
@@ -57,7 +57,7 @@ export interface FilaDelRecibo {
   readonly importe: string;
 }
 
-/** El recibo entero (artboard, lineas 491-534 y 1287-1322). */
+/** El recibo entero (artboard, lineas 491-546 y 1288-1322). */
 export interface ElRecibo {
   readonly simulado: boolean;
   /** «Constancia de pago», o «Comprobante de ejemplo» si el pago es simulado. */

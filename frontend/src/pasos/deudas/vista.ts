@@ -90,8 +90,8 @@ export interface LaBarraDePago {
  * si habia interes (`hay(lo.interes)`), la del servidor si la fuente aportaba una amnistia
  * (`estado.amnistia`, issue 49). Son las dos mitades de la misma pregunta —¿hay algo que condonar?—,
  * y ahora se hacen las dos: sin amnistia no hay ahorro que prometer, y sin interes no hay nada que
- * descontar. En los dos modos de hoy dice lo mismo que antes; el dia que la plataforma traiga una
- * amnistia, la linea saldra solo si ahorra algo.
+ * descontar. En los dos modos dijo lo mismo que antes del issue 60; el dia que la plataforma traiga
+ * una amnistia, la linea saldra solo si ahorra algo.
  *
  * La deuda viva es `vivas`: en demostracion son los conceptos del artboard y con plataforma los del
  * servidor, asi que contarla no necesita saber cual es.

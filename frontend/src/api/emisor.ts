@@ -34,7 +34,7 @@ import type { TextosDeLaPuerta, Vuelta } from '@kamayuk/sesion';
  * en la rama de `?error=`: cualquiera puede fabricar un enlace
  * `…/portal/?error=x&error_description=Pague+al+999…` y el portal pintaria ese texto DENTRO del aviso
  * de la municipalidad. React lo escapa —no hay XSS—, pero es suplantacion con el escudo al lado. Asi
- * que el codigo solo ELIGE un texto del portal (`motivoDelError`), los que no se conocen caen en uno
+ * que el codigo solo ELIGE un texto del portal (`falloDelError`), los que no se conocen caen en uno
  * generico, y la descripcion se tira.
  */
 

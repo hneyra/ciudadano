@@ -8,14 +8,14 @@ import { elResumen } from './vista.ts';
 
 /**
  * **«Lo que va a pagar»**, pegado arriba; a ≤ 820 px, encima de los medios y sin pegar (artboard,
- * lineas 447-473). Lo que dice lo prepara `elResumen` (`vista.ts`); aqui se coloca.
+ * lineas 449-473). Lo que dice lo prepara `elResumen` (`vista.ts`); aqui se coloca.
  *
  * El corte es `max-[821px]:` y no `max-[820px]:`: Tailwind v4 emite `max-[820px]` como `width <
  * 820px`, y a 820 px justos el resumen seguia a la derecha. Lo destapo el arnes (issue 11).
  */
 
 /**
- * Una fila de los totales del resumen (lineas 459-464 y 1235-1244). El color es del importe, no del
+ * Una fila de los totales del resumen (lineas 463-468 y 1242-1251). El color es del importe, no del
  * rotulo: el artboard solo pinta `t.color` en la cifra.
  */
 function Total({

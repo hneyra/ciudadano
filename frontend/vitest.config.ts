@@ -53,7 +53,7 @@ export default defineConfig({
      *
      * Vitest corre en modo `test`, y Vite carga `.env.development` **solo** en modo `development`:
      * sin esta linea, `import.meta.env.VITE_KAMAYUK_SIN_PLATAFORMA` seria `undefined` en las
-     * pruebas y el portal montado por ellas elegiria la fuente de la plataforma — o sea, las 427
+     * pruebas y el portal montado por ellas elegiria la fuente de la plataforma — o sea, las
      * pruebas saldrian a la red y a Keycloak, que es justo lo que este issue promete que no pasa.
      *
      * No se declara `mode: 'development'` en su lugar porque eso cambiaria ademas `NODE_ENV` y el

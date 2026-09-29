@@ -24,7 +24,7 @@ import type { PagoDelHistorial, SituacionDelServidor, Unidad } from './tipos.ts'
  *
  * <h2>La peticion NO lleva parametros, y no es un olvido</h2>
  *
- * ADR-0020 retiro `GET /portal/deuda?doc=` por ser una enumeracion de contribuyentes: cualquiera
+ * infrastructure ADR-0020 retiro `GET /portal/deuda?doc=` por ser una enumeracion de contribuyentes: cualquiera
  * podia preguntar por el documento de cualquiera. Lo reemplazo por esta, **sin parametros**, donde
  * el sujeto sale de los claims del token. Por eso la fuente no recibe un documento que pasarle: no
  * hay donde ponerlo, y ponerlo seria volver a abrir lo que el ADR cerro.
@@ -36,20 +36,19 @@ import type { PagoDelHistorial, SituacionDelServidor, Unidad } from './tipos.ts'
  * pide y cuantas veces**, que es lo que un modulo que importara el cliente por su cuenta no dejaria
  * medir sin sustituir el modulo entero.
  *
- * <h2>El historial y las unidades todavia no existen en el servidor, y se dice</h2>
+ * <h2>El historial y las unidades no los publica el servidor, y se dice</h2>
  *
  * No hay endpoint de pagos del ciudadano ni de sus unidades: lo unico que el backend publica para
  * este portal es la situacion. Las dos lecturas **rechazan con su motivo** en vez de devolver una
  * lista vacia: una lista vacia diria «no tiene pagos», que es una afirmacion sobre su historia que
- * nadie ha comprobado, y la pantalla la dibujaria como un hecho. Rechazar deja que «Mis pagos»
- * ensene su estado de error, que es la verdad de hoy. Lo que esa pantalla debe decir con plataforma
- * es del issue 28.
+ * nadie ha comprobado, y la pantalla la dibujaria como un hecho. Con el rechazo, «Mis pagos» dice que
+ * el portal no publica los pagos, sin llamarlo averia (issue 28).
  */
 
 /** La ruta, relativa al prefijo del cliente. Escrita una vez, en `contrato.ts` (issue 34). */
 export { RUTA_DE_LA_SITUACION };
 
-/** Lo que se dice cuando se pide algo que el portal todavia no publica. */
+/** Lo que se dice cuando se pide algo que el portal no publica. */
 export const NO_LO_PUBLICA_EL_PORTAL =
   'El portal todavia no publica esta lectura: el backend solo ofrece GET /portal/situacion. Ver el issue 28.';
 

@@ -117,9 +117,8 @@ describe('el motor lo dicen los cinco sitios, y es el mismo', () => {
       motoresDistintos(DECLARACIONES),
       'El arbol promete mas de un motor de Node a la vez:\n' +
         `${comoTabla(DECLARACIONES)}\n\n` +
-        '  Con la CI bloqueada, TODA la evidencia de los PR es local: si el motor de aqui y el del\n' +
-        '  workflow no son el mismo, «verde en mi maquina» y «verde en CI» dejan de ser la misma\n' +
-        '  afirmacion — y no hay quien lo note hasta que la CI vuelva.',
+        '  Si el motor de aqui y el del workflow no son el mismo, «verde en mi maquina» y «verde en CI»\n' +
+        '  dejan de ser la misma afirmacion.',
     ).toHaveLength(1);
   });
 });
@@ -237,7 +236,7 @@ describe('LA MUESTRA: la guarda muerde, sobre declaraciones inventadas', () => {
 
   it('y el numero se lee de cualquier forma de escribirlo', () => {
     // `.nvmrc` no admite rangos y `engines` no admite una version desnuda: comparar el mayor es
-    // lo unico que los cuatro sitios tienen en comun.
+    // lo unico que todos los sitios tienen en comun.
     expect([
       mayorDelMotor('>=24'),
       mayorDelMotor('24'),

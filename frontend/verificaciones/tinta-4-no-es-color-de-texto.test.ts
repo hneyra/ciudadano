@@ -39,7 +39,7 @@ import { archivosDeInterfaz, hallazgosDe, losQueNoSonTexto, usaLaClase } from '.
  *     es lo que este portal pinta.
  *   · **Que barre**: `src/`, como en `rentas` y por los mismos motivos —la libreria tiene su
  *     propia guarda de contraste, y barrerla desde aqui pondria rojo a un consumidor por un archivo
- *     que no puede tocar—. Hoy `src/` es el marcador; la guarda esta para la primera pantalla.
+ *     que no puede tocar—.
  */
 
 const HOJA_DE_LA_LIBRERIA = readFileSync(hojaDeUi(), 'utf8');
@@ -47,7 +47,7 @@ const HOJA_DE_LA_LIBRERIA = readFileSync(hojaDeUi(), 'utf8');
 /** `clasico/claro`, que es donde se miden el valor del token y los dos papeles. */
 const CLASICO = paletaDeLaIdentidad(reglasDe(readFileSync(temasDeUi(), 'utf8')), 'clasico');
 
-/** Los tokens que la libreria declara que NO son texto, con su valor en `clasico`. Hoy, uno. */
+/** Los tokens que la libreria declara que NO son texto, con su valor en `clasico`. */
 const NO_SON_TEXTO = losQueNoSonTexto(HOJA_DE_LA_LIBRERIA, CLASICO);
 
 /** Los dos papeles sobre los que se dibuja: el lienzo y la superficie de una tarjeta. */
@@ -136,8 +136,8 @@ describe('el token que no es color de texto', () => {
     }
 
     // Y por el otro lado: un `src/` que no se pudiera leer daria cero hallazgos, y cero hallazgos es
-    // exactamente lo que la guarda considera correcto. Se exige el marcador por nombre y no una
-    // cuenta: hoy `src/` son tres archivos.
+    // exactamente lo que la guarda considera correcto. Se exige un archivo por nombre y no una
+    // cuenta, que cambia con cada pantalla.
     expect(ARCHIVOS.map((r) => r.slice(RAIZ.length + 1)), 'no se leyo `src/`').toContain('src/aplicacion.tsx');
 
     // La regla, ejercida sobre codigo inventado. Es la mitad que demuestra que puede fallar.

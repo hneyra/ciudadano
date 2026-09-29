@@ -56,7 +56,7 @@ const bien = () =>
 
 /**
  * El reto S256 lo calcula `crypto.subtle`, que contesta en tiempo REAL y no en el del reloj falso:
- * hasta que el marco no esta en la pagina, el tope todavia no se ha armado y adelantar el reloj no
+ * mientras el marco no esta en la pagina, el tope no se ha armado y adelantar el reloj no
  * mide nada. Se espera a que este, cediendo el turno con `setImmediate`, que el reloj falso no toca.
  */
 async function hastaQueHayaMarco(): Promise<void> {
@@ -286,7 +286,7 @@ describe('AC4 — el emisor que no contesta es un fallo con su motivo, no una es
       estado: 'fallo',
       motivo: { clave: TEXTOS_DEL_EMISOR.noContesto },
     });
-    // Y ni siquiera se abrio el marco: ya no habia a quien esperar.
+    // Y ni siquiera se abrio el marco: con el plazo vencido no habia a quien esperar.
     expect(emisor.pedidas).toEqual([]);
     expect(marcosEnLaPagina()).toBe(0);
   });

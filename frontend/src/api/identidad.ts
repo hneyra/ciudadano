@@ -29,7 +29,7 @@ import { TEXTOS_DE_LA_VUELTA } from './emisor.ts';
  * API es una linea que recibe `identidad.token`: el TOKEN cambia dentro de la vida de la pagina
  * —por eso viaja como funcion—, pero la puerta no.
  *
- * <h2>El token vive en MEMORIA, y esta entrega no lo cambia</h2>
+ * <h2>El token vive en MEMORIA</h2>
  *
  * La prohibicion `token-en-almacenamiento` sigue encendida en todo el arbol, sin excepcion. Lo
  * unico que la libreria escribe en `sessionStorage` son las cinco claves del rebote —el

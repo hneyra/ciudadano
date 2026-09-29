@@ -14,8 +14,9 @@
 #     `rentas`: copias byte a byte de `src/` y de `diseno/`, el artboard pegado dentro de un `.js` y la
 #     captura del backend.
 #   · **No hay compose ni workflow de publicacion** que pasen el contexto con nombre: publicar y
-#     enrutar la imagen es de `infrastructure`, y la CI de la cuenta esta bloqueada. La orden que la
-#     construye esta en el `README.md`.
+#     enrutar la imagen es de `infrastructure`. La orden que la construye esta en el `README.md`.
+#
+# Las decisiones y lo que se midio para tomarlas: `docs/adr/CIU-0007-la-imagen-sirve-bajo-portal.md`.
 #
 # Se construye desde `frontend/`, con el clon hermano por contexto con nombre:
 #
@@ -27,9 +28,8 @@
 # Docker, y lo que fija lo que se instala es `yarn.lock` con `--frozen-lockfile`. **La MAYOR no es
 # libre**: es la de `.nvmrc`. Un `FROM` no puede leerla —no admite sustitucion sin un `ARG`, y meterlo
 # obligaria a pasarlo en cada sitio que construye—, asi que es una copia, y la vigila
-# `verificaciones/el-motor-es-uno-solo.test.ts`, que cuenta esta linea como el quinto sitio que dice el
-# motor. El issue pedia «Node 22 (la que declara `engines`)»; `engines` dice 24 desde el #39, y lo que
-# el issue queria era la de `engines`.
+# `verificaciones/el-motor-es-uno-solo.test.ts`, que cuenta esta linea como uno de los sitios que dicen
+# el motor.
 #
 # `interfaz` SI se publica, asi que su base va clavada: `nginx:1.31.5-alpine`, la misma de `rentas`.
 # Es lo que deja que un escaneo diga de que version habla.

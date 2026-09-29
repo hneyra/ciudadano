@@ -42,8 +42,9 @@ import {
  *      `@theme` es `institucional` y lo que se ve lo pinta el bloque `[data-tema='clasico']`. Que
  *      ese bloque sea el del artboard lo mide `la-paleta-cuadra-con-el-artboard`; lo que se mide
  *      aqui es que la utilidad APUNTE al token que ese bloque declara.
- *   3. Las fuentes son `src/`, no la libreria entera: este portal todavia no dibuja con sus piezas.
- *      Cuando lo haga, las clases de las piezas que use entran por `src/`.
+ *   3. Las fuentes son `src/`, no la libreria entera: las clases que escriben las piezas de
+ *      `@kamayuk/ui` las vigila la libreria, y que Tailwind las mire aqui lo garantiza el `@source`
+ *      de `src/estilos.css` (`tailwind-esta-conectado.test.ts`).
  */
 
 /** Lo que el issue 2 nombra: las cinco utilidades de color que tienen que generar regla. */

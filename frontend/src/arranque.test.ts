@@ -13,7 +13,7 @@ import { emisorFalso, marcosEnLaPagina, sinSesion } from './pruebas/emisorFalso.
  *
  *   · sin el canje delante, la primera peticion despues de entrar sale sin token y recibe su 401 —
  *     y el sintoma es «la sesion caduco» justo despues de identificarse;
- *   · con una ida a la puerta al arrancar, `yarn dev`, las 400 pruebas y el arnes se encuentran el
+ *   · con una ida a la puerta al arrancar, `yarn dev`, las pruebas y el arnes se encuentran el
  *     formulario de Keycloak, y el modo demostracion deja de existir;
  *   · sin la vuelta fallida a la vista, un `?error=` del emisor es una pagina normal: la libreria
  *     limpia la URL siempre, asi que no queda ni rastro de que alguien intento entrar.

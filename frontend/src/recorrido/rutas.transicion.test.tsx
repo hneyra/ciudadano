@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { limpiarElPortal, montarElPortal, moverElNavegador, plazosDelPortal } from '../pruebas/portal.tsx';
 
 /**
- * **Atras mientras el enrutador todavia no ha dibujado la ruta a la que acaba de ir** (issue 74).
+ * **Atras antes de que el enrutador dibuje la ruta a la que acaba de ir** (issue 74).
  * Determinista: la ruta nueva se deja A MEDIO DIBUJAR a proposito, y no por la carga.
  *
  * Medido en Chromium contra el paquete (CPU x6, `Emulation.setCPUThrottlingRate`): «Continuar al pago»
@@ -18,7 +18,7 @@ import { limpiarElPortal, montarElPortal, moverElNavegador, plazosDelPortal } fr
  * Aqui la transicion se detiene con la pantalla de «Pagar» suspendida en una `puerta` que no se abre:
  * el `Suspense` de `PantallaDelPaso` ya estaba a la vista, y en una transicion React sigue ensenando lo
  * de antes en vez del hueco. (Es la misma detencion que daria, sin carga ninguna, el trozo de «Pagar»
- * sin llegar todavia por la red; eso no se midio en el navegador.)
+ * sin llegar por la red; eso no se midio en el navegador.)
  */
 
 const trampa = vi.hoisted(() => ({ puerta: null as Promise<void> | null, abrir: () => {} }));
@@ -57,7 +57,7 @@ describe('atras antes de que el enrutador dibuje la ruta nueva', () => {
     fireEvent.click(correo.getByRole('button', { name: 'Continuar al pago' }));
     await waitFor(() => expect(window.location.hash).toBe('#/pagar'));
     await waitFor(() => expect(franja().getByRole('button', { name: 'Pagar' })).toHaveAttribute('aria-current', 'step'));
-    // La transicion del enrutador sigue detenida: la pantalla es todavia la de «Mis datos».
+    // La transicion del enrutador sigue detenida: la pantalla sigue siendo la de «Mis datos».
     expect(screen.getByRole('heading', { level: 1, name: '¿A dónde le enviamos el comprobante?' })).toBeInTheDocument();
 
     // Atras: el navegador vuelve a `#/identificar`, y se espera a su `popstate` dentro de `act`.

@@ -16,10 +16,10 @@ import { type PagoSellado, esSimulado, vivas } from '../../recorrido/recorrido.t
  * `max-width: 700px` del artboard.
  */
 
-/** Las medidas de un boton de las acciones (lineas 537-543 y 1287-1288). */
+/** Las medidas de un boton de las acciones (lineas 549-553 y 1284-1285). */
 const BOTON_DE_ACCION = 'min-h-[46px] py-0 text-[15.5px] max-[701px]:w-full';
 
-/** Descargar, imprimir y seguir; no se imprime (lineas 536-544 y 1281-1289). */
+/** Descargar, imprimir y seguir; no se imprime (lineas 548-555 y 1279-1286). */
 export function Acciones({ pago }: { readonly pago: PagoSellado }) {
   const { t } = useTranslation();
   const { estado, despachar } = useRecorrido();
@@ -83,7 +83,7 @@ export function Acciones({ pago }: { readonly pago: PagoSellado }) {
 }
 
 /**
- * Sin sesion: guardar el pago en una cuenta; no se imprime (lineas 546-552). El correo es el destino
+ * Sin sesion: guardar el pago en una cuenta; no se imprime (lineas 557-563). El correo es el destino
  * del pago registrado; uno simulado no se envio a ningun sitio, y se dice «su correo».
  */
 export function Invitacion({ pago }: { readonly pago: PagoSellado }) {

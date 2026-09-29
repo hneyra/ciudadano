@@ -5,10 +5,10 @@ import { destinoDelEnlace, enlacesDeclarados } from './enlace.ts';
 import { raizDelClon } from './remedio.mjs';
 
 /**
- * **El motor de Node que este arbol promete, leido de los cuatro sitios que lo dicen** (issue 39).
+ * **El motor de Node que este arbol promete, leido de los sitios que lo dicen** (issue 39).
  *
  * Vive aparte de su prueba por el mismo motivo que `enlace.ts`: asi la prueba puede ejercer la
- * comparacion sobre declaraciones INVENTADAS —una donde los cuatro no coinciden— y demostrar que
+ * comparacion sobre declaraciones INVENTADAS —una donde no coinciden— y demostrar que
  * muerde sin tocar el disco de verdad.
  *
  * <h2>El defecto que esto cierra, medido el 2026-09-20</h2>
@@ -19,10 +19,10 @@ import { raizDelClon } from './remedio.mjs';
  * **v24.19.0**. O sea que «verde en mi maquina» y «verde en CI» habian dejado de ser la misma
  * afirmacion, y no habia quien lo notara hasta que la CI volviera.
  *
- * <h2>Y por que no basta con que los cuatro coincidan</h2>
+ * <h2>Y por que no basta con que coincidan entre si</h2>
  *
  * Porque los cinco paquetes de `kamayuk-lib` llegan por `link:` como **fuente**, y los compila este
- * arbol. La libreria declara `engines.node` en su raiz —hoy `>=24`—, asi que prometer menos aqui es
+ * arbol. La libreria declara `engines.node` en su raiz, asi que prometer menos aqui es
  * prometer que se ejecuta con un motor que la libreria no admite. El dia que use algo que el motor
  * prometido no tiene, quien sale en rojo es este repositorio, con un error que no habla de
  * versiones. Por eso el minimo del hermano se **lee** de su `package.json` y no se escribe a mano:
@@ -53,7 +53,7 @@ export interface Exigencia {
  * De cualquier forma de escribir un motor al numero mayor que promete.
  *
  * `>=24` -> 24, `24` -> 24, `v24.19.0` -> 24, `^24.1` -> 24. Basta para comparar mayores, que es
- * lo unico que las cuatro declaraciones tienen en comun: `.nvmrc` no admite rangos y `engines`
+ * lo unico que las declaraciones tienen en comun: `.nvmrc` no admite rangos y `engines`
  * no admite una version desnuda.
  */
 export function mayorDelMotor(dice: string): number | null {
@@ -174,7 +174,7 @@ export function motoresDistintos(declaraciones: readonly Declaracion[]): (number
 /**
  * Lo que exigen por `engines.node` los paquetes enlazados y el clon del que cuelgan.
  *
- * Se miran los dos: hoy el minimo vive solo en la raiz de `kamayuk-lib` —sus seis paquetes no
+ * Se miran los dos: el minimo vive en la raiz de `kamayuk-lib` —sus paquetes no
  * declaran `engines`—, pero el dia que uno lo declare por su cuenta, este arbol lo compila igual.
  *
  * Sin el clon hermano devuelve la lista **vacia**, y no revienta: quien dice que falta, nombrando

@@ -143,7 +143,7 @@ export function Barra() {
   const { estado, despachar } = useRecorrido();
   // De quien es la sesion lo decide el modo (issue 59): la del emisor, o la de la demostracion.
   const delEmisor = useModo().sesion.laAbreUnEmisor;
-  // Se lee cuando el menu ya se cerro: un `ref`, y no el estado de un dibujo que ya no es el ultimo.
+  // Se lee cuando el menu ya se cerro: un `ref`, y no el estado de un dibujo que dejo de ser el ultimo.
   const elFocoVaALasUnidades = useRef(false);
 
   /**

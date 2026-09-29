@@ -43,7 +43,7 @@ import {
  *     escribiendo su ruta;
  *   · que `entrar` no es alcanzable sin plataforma, ni **con la sesion ya abierta** —ese paso no se
  *     repite, y el emisor devuelve el navegador a `#/entrar`—;
- *   · y que **en demostracion no se movio nada**: el recorrido de hoy sigue entero, que es lo que
+ *   · y que **en demostracion no se movio nada**: el recorrido del artboard sigue entero, que es lo que
  *     `recorrido.test.ts` mide entero y aqui se comprueba de un vistazo.
  */
 
@@ -130,7 +130,7 @@ describe('los dos recorridos, y sus pasos', () => {
 
 describe('AC1 — `buscar` no es alcanzable con plataforma', () => {
   it('ni desde el primer paso ni desde ninguno de los otros tres', () => {
-    // Por el camino, con las acciones con nombre (issue 61): `irA` ya no lleva a un paso no alcanzado.
+    // Por el camino, con las acciones con nombre (issue 61): `irA` no lleva a un paso no alcanzado.
     const pagado = recorrido(recorrido(conDeuda, { tipo: 'confirmarEleccion' }), { tipo: 'confirmarPago' });
     const porElCamino = [sinSesion, conDeuda, recorrido(conDeuda, { tipo: 'confirmarEleccion' }), pagado];
     expect(porElCamino.map((estado) => estado.paso)).toEqual(['entrar', 'deudas', 'pagar', 'comprobante']);

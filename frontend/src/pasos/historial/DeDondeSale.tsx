@@ -50,7 +50,7 @@ export function DeDondeSale({ enfocar, alEnfocar }: { readonly enfocar: boolean;
   const titulo = useRef<HTMLHeadingElement>(null);
 
   // «Mis predios y vehículos»: foco y vista en esta seccion, UNA vez, y cuando lo de arriba ya llego
-  // (con la tabla de pagos aun vacia, la seccion estaria mas arriba de donde se va a quedar).
+  // (con la tabla de pagos vacia mientras llega, la seccion estaria mas arriba de donde se va a quedar).
   const listo = !unidades.isPending && !historial.isPending;
   useEffect(() => {
     if (!enfocar || !listo || titulo.current === null) return;

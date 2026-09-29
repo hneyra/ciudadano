@@ -21,7 +21,7 @@ import { BotonDeConfirmar, useConfirmarElPago } from './confirmar.tsx';
  * en un minuto», «se aplica al día siguiente hábil»—: son hechos futuros que el portal no puede
  * cumplir porque no hay nada detras (D-14 abierta).
  *
- * Asi que con plataforma el paso 3 dice **lo que es**: todavia no se puede pagar aqui, esto es lo
+ * Asi que con plataforma el paso 3 dice **lo que es**: aqui no se puede pagar, esto es lo
  * que se deberia, y se paga en ventanilla. El boton de confirmar se queda para poder recorrer el
  * paso —y dice en su propio texto que lo que hace es simular—, porque el issue pide que el recorrido
  * se pueda recorrer entero.

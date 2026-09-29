@@ -52,9 +52,9 @@ export function LoQueQuedaPendiente() {
  * despues de pasar por el paso 2 (alli la copiaba `situacionLeida`). Entrando directo a `#/historial`
  * la lista estaba vacia y la pantalla decia **«Sin deuda pendiente»**, **«Al día»** y ofrecia la
  * constancia de no adeudo a una persona que debia S/ 1,842.60 (medido: la sonda del issue). Y lo
- * mismo con «no se pudo consultar», que es la respuesta real de hoy: un cero de consuelo.
+ * mismo con «no se pudo consultar», que es la respuesta medida contra la plataforma local: un cero de consuelo.
  *
- * Desde el issue 50 esa copia ya no existe —el recorrido lee la misma cache—, pero la seccion sigue
+ * Desde el issue 50 esa copia no existe —el recorrido lee la misma cache—, pero la seccion sigue
  * preguntando a la consulta y no a la deuda viva: es la que distingue «no contesto» de «sin deuda».
  */
 export function LoQueQuedaPendienteDeLaConsulta() {

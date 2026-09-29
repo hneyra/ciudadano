@@ -18,7 +18,7 @@ import { laBanda } from './vista.ts';
  *
  * La del artboard afirma tres hechos —«Pagó …», «Le enviamos el comprobante a …», «La deuda pagada
  * ya se descontó de su cuenta»— y con un pago simulado **no ocurrio ninguno**: no hubo cobro, no se
- * envio nada y la deuda esta donde estaba (el reductor ya no la da por pagada). Un aviso al lado no
+ * envio nada y la deuda esta donde estaba (el reductor no la da por pagada). Un aviso al lado no
  * arregla una afirmacion falsa en el cuerpo: quien la lee se va creyendo que pago.
  *
  * Asi que se dice en condicional y se niegan los tres, uno por uno. Y no va en verde de exito: no
@@ -42,7 +42,7 @@ export function BandaSimulada({ pago }: { readonly pago: PagoSimulado }) {
 }
 
 /**
- * La banda verde de exito, que no se imprime (lineas 480-489 y 1276-1279). Solo con un pago
+ * La banda verde de exito, que no se imprime (lineas 480-488 y 1276-1278). Solo con un pago
  * registrado, que es el unico que dice con que se pago (issue 58). El visto es el `Icono` de
  * `@kamayuk/ui` (issue 60): el mismo trazo que el artboard, que antes se copiaba aqui a mano.
  */

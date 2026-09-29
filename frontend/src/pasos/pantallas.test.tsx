@@ -8,12 +8,12 @@ import { PANTALLAS, perezosa, precargarLasPantallas } from './pantallas.tsx';
 /**
  * **Cada pantalla, en su trozo: lo que `src/pruebas/portal.tsx` deja de ver al precargar** (issue 11).
  *
- * Las pruebas del portal precargan las seis antes de montar, y asi `lazy` las dibuja en el mismo render.
+ * Las pruebas del portal las precargan todas antes de montar, y asi `lazy` las dibuja en el mismo render.
  * Eso deja sin mirar dos cosas, que se miden aqui con pantallas perezosas NUEVAS (las de `PANTALLAS` ya
  * estan cargadas en cuanto alguien monta el portal):
  *
  * 1. que sin precargar, `lazy` SI suspende —el hueco ocupado y luego la pantalla—, que es lo que ocurre
- *    en el navegador con cada trozo que aun no llego;
+ *    en el navegador con cada trozo que no ha llegado;
  * 2. y que precargar es lo que evita ese hueco, y no otra cosa.
  */
 

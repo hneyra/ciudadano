@@ -155,7 +155,7 @@ function fuenteQue(contesta: () => Promise<unknown>) {
 const principal = () => screen.getByRole('main');
 
 /**
- * La pantalla ya no espera nada: ninguna seccion `aria-busy` (los pagos contestaron) y ningun
+ * La pantalla no espera nada mas: ninguna seccion `aria-busy` (los pagos contestaron) y ningun
  * «Consultando su deuda…» (la consulta contesto). Desde el issue 62 la espera de la consulta es un
  * `status` sin `aria-busy` —que retendria su anuncio—, asi que se mira por lo que dice.
  */

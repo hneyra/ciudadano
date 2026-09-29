@@ -10,6 +10,7 @@
     // corre.
     "e2e/**/*.ts",
     "puerto-del-arnes.mjs",
+    "cifras.mjs",
     "trozos.ts",
     "eslint.prohibiciones.mjs",
     "rutasDeMuestra.mjs",

@@ -266,7 +266,7 @@ describe('confirmar', () => {
     await waitFor(() => expect(window.location.hash).toBe('#/comprobante'));
     expect(await screen.findByText('Pago registrado. Le enviamos el comprobante a maria@example.com.')).toBeInTheDocument();
 
-    // Lo pagado ya no es deuda: en «Elegir qué pago» solo quedan los dos que no se seleccionaron.
+    // Lo pagado deja de ser deuda: en «Elegir qué pago» solo quedan los dos que no se seleccionaron.
     fireEvent.click(franja().getByRole('button', { name: 'Elegir qué pago' }));
     await waitFor(() => expect(window.location.hash).toBe('#/deudas'));
     await enMain().findByRole('heading', { level: 1, name: 'Lo que debe, por concepto' });

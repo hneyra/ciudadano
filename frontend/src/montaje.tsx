@@ -55,7 +55,7 @@ function elEnrutador(): Enrutador {
  *   1. **la fuente** (`laFuente()`): la de demostracion o la de la plataforma, segun la bandera de
  *      construccion. Se resuelve antes de montar porque la de demostracion llega por un `import()`
  *      y no hay valor que poner mientras llega: montar primero dejaria a la primera pantalla
- *      leyendo de una fuente que todavia no es;
+ *      leyendo de una fuente que no es la suya;
  *   2. **el canje** (`arrancar()`): si volvemos del emisor, el codigo se canjea antes de la primera
  *      peticion, o esa peticion saldria sin token y recibiria su 401; y si no volvemos y hay
  *      plataforma, se le pregunta al emisor en silencio si ya se habia entrado (issue 35), para que
@@ -73,7 +73,7 @@ function elEnrutador(): Enrutador {
  * sintoma es el peor posible — la peticion del trozo sale con 200, no hay ni un error en la consola,
  * y `#raiz` se queda **vacio**.
  *
- * (Desde el issue 58 `demostracion.ts` ya no esta en este trozo —solo lo importa la fuente de
+ * (Desde el issue 58 `demostracion.ts` no esta en este trozo —solo lo importa la fuente de
  * demostracion—, pero la fuente sigue compartiendo modulos con el recorrido, y la regla se queda: un
  * `await` arriba vuelve a depender de como reparta Rollup.)
  *

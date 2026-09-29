@@ -43,7 +43,7 @@ describe('cerrar sesion desde el comprobante', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'Cerrar sesión' }));
     await waitFor(() => expect(window.location.hash).toBe('#/buscar'));
 
-    // La franja ya no lo abre: es un paso futuro otra vez.
+    // La franja deja de abrirlo: es un paso futuro otra vez.
     fireEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: 'Comprobante' }));
     expect(await screen.findByText('Complete primero los pasos anteriores.')).toBeInTheDocument();
 

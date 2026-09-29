@@ -33,8 +33,7 @@ const TEMA: ConfiguracionDeTema = {
  *
  * Se dibuja **solo** cuando el portal volvio del emisor de identidad y el canje no se pudo hacer:
  * un `?error=` del propio emisor, un `state` que no cuadra, un codigo que el emisor rechaza. En
- * cualquier otro arranque —o sea, en todos los de hoy— esta pantalla no existe y el portal abre en
- * su primer paso, como siempre.
+ * cualquier otro arranque esta pantalla no existe y el portal abre en su primer paso.
  *
  * Y hace falta porque el fallo, sin ella, **no se ve**: la libreria limpia la URL siempre —un
  * codigo usado no vale dos veces, y dejarlo en la barra hace que recargar de un error que no tiene

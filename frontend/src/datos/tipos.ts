@@ -64,7 +64,7 @@ export interface Deuda {
   readonly detalle: TablaDeDetalle;
 }
 
-/** Un campo del formulario de un medio de pago (hoy solo los tiene la tarjeta). */
+/** Un campo del formulario de un medio de pago (en los datos del artboard, solo los tiene la tarjeta). */
 export interface CampoDelMedio {
   readonly clave: string;
   readonly etiqueta: string;
@@ -204,7 +204,7 @@ export interface ComprobanteDeDemostracion {
  */
 
 /**
- * En que situacion esta la consulta, como tipo cerrado, para que las pantallas la dibujen (issue 15).
+ * En que situacion esta la consulta, como tipo cerrado, para que las pantallas la dibujen (issue 14).
  *
  * · `con-deuda`: hay obligaciones con saldo.
  * · `sin-deuda`: se leyo todo y no hay ninguna.
@@ -222,9 +222,9 @@ export type EstadoDeLaSituacion = 'con-deuda' | 'sin-deuda' | 'no-se-pudo-consul
  *
  * Viaja aparte y no pegado a cada cifra porque las cuentas del portal (`cuentas.ts`) suman importes
  * de texto, no pares. **La fecha no se pierde**: es la que cada `<Importe>` lleva en su
- * `fechaCalculo`. Hoy las cuatro son la misma —el servidor pone la fecha de la obligacion en los
- * cinco importes—, y aun asi se guardan las cuatro: el contrato permite que difieran, y aplanarlas
- * a una seria decidir por el servidor.
+ * `fechaCalculo`. Aunque el servidor ponga la misma en los cinco importes —la de la obligacion—, se
+ * guardan las cuatro: el contrato permite que difieran, y aplanarlas a una seria decidir por el
+ * servidor.
  */
 export interface FechasDelSaldo {
   readonly insoluto: Fecha;
@@ -250,7 +250,7 @@ export interface FechasDelSaldo {
  *
  * `cuotas`, `vence`, `estado`, `tono` y `detalle` **no existen en el contrato**. Se declaran `null`
  * —y no opcionales— para que el compilador obligue a mirarlos: una pantalla que los pinte tiene que
- * decidir que ensena cuando no los hay, y no puede confundirlos con «todavia no llegaron».
+ * decidir que ensena cuando no los hay, y no puede confundirlos con «llegaran luego».
  */
 export interface DeudaDelServidor {
   /** Derivado, no del servidor: ver `idDeLaObligacion` en `deLaSituacion.ts`. */
@@ -276,7 +276,7 @@ export interface DeudaDelServidor {
 /**
  * Un concepto de deuda, venga del artboard o del servidor.
  *
- * Es la union que van a leer las pantallas del doble modo (issue 15): lo que las dos formas
+ * Es la union que leen las pantallas en los dos modos (issue 27): lo que las dos formas
  * comparten —`id`, `concepto`, `unidad` y los tres importes que `cuentas.ts` suma— se puede usar
  * sin preguntar de donde vino; lo demas hay que mirarlo, porque de un lado es texto y del otro
  * `null`.

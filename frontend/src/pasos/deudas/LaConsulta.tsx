@@ -13,7 +13,7 @@ import { quienEsDelServidor } from './vista.ts';
  * **La deuda que cuenta el servidor, con sus cinco finales** (issues 27 y 28).
  *
  * Con plataforma, la deuda no esta en memoria: se pide. Y pedir tiene cuatro finales que el
- * ciudadano puede encontrarse, mas el rato en que todavia no hay ninguno. Esta pantalla los dibuja
+ * ciudadano puede encontrarse, mas el rato en que no ha llegado ninguno. Esta pantalla los dibuja
  * los cinco (`FinalesDeLaConsulta.tsx`, y aqui el de con deuda), y **no dibuja ni una cifra que no
  * venga del servidor**. Lo que dibuja igual que la demostracion —quien es, la lista, la fila de un
  * concepto, la barra de pago— esta en `piezas.tsx` (issue 60).

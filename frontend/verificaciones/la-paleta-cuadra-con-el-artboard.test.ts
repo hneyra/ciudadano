@@ -28,7 +28,7 @@ import { paletaDeLaIdentidad, reglasDe } from './tailwind.ts';
  *
  * Como en `rentas` (rentas#80): la libreria **publica** la paleta y quien tiene el artboard
  * vendorizado es este repositorio, asi que es este quien comprueba que cuadra. La libreria no
- * puede leer el artboard de un sistema sin depender de el (ADR-0030 §4). Y este portal **elige**
+ * puede leer el artboard de un sistema sin depender de el (infrastructure ADR-0030 §4). Y este portal **elige**
  * `clasico`, no la escribe: si la identidad se aparta del artboard, el arreglo es un issue en
  * `kamayuk-lib`, nunca un `--color-*` aqui (lo prohibe `sin-colores-propios`).
  *

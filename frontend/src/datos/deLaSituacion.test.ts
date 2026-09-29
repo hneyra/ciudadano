@@ -26,10 +26,10 @@ import { deLaSituacion, fechaDelImporte } from './deLaSituacion.ts';
  *
  *  1. **la respuesta MEDIDA**, `diseno/medidas/situacion-2026-09-16.json`, leida del disco tal cual
  *     llego de la plataforma local. Es la unica que demuestra algo sobre lo que el servidor
- *     contesta hoy;
+ *     contesto de verdad (el 2026-09-16);
  *  2. **respuestas CONSTRUIDAS A MANO** (todas las de `describe`s marcados «a mano»), derivadas del
  *     contrato y de las clases Java que lo sirven. No son mediciones y no pretenden serlo: son la
- *     forma que el contrato promete para las ramas que la plataforma local todavia no produce —hay
+ *     forma que el contrato promete para las ramas que la plataforma local no produjo al medir —hay
  *     un 401 de `catastro` en medio, que es de otro repositorio—. El dia que esas ramas se puedan
  *     medir, se vendorizan al lado de la primera y estas se van.
  */
@@ -285,7 +285,7 @@ describe('issue 57: dos obligaciones gemelas (mismo tributo, ejercicio y sin uni
     const [primera, segunda] = deLaSituacion(respuesta({ municipalidades: [CON_GEMELAS] })).deudas;
 
     expect(primera?.id).toBe('200104-multa_transito-2025-sin-unidad');
-    // La primera no lleva sufijo: no romper el id de la obligacion que hoy es unica en su grupo.
+    // La primera no lleva sufijo: no romper el id de la obligacion que es unica en su grupo.
     expect(segunda?.id).toBe('200104-multa_transito-2025-sin-unidad-2');
     expect(segunda?.id).not.toBe(primera?.id);
   });

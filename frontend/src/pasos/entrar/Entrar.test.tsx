@@ -12,7 +12,7 @@ import { limpiarElPortal, marcado, montarElPortal, plazosDelPortal } from '../..
  *
  * El recorrido con plataforma tiene **cuatro** pasos y empieza por entrar. Aqui se mide en la
  * pantalla lo que `recorrido.plataforma.test.ts` mide en el reductor: que la franja los dice, que
- * `#/deudas` sin sesion lleva a «Entrar», que con sesion `#/entrar` ya no se abre, y que la pantalla
+ * `#/deudas` sin sesion lleva a «Entrar», que con sesion `#/entrar` no se abre, y que la pantalla
  * conserva lo que el issue le pide conservar.
  */
 

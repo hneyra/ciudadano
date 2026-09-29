@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "version": "0.1.0",
-  "description": "ciudadano — el portal publico de pago de tributos, en modo demostracion: las seis pantallas del recorrido y el arnes de Playwright contra el bundle.",
+  "description": "ciudadano — el portal publico de pago de tributos, en sus dos modos (demostracion y plataforma), y el arnes de Playwright contra el bundle.",
   "engines": {
     "node": ">=24"
   },
@@ -17,8 +17,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verificar": "yarn lint && yarn typecheck && yarn i18n && yarn test",
+    "verificar": "yarn lint && yarn typecheck && yarn i18n && yarn test --reporter=default --reporter=json --outputFile.json=node_modules/.cache/cifras/vitest.json && yarn cifras --comprobar --informe node_modules/.cache/cifras/vitest.json",
     "i18n": "i18next-cli status",
+    "cifras": "node cifras.mjs",
     "i18n:regenerar": "KAMAYUK_REGENERAR=1 vitest run verificaciones/el-locale-esta-completo.test.ts",
     "e2e": "node puerto-del-arnes.mjs && playwright test",
     "e2e:navegador": "playwright install chromium"

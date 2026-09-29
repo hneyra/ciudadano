@@ -72,7 +72,7 @@ export interface ConceptoDelResumen {
   readonly total: Importe;
 }
 
-/** Una fila de los totales del resumen (lineas 459-464). */
+/** Una fila de los totales del resumen (lineas 463-468). */
 export interface FilaDelResumen {
   readonly rotulo: string;
   readonly valor: Importe;
@@ -80,7 +80,7 @@ export interface FilaDelResumen {
   readonly condonado: boolean;
 }
 
-/** «Lo que va a pagar» (lineas 447-473). */
+/** «Lo que va a pagar» (lineas 449-473). */
 export interface ElResumen {
   readonly conceptos: readonly ConceptoDelResumen[];
   readonly filas: readonly FilaDelResumen[];

@@ -8,7 +8,7 @@ import type { PagoSellado } from '../../recorrido/recorrido.ts';
 import { elRecibo } from './vista.ts';
 
 /**
- * **El recibo: lo unico que se imprime** (artboard, lineas 491-534 y 1287-1322). Lo que dice lo
+ * **El recibo: lo unico que se imprime** (artboard, lineas 491-546 y 1288-1322). Lo que dice lo
  * prepara `elRecibo` (`vista.ts`), solo con el pago sellado.
  *
  * · **`Tabla`** y compania para los conceptos, con el `min-width: 660px` del artboard (sin minimo a
@@ -31,7 +31,7 @@ import { elRecibo } from './vista.ts';
 const ROTULO_DEL_RECIBO = 'px-[18px] max-[701px]:px-[14px] max-[701px]:whitespace-normal max-[521px]:px-3';
 const CELDA_DEL_RECIBO = `${ROTULO_DEL_RECIBO} max-[521px]:text-[13px]`;
 
-/** Una celda de la meta (lineas 497-502 y 1291-1300): el filo fino de `CELDA`, rotulo y valor. */
+/** Una celda de la meta (lineas 504-511 y 1291-1300): el filo fino de `CELDA`, rotulo y valor. */
 function Meta({ rotulo, children }: { readonly rotulo: string; readonly children: ReactNode }) {
   return (
     <div className="-mt-px -ml-px border-t border-l border-linea-2 bg-superficie px-6 py-[14px]">

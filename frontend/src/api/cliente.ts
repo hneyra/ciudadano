@@ -12,10 +12,10 @@ import { PREFIJO } from './prefijo.ts';
  * Porque el transporte es del producto y no de este portal: `solicitar()`, `descargar()`,
  * `subir()`, el `problem+json` de RFC 9457, la clave de idempotencia y la cabecera `Authorization`
  * viven en `@kamayuk/api`. Lo unico que la libreria no puede saber son las dos cosas de abajo, que
- * son las que este archivo dice. `rentas` tiene su propia copia (`src/api/cliente.ts`, 154 lineas)
- * porque es anterior al paquete; aqui se nace sin ella.
+ * son las que este archivo dice. `rentas` tiene su propia copia (`src/api/cliente.ts`) porque es
+ * anterior al paquete; aqui se nace sin ella.
  *
- * <h2>El `municipalidadId` no se manda, y no se puede mandar (regla 2, ADR-0005)</h2>
+ * <h2>El `municipalidadId` no se manda, y no se puede mandar (regla 2, infrastructure ADR-0005)</h2>
  *
  * `OpcionesDeSolicitud` no tiene ninguna cabecera libre, asi que no hay por donde colar el
  * inquilino; y el unico endpoint del ciudadano —`GET /portal/situacion`— no lleva **ningun**

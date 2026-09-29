@@ -15,7 +15,7 @@ afterEach(cleanup);
  * **La instancia de i18next, para TODAS las pruebas** (como en `rentas`#103).
  *
  * `react-i18next` sin proveedor usa la instancia global de `i18next`, que solo existe si alguien
- * la inicializo. En la aplicacion lo hace `main.tsx`; en las pruebas lo hace esta linea. Ponerlo en
+ * la inicializo. En la aplicacion lo hace `src/montaje.tsx`; en las pruebas lo hace esta linea. Ponerlo en
  * cada archivo que lo necesite seria lo contrario: la prueba que se olvidara pasaria en verde
  * comprobando texto sin traducir.
  */

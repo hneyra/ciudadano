@@ -18,9 +18,10 @@ import configuracion from '../vite.config.ts';
 /**
  * **El camino a la API**: que exista, que sea uno solo, y que nadie se lo salte (issue 13).
  *
- * Portada de `rentas/frontend/verificaciones/camino-a-la-api.test.ts`, con la parte que aqui tiene
- * sujeto: `rentas` comprueba ademas que lo declarado servido lo publique su contrato, y este portal
- * todavia no declara ninguna operacion (eso es el issue 14).
+ * Portada de `rentas/frontend/verificaciones/camino-a-la-api.test.ts`, sin la parte que comprueba
+ * que lo declarado servido lo publique el contrato: este portal pide una sola ruta,
+ * `GET /portal/situacion` (`RUTA_DE_LA_SITUACION`, `src/datos/contrato.ts`), y su forma la vigila
+ * la frontera de `zod` (issue 34).
  *
  * <h2>Por que estas comprobaciones son estaticas y no de comportamiento</h2>
  *
