@@ -13,6 +13,11 @@ dist-de-la-imagen/
 # La cache de Vite: es de una maquina y de una corrida.
 .vite/
 
+# Lo que deja `yarn mutaciones` (issue 63): el directorio de trabajo de Stryker, que borra al acabar
+# salvo si se corta a medias, y su informe, que es de una corrida.
+.stryker-tmp/
+reports/
+
 # El arnes de Playwright, cuando llegue (como en `rentas`#107): ni el informe ni las trazas se
 # versionan, son de una corrida y en CI viajan como artefacto del trabajo.
 playwright-report/

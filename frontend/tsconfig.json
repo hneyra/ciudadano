@@ -13,6 +13,7 @@
     "trozos.ts",
     "eslint.prohibiciones.mjs",
     "rutasDeMuestra.mjs",
+    "mutaciones.mjs",
     "vitest.setup.ts",
     "*.config.ts"
   ],

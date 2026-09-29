@@ -17,7 +17,7 @@ import type {
   SituacionDelContrato,
 } from './contrato.ts';
 import { cuentaDe, totalDe } from './cuentas.ts';
-import { deLaSituacion, fechaDelImporte } from './deLaSituacion.ts';
+import { deLaSituacion, fechaDelImporte, quienDebeDe } from './deLaSituacion.ts';
 
 /**
  * **El adaptador de `GET /portal/situacion`** (issue 26).
@@ -544,6 +544,22 @@ describe('a mano: los predios, sin identificador y con su porcentaje como texto'
         porcentajeDeTitularidad: '50.00',
       },
     ]);
+  });
+});
+
+describe('`quienDebeDe`: el codigo del padron solo si todas las municipalidades dicen el mismo', () => {
+  const PIURA = { ubigeo: '200101', nombre: 'Municipalidad Provincial de Piura' };
+
+  it.each([
+    ['una municipalidad: su codigo', [municipalidad()], '00017341'],
+    ['dos con el mismo codigo: ese', [municipalidad(), municipalidad(PIURA)], '00017341'],
+    ['dos con codigos distintos: ninguno', [municipalidad(), municipalidad({ ...PIURA, codigoContribuyente: '99001' })], null],
+    ['ninguna: ninguno', [], null],
+  ])('%s', (_caso, municipalidades, codigo) => {
+    const quien = quienDebeDe(deLaSituacion(respuesta({ municipalidades })));
+
+    expect(quien.codigo).toBe(codigo);
+    expect(quien.documento).toBe('DNI 00000014');
   });
 });
 

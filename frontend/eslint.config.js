@@ -73,6 +73,9 @@ export default tseslint.config(
       // un rojo, `yarn lint` —y con el `yarn verificar`— salia con «✖ 3965 problems».
       '**/playwright-report/**',
       '**/test-results/**',
+      // El directorio de trabajo de `yarn mutaciones` (issue 63): copias del arbol con el codigo mutado.
+      // Su informe (`reports/`) no hace falta: es `.html` y `.json`, que ESLint no lee.
+      '**/.stryker-tmp/**',
       '**/*.config.js',
       '**/*.config.ts',
       // El artboard es un prototipo de Claude Design, no codigo de este repositorio.
