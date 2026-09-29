@@ -1,6 +1,13 @@
-import type { FallaDeLaPuerta } from '@kamayuk/sesion';
-
-import { type FalloDelEmisor, deLaVuelta, falloInesperado, leerElError, vueltaInesperada } from './api/emisor.ts';
+import {
+  type FalloDelEmisor,
+  IDA_INESPERADA,
+  type TextoDelEmisor,
+  deLaSonda,
+  deLaVuelta,
+  falloInesperado,
+  leerElError,
+  vueltaInesperada,
+} from './api/emisor.ts';
 import { identidad } from './api/identidad.ts';
 import { type CanjeSilencioso, type Silencio, silencio as silencioDelPortal } from './api/silencio.ts';
 
@@ -226,15 +233,25 @@ export async function arrancar(
 }
 
 /**
- * **Manda al formulario del emisor.** Lo llamara «Iniciar sesion» del marco cuando haya plataforma
- * (issue 16); hoy no lo llama nadie, y por eso el portal sigue arrancando en demostracion.
+ * **Manda al formulario del emisor.** La llaman «Iniciar sesión» de la barra, «Entrar con mi cuenta»
+ * del paso 1 y el boton del peldano que pide identidad, los tres por `useIrALaPuerta`
+ * (`src/piezas/irALaPuerta.ts`).
  *
- * Devuelve `null` cuando el navegador se va —que es el caso de siempre— y la falla cuando no se
- * pudo ni llegar al emisor, para que quien llama la explique en vez de dejar la pagina en blanco.
- * Se lee al reves de lo que parece: `null` es que todo fue bien.
+ * Devuelve `null` cuando el navegador se va —que es el caso de siempre— y, cuando no se pudo ni
+ * llegar al emisor, **el aviso con una clave del portal** (`deLaSonda()`, issue 67), para que quien
+ * llama lo diga en vez de dejar la pagina como estaba. Hasta el issue 67 devolvia la
+ * `FallaDeLaPuerta` de la libreria, y las pantallas ensenaban su `motivo`: «Failed to fetch», o «no
+ * contesto en 8 s» sin tilde. Se lee al reves de lo que parece: `null` es que todo fue bien.
+ *
+ * Y si la ida REVIENTA en vez de contestar —el almacenamiento o el `crypto` del navegador—, tambien
+ * hay aviso (`IDA_INESPERADA`): sin el, la promesa rechazaba sin nadie que la oyera y el boton no
+ * hacia nada visible.
  */
-export function entrar(): Promise<FallaDeLaPuerta | null> {
-  return identidad.entrar();
+export function entrar(): Promise<TextoDelEmisor | null> {
+  return identidad.entrar().then(
+    (falla) => (falla === null ? null : deLaSonda(falla)),
+    () => IDA_INESPERADA,
+  );
 }
 
 /**

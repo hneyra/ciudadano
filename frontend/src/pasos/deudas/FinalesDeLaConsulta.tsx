@@ -1,9 +1,9 @@
-import { Boton, avisar } from '@kamayuk/ui';
+import { Boton } from '@kamayuk/ui';
 import { useTranslation } from 'react-i18next';
 
 import { peldanoDelPortal } from '../../api/escalera.ts';
-import { entrar } from '../../arranque.ts';
 import type { SituacionDelServidor } from '../../datos/tipos.ts';
+import { useIrALaPuerta } from '../../piezas/irALaPuerta.ts';
 import { Reintentar } from '../../piezas/Reintentar.tsx';
 import { Bloque, Parrafo } from './piezas.tsx';
 
@@ -40,9 +40,8 @@ export function Pidiendo() {
 /**
  * La consulta no llego a contestar: el peldano de la escalera, con las palabras del portal.
  *
- * `entrar()` se llama y no se espera a que vuelva: cuando todo va bien, el navegador se va de esta
- * pagina. La promesa solo trae algo cuando **no se pudo ni llegar al emisor**, y eso se avisa en vez
- * de dejar el boton pulsado sin que ocurra nada visible.
+ * «Entrar» va a la puerta con `useIrALaPuerta`: si no se llega al emisor, se avisa con palabras del
+ * portal en vez de dejar el boton pulsado sin que ocurra nada visible (issue 67).
  */
 export function NoSePudoPreguntar({
   fallo,
@@ -52,6 +51,7 @@ export function NoSePudoPreguntar({
   readonly alReintentar: () => void;
 }) {
   const { t } = useTranslation();
+  const irALaPuerta = useIrALaPuerta();
   const peldano = peldanoDelPortal(fallo, t);
 
   return (
@@ -63,13 +63,7 @@ export function NoSePudoPreguntar({
           type="button"
           variante="primario"
           className="mt-[14px] min-h-[44px] px-5 py-0 text-[14.5px]"
-          onClick={() => {
-            void entrar().then((falla) => {
-              if (falla !== null) {
-                avisar(t('No pudimos llevarle al acceso: {{motivo}}.', { motivo: falla.motivo }));
-              }
-            });
-          }}
+          onClick={irALaPuerta}
         >
           {t('Entrar')}
         </Boton>

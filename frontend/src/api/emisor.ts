@@ -1,4 +1,4 @@
-import type { TextosDeLaPuerta, Vuelta } from '@kamayuk/sesion';
+import type { FallaDeLaPuerta, TextosDeLaPuerta, Vuelta } from '@kamayuk/sesion';
 
 /**
  * **Lo que el sistema de identidad contesta, dicho UNA vez y para un contribuyente** (issue 56).
@@ -17,7 +17,8 @@ import type { TextosDeLaPuerta, Vuelta } from '@kamayuk/sesion';
  * Y el mismo `?error=access_denied` que el silencio contaba como «no se completo la entrada», la
  * vuelta lo ensenaba con otras palabras. Ahora las dos leen de aqui: `leerElError()` es la unica
  * funcion que convierte un `?error=` del emisor en lo que se dice, y `deLaVuelta()` la que convierte
- * lo que la libreria cuenta de un canje fallido.
+ * lo que la libreria cuenta de un canje fallido. Y desde el issue 67, `deLaSonda()` la que convierte
+ * lo que cuenta la IDA que no llego al emisor.
  *
  * <h2>Claves y no frases: aqui no se traduce</h2>
  *
@@ -94,6 +95,13 @@ export const TEXTOS_DEL_EMISOR = {
   vueltaInesperada: 'No se pudo completar la entrada',
   vueltaInesperadaDetalle: 'Algo falló al leer la vuelta: {{mensaje}}',
   vueltaDesconocida: 'La vuelta no se pudo leer.',
+  // ── La ida que no llega al formulario (issue 67): el aviso ENTERO, porque sale solo ──────────
+  sondaNoLlega:
+    'No pudimos llevarle al acceso: el sistema de identidad no contesta. Puede estar apagado o no ser alcanzable desde este equipo; vuelva a intentarlo en unos minutos.',
+  sondaSinRespuesta:
+    'No pudimos llevarle al acceso: el sistema de identidad no contestó en {{segundos}} s. Vuelva a intentarlo en unos minutos.',
+  idaInesperada:
+    'No pudimos llevarle al acceso: algo falló en este navegador al preparar la entrada. Vuelva a cargar la página e inténtelo otra vez.',
 } as const;
 
 /** Las claves de `TEXTOS_DEL_EMISOR`, para el inventario del locale. */
@@ -205,10 +213,10 @@ export function vueltaInesperada(error: unknown): FalloDelEmisor {
  * barra, con `leerElError()`, porque la libreria pierde el codigo al traducirlo): sin ellos, la
  * libreria volveria a escribir su castellano en la `Vuelta`.
  *
- * `Omit` de los dos de la SONDA (`FallaDeLaPuerta.motivo`), que no son de la vuelta: ver «Lo que NO
- * cierra» del PR del issue 56. Y `satisfies` y no `Partial`: una frase NUEVA de la vuelta en la
- * libreria deja este objeto corto y `yarn typecheck` sale rojo, en vez de colarse en castellano de
- * funcionario.
+ * `Omit` de los dos de la SONDA (`FallaDeLaPuerta.motivo`), que no son de la vuelta: esos son
+ * `TEXTOS_DE_LA_SONDA`, y la puerta recibe los dos juntos (`TEXTOS_DE_LA_PUERTA_DEL_PORTAL`). Y
+ * `satisfies` y no `Partial`: una frase NUEVA de la vuelta en la libreria deja este objeto corto y
+ * `yarn typecheck` sale rojo, en vez de colarse en castellano de funcionario.
  */
 export const TEXTOS_DE_LA_VUELTA = {
   noSeCompletoLaEntrada: TEXTOS_DEL_EMISOR.noDejo,
@@ -249,3 +257,54 @@ export function deLaVuelta(vuelta: Extract<Vuelta, { estado: 'fallo' }>): FalloD
       return fallo(texto(TEXTOS_DEL_EMISOR.vueltaInesperada), texto(TEXTOS_DEL_EMISOR.vueltaDesconocida));
   }
 }
+
+/**
+ * **La marca con la que la libreria cuenta que la sonda agoto su espera** (issue 67). La escribe
+ * `TEXTOS_DE_LA_SONDA.noContestoEn` y la lee `deLaSonda()`; ningun navegador empieza asi un mensaje.
+ */
+const PLAZO_DE_LA_SONDA = 'plazo-de-la-sonda:';
+const PLAZO_LEIDO = /^plazo-de-la-sonda:(\d+(?:\.\d+)?)$/;
+
+/**
+ * **Los dos textos de la SONDA de `entrar()`**, que la libreria pone en `FallaDeLaPuerta.motivo`
+ * cuando el navegador no dio palabras (issue 67).
+ *
+ * El `motivo` es un solo texto donde caben tres cosas: las palabras del navegador («Failed to fetch»,
+ * «Load failed», las que sean), o uno de estos dos. Asi que estos no llevan frase, llevan algo que
+ * `deLaSonda()` pueda reconocer SIN leer lo del navegador: la clave del aviso sin respuesta, y la
+ * marca del plazo con sus segundos.
+ */
+export const TEXTOS_DE_LA_SONDA = {
+  laPeticionNoLlegoACompletarse: TEXTOS_DEL_EMISOR.sondaNoLlega,
+  noContestoEn: (segundos: number) => `${PLAZO_DE_LA_SONDA}${String(segundos)}`,
+} satisfies Pick<TextosDeLaPuerta, 'laPeticionNoLlegoACompletarse' | 'noContestoEn'>;
+
+/**
+ * **Todo lo que la puerta del portal le da a `crearIdentidad`** (`identidad.ts`): la vuelta y la
+ * sonda. `satisfies` el tipo ENTERO: una frase nueva de la libreria deja esto corto y
+ * `yarn typecheck` sale rojo.
+ */
+export const TEXTOS_DE_LA_PUERTA_DEL_PORTAL = {
+  ...TEXTOS_DE_LA_VUELTA,
+  ...TEXTOS_DE_LA_SONDA,
+} satisfies TextosDeLaPuerta;
+
+/**
+ * **La ida que no llego al sistema de identidad, dicha con una clave del portal** (issue 67).
+ *
+ * Solo el plazo tiene aviso propio, con los segundos que la marca trae; lo demas —el mensaje del
+ * navegador, lo que no era un `Error`, una forma nueva que la libreria invente— es «no contesta». El
+ * `motivo` se compara y **nunca se ensena**: son palabras del navegador, en ingles y de consola.
+ */
+export function deLaSonda(falla: FallaDeLaPuerta): TextoDelEmisor {
+  const plazo = PLAZO_LEIDO.exec(falla.motivo);
+  if (plazo?.[1] !== undefined) return texto(TEXTOS_DEL_EMISOR.sondaSinRespuesta, { segundos: plazo[1] });
+  return texto(TEXTOS_DEL_EMISOR.sondaNoLlega);
+}
+
+/**
+ * **La ida que REVIENTA antes de salir hacia el formulario** (issue 67): `sessionStorage` que no deja
+ * guardar el verificador, un `crypto.subtle` que falta. La sonda ya contesto, asi que no es el
+ * sistema de identidad: es este navegador.
+ */
+export const IDA_INESPERADA: TextoDelEmisor = texto(TEXTOS_DEL_EMISOR.idaInesperada);

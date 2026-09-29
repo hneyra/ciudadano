@@ -365,9 +365,9 @@ const LITERALES = [
   'No encontramos deuda a su nombre',
   'Con {{tipoDeDocumento}} {{numeroDeDocumento}} no figura ninguna deuda en las municipalidades del sistema.',
   'Si cree que es un error, acérquese con su documento a la ventanilla de la municipalidad: allí lo revisan en el momento.',
-  // El boton del peldano que pide identidad, y lo que se dice si no se pudo ni llegar al emisor.
+  // El boton del peldano que pide identidad. Lo que se dice si no se llega al emisor esta en
+  // `TEXTOS_DEL_EMISOR` desde el issue 67: ver `clavesDelEmisor()`, abajo.
   'Entrar',
-  'No pudimos llevarle al acceso: {{motivo}}.',
   // El nombre de respaldo de la barra: un realm puede no mandar `name`, y el circulo no puede
   // quedarse vacio (`src/marco/Barra.tsx`).
   'Su cuenta',
@@ -453,7 +453,8 @@ const LITERALES = [
   // peldano solo se sabe en ejecucion—, asi que `i18next-cli` no los ve y escribirlos aqui a mano
   // dejaria el olvido sin rojo.
   ...clavesDeLaEscalera(),
-  // Lo que la vuelta del emisor —la normal y la silenciosa (issues 35 y 56)— puede llegar a decir, derivado de `TEXTOS_DEL_EMISOR`.
+  // Lo que la vuelta del emisor —la normal y la silenciosa (issues 35 y 56)— y la ida que no llega a
+  // el (issue 67) pueden llegar a decir, derivado de `TEXTOS_DEL_EMISOR`.
   // La pantalla lo traduce con una variable —el motivo solo se sabe en ejecucion—.
   ...clavesDelEmisor(),
 ];

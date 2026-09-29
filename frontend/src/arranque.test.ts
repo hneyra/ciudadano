@@ -406,15 +406,20 @@ describe('lo que el arranque expone para el marco (issue 16)', () => {
     expect(puerta).toHaveBeenCalledTimes(1);
   });
 
-  it('y devuelve la falla cuando no se pudo ni llegar al emisor', async () => {
-    const falla = {
+  it('y cuando no se pudo ni llegar al emisor, devuelve el aviso con una clave del portal, sin el motivo (issue 67)', async () => {
+    vi.spyOn(identidad, 'entrar').mockResolvedValue({
       emisor: 'http://localhost:18180/realms/kamayuk-ciudadano',
       url: 'http://localhost:18180/realms/kamayuk-ciudadano/.well-known/openid-configuration',
       motivo: 'Failed to fetch',
-    };
-    vi.spyOn(identidad, 'entrar').mockResolvedValue(falla);
+    });
 
-    await expect(entrar()).resolves.toEqual(falla);
+    await expect(entrar()).resolves.toEqual({ clave: TEXTOS_DEL_EMISOR.sondaNoLlega });
+  });
+
+  it('y si la ida REVIENTA antes de salir, tambien hay aviso, y no una promesa rechazada que nadie oye (issue 67)', async () => {
+    vi.spyOn(identidad, 'entrar').mockRejectedValue(new TypeError("Cannot read properties of undefined (reading 'digest')"));
+
+    await expect(entrar()).resolves.toEqual({ clave: TEXTOS_DEL_EMISOR.idaInesperada });
   });
 
   it('`salir()` cierra tambien en el emisor', () => {

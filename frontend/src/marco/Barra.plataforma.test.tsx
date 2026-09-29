@@ -5,12 +5,15 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { identidad } from '../api/identidad.ts';
 import { USUARIO } from '../datos/demostracion.ts';
 import { crearFuenteDeLaPlataforma } from '../datos/fuenteDeLaPlataforma.ts';
+import i18n, { IDIOMA_MARCADO } from '../i18n/i18n.ts';
 import {
   limpiarElPortal,
+  marcado,
   montarElPortal,
   remendarJsdomParaElMenu,
   plazosDelPortal,
 } from '../pruebas/portal.tsx';
+import { LAS_SONDAS_QUE_FALLAN, laSondaFallaCon, seAvisaSinNadaCrudo } from '../pruebas/sondaQueFalla.ts';
 
 /**
  * **La sesion del marco, con plataforma** (issue 27).
@@ -55,6 +58,7 @@ beforeAll(remendarJsdomParaElMenu);
 afterEach(async () => {
   identidad.fijarToken(null);
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   await limpiarElPortal();
 });
 
@@ -74,19 +78,26 @@ describe('sin sesion', () => {
     expect(window.location.hash).toBe('#/entrar');
   });
 
-  it('y si no se pudo ni llegar al emisor, se dice en vez de no hacer nada visible', async () => {
-    vi.spyOn(identidad, 'entrar').mockResolvedValue({
-      emisor: 'http://localhost:18180/realms/kamayuk-ciudadano',
-      url: 'http://localhost:18180/realms/kamayuk-ciudadano/.well-known/openid-configuration',
-      motivo: 'la peticion no llego a completarse',
-    });
+  it.each(LAS_SONDAS_QUE_FALLAN)(
+    'y si no se pudo ni llegar al emisor (%s), se dice con palabras del portal y sin nada crudo (issue 67)',
+    async (_caso, falla, aviso) => {
+      laSondaFallaCon(falla());
+      montarElPortal({ hash: '#/entrar', fuente: conPlataforma() });
+
+      fireEvent.click(within(barra()).getByRole('button', { name: 'Iniciar sesión' }));
+
+      await seAvisaSinNadaCrudo(aviso);
+    },
+  );
+
+  it.each(LAS_SONDAS_QUE_FALLAN)('y ese aviso (%s) pasa por `t()` entero', async (_caso, falla, aviso) => {
+    await i18n.changeLanguage(IDIOMA_MARCADO);
+    laSondaFallaCon(falla());
     montarElPortal({ hash: '#/entrar', fuente: conPlataforma() });
 
-    fireEvent.click(within(barra()).getByRole('button', { name: 'Iniciar sesión' }));
+    fireEvent.click(within(barra()).getByRole('button', { name: marcado('Iniciar sesión') }));
 
-    expect(
-      await screen.findByText('No pudimos llevarle al acceso: la peticion no llego a completarse.'),
-    ).toBeInTheDocument();
+    await seAvisaSinNadaCrudo(marcado(aviso));
   });
 });
 

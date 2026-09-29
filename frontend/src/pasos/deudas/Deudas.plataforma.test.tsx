@@ -13,6 +13,7 @@ import type { SituacionDelContrato } from '../../datos/contrato.ts';
 import { crearFuenteDeLaPlataforma } from '../../datos/fuenteDeLaPlataforma.ts';
 import i18n, { ABRE, CIERRA, IDIOMA_MARCADO } from '../../i18n/i18n.ts';
 import { limpiarElPortal, marcado, montarElPortal, plazosDelPortal } from '../../pruebas/portal.tsx';
+import { LAS_SONDAS_QUE_FALLAN, laSondaFallaCon, seAvisaSinNadaCrudo } from '../../pruebas/sondaQueFalla.ts';
 
 /**
  * **El paso 2 con plataforma: la deuda que cuenta el servidor** (issues 27 y 28).
@@ -151,6 +152,7 @@ const CON_UNA_OBLIGACION: SituacionDelContrato = respuesta({
 afterEach(async () => {
   identidad.fijarToken(null);
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   await limpiarElPortal();
 });
 
@@ -404,6 +406,28 @@ describe('cuando la peticion falla', () => {
 
     fireEvent.click(enMain().getByRole('button', { name: 'Entrar' }));
     await waitFor(() => expect(ida).toHaveBeenCalledTimes(1));
+  });
+
+  it.each(LAS_SONDAS_QUE_FALLAN)(
+    'y si «Entrar» no llega al emisor (%s), se dice con palabras del portal y sin nada crudo (issue 67)',
+    async (_caso, falla, aviso) => {
+      laSondaFallaCon(falla());
+      conSesion(() => Promise.reject(new ErrorDeLaApi(401, 'GET /portal/situacion', { codigo: 'NO_AUTENTICADO' })));
+
+      fireEvent.click(await enMain().findByRole('button', { name: 'Entrar' }));
+
+      await seAvisaSinNadaCrudo(aviso);
+    },
+  );
+
+  it.each(LAS_SONDAS_QUE_FALLAN)('y ese aviso (%s) pasa por `t()` entero', async (_caso, falla, aviso) => {
+    await i18n.changeLanguage(IDIOMA_MARCADO);
+    laSondaFallaCon(falla());
+    conSesion(() => Promise.reject(new ErrorDeLaApi(401, 'GET /portal/situacion', { codigo: 'NO_AUTENTICADO' })));
+
+    fireEvent.click(await enMain().findByRole('button', { name: marcado('Entrar') }));
+
+    await seAvisaSinNadaCrudo(marcado(aviso));
   });
 
   it('un 403 SIN_DOCUMENTO usa el texto PROPIO del portal, y no ofrece volver a la puerta', async () => {
